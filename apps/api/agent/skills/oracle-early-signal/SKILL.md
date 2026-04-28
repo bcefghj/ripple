@@ -1,6 +1,6 @@
 ---
 name: oracle-early-signal
-description: KOC 早期信号雷达 - 从 12 个数据源并行扫描"刚开始升温"的话题,在热搜出现前 7-14 天发现机会
+description: KOC 早期信号雷达 - 从 7 个真实数据源并行扫描"刚开始升温"的话题,在热搜出现前 7-14 天发现机会
 when_to_use: 当 KOC 询问"接下来发什么内容"、"什么话题会火"、"有没有新趋势"等时
 allowed_tools:
   - polymarket_search

@@ -29,9 +29,9 @@
 
 借鉴金融界 [Digital Oracle](https://github.com/komako-workshop/digital-oracle) 的「资本永远先于舆论」哲学:
 
-- **7 个真实数据源并行扫描**:Polymarket 预测市场 / Manifold / HackerNews / 微博热搜 / 抖音热搜 / 百度热搜 / B站热门
+- **7 个数据源并行扫描**: Polymarket 预测市场(直连) / Manifold(直连) / HackerNews(直连) / 微博热搜 / 抖音热搜 / 百度热搜 / B站热门(国内热搜经 xxapi.cn 聚合 API)
 - **算法**: CUSUM 累积和检测 + MAD-zscore 鲁棒统计 + 跨平台矛盾推理
-- **零 Mock**: 所有数据源均为真实 API 实时调用
+- **真实 API**: 所有数据源均为实时 API 调用,无硬编码 Mock 数据
 
 ### 2. 12 Agent 论坛辩论 (Forum)
 
@@ -49,7 +49,7 @@
 
 ## 真实案例演示 (零 Mock)
 
-以下所有案例均通过 `test_oracle_real.py` 运行,数据来自真实 API。
+以下案例均通过 `test_oracle_real.py` 运行,数据来自实时 API 调用(国际源直连,国内热搜经第三方聚合)。内容生成由 MiMo / MiniMax 完成。
 
 ### 案例 1: 跨平台时差 — 微博热搜 #3 但抖音/B站零覆盖
 

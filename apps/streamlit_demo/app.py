@@ -51,7 +51,7 @@ with st.sidebar:
         "- [Digital Oracle](https://github.com/komako-workshop/digital-oracle) — 早期信号\n"
         "- Claude Code 51 万行 — 架构纪律\n"
         "- [MiroFish](https://github.com/666ghj/MiroFish) — 群体仿真\n"
-        "- [BettaFish](https://github.com/666ghj/BettaFish) — 多 Agent 辩论"
+        "- [BettaFish](https://github.com/Kocoro-lab/BettaFish) — 多 Agent 辩论"
     )
     st.divider()
     st.markdown("### 12 Agent 工厂")
@@ -343,9 +343,9 @@ with tab_about:
         st.markdown("""
         **核心技术栈**:
         - Python 3.12 + FastAPI + LiteLLM
-        - PostgreSQL + pgvector
-        - Next.js 15 / Tauri 2 / 微信小程序 / PWA
+        - Streamlit (MVP) + 静态官网
         - 小米 MiMo 首选 + MiniMax M2.7 备用 + 腾讯混元兜底 + BYOK
+        - 路线图: Next.js / Tauri 桌面 / 微信小程序 / PWA
 
         **合规**:
         - 《AI 生成合成内容标识办法》全合规

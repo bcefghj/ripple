@@ -313,13 +313,13 @@ class LLMRouter:
                 api_base=api_base,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                stream=stream,
+                stream=False,
                 **kwargs,
             )
 
             latency_ms = int((time.time() - start) * 1000)
 
-            content = response.choices[0].message.content if not stream else ""
+            content = response.choices[0].message.content
             usage = getattr(response, "usage", None)
 
             return LLMResponse(

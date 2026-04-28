@@ -97,15 +97,9 @@ async def llm_call_bridge(
     }
 
 
-# 全局 Orchestrator(简化:生产应每请求 new)
-_orchestrator: Optional[RippleOrchestrator] = None
-
-
 def get_orchestrator() -> RippleOrchestrator:
-    global _orchestrator
-    if _orchestrator is None:
-        _orchestrator = RippleOrchestrator(llm_call=llm_call_bridge)
-    return _orchestrator
+    """每次请求新建 Orchestrator,避免并发串扰"""
+    return RippleOrchestrator(llm_call=llm_call_bridge)
 
 
 # ============ Pydantic Models ============
@@ -260,23 +254,12 @@ async def ripple_stream(websocket: WebSocket):
 
 @app.post("/api/v1/byok")
 async def byok_add(req: BYOKRequest):
-    """用户添加自己的 API Key (BYOK)
-    
-    注意:这只是接口定义,生产环境必须将 API Key 加密后存储,
-    且解密只在调用 LLM 时临时进行,不暴露给前端。
-    """
-    from utils.crypto import encrypt
-
-    # 加密用户 API Key
-    encrypted = encrypt(req.api_key, req.user_passphrase)
-
-    # 生产: 写入数据库 user_api_keys 表
-    # 这里只是返回成功
+    """用户添加自己的 API Key (BYOK) — Demo 阶段仅验证接口"""
     return {
         "success": True,
         "provider": req.provider,
-        "encrypted_size_bytes": len(encrypted),
-        "note": "API Key 已用 Argon2id + AES-256-GCM 加密存储",
+        "note": "Demo 阶段: BYOK 接口已就绪,生产版将使用 Argon2id + AES-256-GCM 加密存储",
+        "status": "demo_stub",
     }
 
 

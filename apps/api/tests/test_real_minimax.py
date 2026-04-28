@@ -1,5 +1,6 @@
 """
-Ripple × MiniMax 真实 API 实测
+Ripple 真实 LLM API 实测 (MiMo 优先, MiniMax 备用)
+
 3 个符合腾讯 AI 赛题 5 的场景:
   1. 视频号 KOC - 科技 / AI 评测
   2. 公众号 KOC - 职场成长
@@ -7,7 +8,8 @@ Ripple × MiniMax 真实 API 实测
 
 使用方式:
     cd ripple/apps/api
-    python3 tests/test_real_minimax.py
+    XIAOMI_API_KEY=tp-xxx python3 tests/test_real_minimax.py
+    # 或: MINIMAX_API_KEY=sk-xxx python3 tests/test_real_minimax.py
 """
 
 from __future__ import annotations
@@ -15,32 +17,41 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import sys
 import time
 from typing import Any, Dict
 
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
+XIAOMI_API_KEY = os.environ.get("XIAOMI_API_KEY", "")
 MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "")
-if not MINIMAX_API_KEY:
-    raise SystemExit("请设置环境变量 MINIMAX_API_KEY，例如: export MINIMAX_API_KEY=sk-...")
-MINIMAX_API_BASE = "https://api.minimax.chat/v1"
-MINIMAX_MODEL = "MiniMax-M2.7"
+
+if XIAOMI_API_KEY:
+    LLM_API_KEY = XIAOMI_API_KEY
+    LLM_API_BASE = "https://token-plan-cn.xiaomimimo.com/v1"
+    LLM_MODEL = "mimo-v2.5-pro"
+elif MINIMAX_API_KEY:
+    LLM_API_KEY = MINIMAX_API_KEY
+    LLM_API_BASE = "https://api.minimax.chat/v1"
+    LLM_MODEL = "MiniMax-M2.7"
+else:
+    raise SystemExit("请设置环境变量 XIAOMI_API_KEY 或 MINIMAX_API_KEY")
 
 
 async def minimax_call(messages, temperature=0.7, max_tokens=1500) -> Dict[str, Any]:
-    """直接调用 MiniMax API"""
+    """调用 LLM API (MiMo 或 MiniMax)"""
     import httpx
 
     async with httpx.AsyncClient(timeout=60) as client:
         r = await client.post(
-            f"{MINIMAX_API_BASE}/chat/completions",
+            f"{LLM_API_BASE}/chat/completions",
             headers={
-                "Authorization": f"Bearer {MINIMAX_API_KEY}",
+                "Authorization": f"Bearer {LLM_API_KEY}",
                 "Content-Type": "application/json",
             },
             json={
-                "model": MINIMAX_MODEL,
+                "model": LLM_MODEL,
                 "messages": messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,

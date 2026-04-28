@@ -68,15 +68,59 @@ async def minimax_call(sys_prompt: str, user_prompt: str, max_tokens: int = 2500
 
 
 def parse_json(text):
+    """解析 JSON, 支持 ```json 包裹 + MiniMax 截断输出自动修复"""
     try:
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
         elif "```" in text:
             text = text.split("```")[1].split("```")[0].strip()
+
         s = text.find("{")
-        e = text.rfind("}")
-        if s != -1 and e != -1:
-            return json.loads(text[s : e + 1])
+        if s == -1:
+            return None
+        raw = text[s:]
+
+        # 先尝试直接解析
+        e = raw.rfind("}")
+        if e != -1:
+            try:
+                return json.loads(raw[: e + 1])
+            except Exception:
+                pass
+
+        # JSON 被截断: 回退到最后一个完整对象结束位置
+        # 找最后一个 "}" 使得从 raw 起始到该位置前缀可被解析
+        # 策略: 找所有 "}" 位置, 从最后往前试, 并补上缺失的闭合符
+        brace_positions = [i for i, c in enumerate(raw) if c == "}"]
+        for pos in reversed(brace_positions):
+            chunk = raw[: pos + 1]
+            # 计算剩余未关闭的括号
+            ob, cb, osb, csb = 0, 0, 0, 0
+            in_str = False
+            esc = False
+            for ch in chunk:
+                if esc:
+                    esc = False
+                    continue
+                if ch == "\\" and in_str:
+                    esc = True
+                    continue
+                if ch == '"':
+                    in_str = not in_str
+                    continue
+                if in_str:
+                    continue
+                if ch == "{": ob += 1
+                elif ch == "}": cb += 1
+                elif ch == "[": osb += 1
+                elif ch == "]": csb += 1
+            suffix = "]" * max(0, osb - csb) + "}" * max(0, ob - cb)
+            candidate = chunk + suffix
+            try:
+                result = json.loads(candidate)
+                return result
+            except Exception:
+                continue
     except Exception:
         pass
     return None
@@ -309,20 +353,20 @@ async def scenario_b():
   ],
   "wechat_article": {{
     "title": "公众号标题",
-    "body": "完整正文(800-1000字,开头引用 Polymarket 数据,有结构有小标题)",
-    "tags": ["标签1", ...],
-    "cta": "文末互动引导"
+    "body": "正文(500-600字,开头引用 Polymarket 数据,有2-3个小标题)",
+    "tags": ["标签1", "标签2"],
+    "cta": "文末互动引导(1句话)"
   }},
   "video_script": {{
     "title": "视频号标题",
-    "script": "45-60s 口播逐字稿(开头用 Polymarket 数据做钩子)",
-    "cta": "视频结尾CTA"
+    "script": "30-40s 口播逐字稿(开头用 Polymarket 数据做钩子,约200字)",
+    "cta": "视频结尾CTA(1句话)"
   }},
   "posting_strategy": "发布时间建议"
 }}
 只输出 JSON。"""
 
-    content, tokens, ms2 = await minimax_call(sys_p, user_p, max_tokens=3000)
+    content, tokens, ms2 = await minimax_call(sys_p, user_p, max_tokens=4000)
     print(f"  生成完成 ({ms2 / 1000:.1f}s, {tokens:,} tokens)")
 
     pkg = parse_json(content)

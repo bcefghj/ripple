@@ -175,15 +175,30 @@
 \setlist{itemsep=0.3em, parsep=0em, topsep=0.3em}
 
 % ============ 文档元信息 ============
-\title{\Huge\bfseries\color{ripple-primary} Ripple\\[0.3em]\large\color{ripple-dark} KOC 早期信号雷达 + 多 Agent 内容工厂}
-\author{\large DSH \\ \normalsize 华南理工大学}
-\date{\today}
+\title{\Huge\bfseries\color{ripple-primary} Ripple 2.0\\[0.3em]\large\color{ripple-dark} KOC 决策智能 OS \\ \normalsize 早期信号雷达 + 多层记忆 + Persona Vector + Replay Graph}
+\author{\large 戴尚好 \\ \normalsize 中国科学技术大学 \\ \normalsize \texttt{bcefghj@163.com}}
+\date{2026 年 4 月}
 
 % ============ 主体开始 ============
 \begin{document}
 
 \input{cover}
 \thispagestyle{empty}
+\newpage
+
+% 目录
+\renewcommand{\contentsname}{\color{ripple-primary} 目录}
+\tableofcontents
+\thispagestyle{plain}
+\newpage
+
+% 图表目录
+\renewcommand{\listfigurename}{\color{ripple-primary} 图目录}
+\listoffigures
+\newpage
+
+\renewcommand{\listtablename}{\color{ripple-primary} 表目录}
+\listoftables
 \newpage
 
 % 执行摘要
@@ -198,15 +213,31 @@
 \input{02-product}
 \newpage
 
-% 模块 3: AI 原生能力说明
+% 模块 3: AI 原生能力说明 (7 层架构)
 \input{03-ai-native}
 \newpage
 
-% 模块 4: 加分项
+% 模块 4: 10 大原创能力深度解析
 \input{04-bonus}
 \newpage
 
-% 附录
+% 新增: 竞品矩阵分析
+\input{06-competitor-matrix}
+\newpage
+
+% 新增: AI 投毒防御
+\input{07-anti-poisoning}
+\newpage
+
+% 新增: 商业化路线
+\input{09-business}
+\newpage
+
+% 附录: 代码实现
 \input{05-appendix}
+\newpage
+
+% 参考文献
+\input{08-references}
 
 \end{document}

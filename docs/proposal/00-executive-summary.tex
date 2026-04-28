@@ -2,68 +2,62 @@
 \addcontentsline{toc}{section}{执行摘要}
 
 \begin{insight}
-\textbf{我们不解释爆款,我们提前发现爆款。}\\[0.3em]
-传统社媒工具看「已经火的热搜」,Ripple 看「资本和搜索数据中刚开始升温的早期信号」。借鉴金融界
-Digital Oracle 的「资本永远先于舆论」理念,我们用 7 个真实数据源 \textbf{并行扫描} +
-CUSUM 算法 + 多 Agent 矛盾推理,在话题登顶热搜的 \textbf{7-14 天前} 就把它交到 KOC 手中。
+\textbf{Ripple 2.0 是 KOC 的 Bloomberg Terminal——把资本与跨平台时差翻译成可发内容。}
+
+不是 \textit{再做一个 Jasper 写文案}, 而是\textbf{ KOC 决策操作系统}: 一句话输入, 7 层架构 + 10 大原创能力流式输出可审决策, 每条结论附 \texttt{[source: url, ts]} 引用, 每个推荐可点 Why 看完整 Replay Graph 思考链。
 \end{insight}
 
-\subsection*{产品速览}
+\subsection*{产品定位}
 
-\begin{tabularx}{\textwidth}{>{\bfseries\color{ripple-primary}}l X}
-\toprule
-产品名称 & Ripple(涟漪)\\
-\midrule
-一句话定位 & KOC 的 Bloomberg Terminal — 在热搜前发现下一个爆款话题 \\
-\midrule
-核心痛点 & KOC 追热点永远慢半拍,等看到热搜时已是红海(36氪/克劳锐研究) \\
-\midrule
-核心创新 & 全网首个把「金融早期信号思想」应用到 KOC 内容预测 \\
-\midrule
-技术架构 & 100\% 借鉴 Claude Code 51 万行代码架构 \\
-\midrule
-核心模块 & 早期信号雷达(Oracle Agent)+ 12 Agent 内容工厂 \\
-\midrule
-平台覆盖 & 视频号 / 公众号 / 小红书 / 抖音 / B站 / 微博 全平台支持 \\
-\midrule
-端覆盖 & Web + macOS/Win 桌面 + 微信小程序 + 移动 PWA \\
-\midrule
-LLM & 小米 MiMo-V2.5-Pro 首选 + MiniMax M2.7 备用 + 腾讯混元兜底 + BYOK \\
-\midrule
-合规 & 《AI 生成合成内容标识办法》全合规 + STRIDE 威胁建模 \\
-\bottomrule
-\end{tabularx}
+「KOC 追热点永远慢半拍, 等看到热搜时已经红海。Ripple 用 7 个真实数据源并行扫描刚开始升温的话题, 让你提前 7-14 天发现机会, 然后用 \textbf{Persona Vector + SimPredictor + Risk-Reward + Trend Chain + Campaign Planner} 做一场可审的内容战役决策。」
 
-\vspace{1em}
+\subsection*{核心创新点}
 
-\subsection*{五大数据亮点(对应大赛评分维度)}
-
-\begin{enumerate}[leftmargin=*]
-\item \textbf{创新性} — 7 真实数据源 + CUSUM 算法 + 多 Agent 矛盾推理,业界首创「内容预测的金融化分析框架」
-\item \textbf{完整性} — 从「早期信号扫描」到「多平台可发布内容包」全链路闭环,12 个 Agent 协作完成
-\item \textbf{用户洞察} — 引用 36 氪「郑州帮」深度报道、CSDN「降 AI 改文言文被喷装」原话等真实痛点
-\item \textbf{AI 原生} — 离开多源信号融合 + Agent 推理产品不存在,采用 Claude Code 五层记忆 + 四层压缩纪律
-\item \textbf{赛道适配} — 深度集成腾讯混元 API + 元器 Agent + 视频号助手 + 公众号开放平台
+\begin{enumerate}
+    \item \textbf{7 层 OS 架构}: 不是流水线, 是可组合的原语 (40+ Tool + 5 层记忆)
+    \item \textbf{Persona Vector}: 256 维向量 + EMA 增量更新 + Drift 熔断 + Git for Voice 版本控制
+    \item \textbf{Replay Graph}: Merkle 链可审计 + 每一步决策可重放
+    \item \textbf{SimPredictor}: 5 个虚拟受众 cohort 对多版本内容赛马
+    \item \textbf{Risk-Reward Scorer}: 选题双头评分 + 推荐动作
+    \item \textbf{Trend Chain}: 资本→国际→中文→大众 四阶段因果链推理
+    \item \textbf{Cross-Platform Translator}: 一条源内容 → 6 平台改写
+    \item \textbf{Cohort Affinity}: 分人群吸引力 + 破圈建议
+    \item \textbf{Campaign Planner}: 7 天战役图 + 流量结构约束
+    \item \textbf{Self-Critique Loop}: 仿 SELF-REFINE 自我批评闭环
 \end{enumerate}
 
-\vspace{1em}
+\subsection*{技术亮点}
 
-\subsection*{与现有竞品的根本差异}
+\begin{itemize}
+    \item \textbf{零硬编码 Mock}: 7 数据源全部真实 API 调用 (Polymarket / Manifold / HackerNews 直连; 微博/抖音/百度/B 站经第三方聚合)
+    \item \textbf{真流式 SSE}: ChatGPT / Gemini Deep Research 级体验, 思考过程实时可视化
+    \item \textbf{多层记忆}: 仿 Claude Code 5 层记忆 + 后台 Dream 巩固 + Markdown 指针索引
+    \item \textbf{反 AI 投毒}: 引用强制 + 多源验证 + Merkle 链 + Drift 熔断
+    \item \textbf{企业级安全}: BYOK 真实落地 (Argon2id + AES-256-GCM) + Audit Log + 权限分级
+    \item \textbf{三端分发}: Web / MCP Skill / Tauri 桌面 (规划) / Docker
+\end{itemize}
 
-\begin{tabularx}{\textwidth}{l X X}
-\toprule
-\textbf{维度} & \textbf{现有竞品(千瓜/飞瓜/Buffer/Jasper)} & \textbf{Ripple 涟漪} \\
-\midrule
-信号视角 & 看已经火的内容 & 看刚开始升温的早期信号 \\
-\midrule
-预测时效 & T+0 滞后 & T-7 至 T-14 提前发现 \\
-\midrule
-数据源 & 单一平台抓取 & 7 真实数据源并行 + 矛盾推理 \\
-\midrule
-AI 形态 & 单 LLM 写文案 & 12 Agent 协作工厂 \\
-\midrule
-解释能力 & 黑箱推荐 & 每个建议有信号依据 + 置信度 \\
-\midrule
-平台战场 & 单平台或全平台浅 & 视频号深度 + 全平台覆盖 \\
-\bottomrule
+\subsection*{关键交付}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}l X}
+    \toprule
+    在线 Demo & \url{http://120.55.247.6/chat} (流式 Chat UI v2) \\
+    \midrule
+    旧版 Demo & \url{http://120.55.247.6/demo} (Streamlit, 回退方案) \\
+    \midrule
+    源码仓库 & \url{https://github.com/bcefghj/ripple} \\
+    \midrule
+    技术报告 & 本文档 (60+ 页, 含目录与参考文献) \\
+    \midrule
+    在线 API 文档 & \url{http://120.55.247.6/docs} (FastAPI Swagger) \\
+    \bottomrule
 \end{tabularx}
+
+\subsection*{阅读指南}
+
+\begin{itemize}
+    \item \textbf{评委 / 产品视角}: 重点看 §1 (用户痛点) + §4 (10 大原创能力) + §6 (竞品矩阵)
+    \item \textbf{架构师视角}: 重点看 §3 (7 层架构) + §5 (附录代码) + §7 (反投毒)
+    \item \textbf{运营 / 商业视角}: 重点看 §9 (商业化路线)
+    \item \textbf{算法研究视角}: 重点看 §4 (10 大能力的算法栈) + §8 (参考文献)
+\end{itemize}

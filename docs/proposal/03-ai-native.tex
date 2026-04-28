@@ -1,220 +1,238 @@
-\section{AI 原生能力说明}
+\section{AI Native 架构: 七层 KOC 决策智能 OS}
 
-\subsection{为什么必须用 AI(AI 原生性论证)}
+\subsection{为什么不是流水线, 而是 OS}
+
+市面上的 KOC 内容工具普遍是\textbf{ Agent 流水线} (\textit{输入选题 → 写文案 → 配图 → 发布}), 这种结构有三个根本缺陷:
+
+\begin{itemize}
+    \item \textbf{决策不可审}: KOC 问 \textit{「为什么是这个话题」} 时, 流水线只能给最终答案, 看不到否决了哪些备选, 用了什么证据。
+    \item \textbf{风格不持久}: 每次 prompt 重新喂一遍人设, 风格在跨会话间会漂移, 一段时间后 KOC 自己都觉得 \textit{「不像我了」}。
+    \item \textbf{能力不组合}: 流水线的能力是焊死的, 想要 \textit{「先扫描全网信号, 再用我的人设过滤, 然后做 7 天战役规划」}这种组合, 必须重写整条流水线。
+\end{itemize}
 
 \begin{insight}
-\textbf{Ripple 是 AI 原生产品}:离开多源信号融合 + 多 Agent 推理,产品不复存在。
+Ripple 2.0 的核心设计:把 KOC 的内容决策建模成一个 \textbf{操作系统 (OS)}, 而不是单一应用。
+OS 提供原语 (内存管理 / 调度 / 文件系统 / 进程隔离), 应用通过组合原语完成任务。
+Ripple 2.0 提供的原语是 \textbf{40+ Tool + 5 层记忆 + Persona Vector + Replay Graph}, 用户的一句话被规划器拆解为 DAG, 然后调度原语去解决。
 \end{insight}
 
-\textbf{论证}:
+\subsection{七层架构总览}
 
-\textbf{1. Oracle 早期信号雷达必须用 AI}
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    layer/.style={rectangle, rounded corners=4pt, draw=ripple-primary, fill=ripple-light,
+                  minimum width=14cm, minimum height=1.0cm, align=center, font=\small},
+    arrow/.style={->, >=Stealth, thick, draw=ripple-accent}
+]
+    \node[layer] (l7) at (0, 0) {\textbf{L7 Distribution} \quad Web SSE \textbar{} MCP Skill \textbar{} Tauri 桌面 \textbar{} CLI};
+    \node[layer] (l6) at (0, -1.2) {\textbf{L6 Persistence} \quad SQLite (relational) \textbar{} Vector Store \textbar{} Markdown \textbar{} Event Log};
+    \node[layer] (l5) at (0, -2.4) {\textbf{L5 Decision (原创)} \quad SimPredictor \textbar{} Risk-Reward \textbar{} TrendChain \textbar{} Cohort \textbar{} Translator \textbar{} Campaign};
+    \node[layer] (l4) at (0, -3.6) {\textbf{L4 Reasoning} \quad Planner \textbar{} Critic \textbar{} Forum Debate \textbar{} Verifier \textbar{} Reflector \textbar{} Replay Recorder};
+    \node[layer] (l3) at (0, -4.8) {\textbf{L3 Action} \quad Tool Registry (40+) \textbar{} Subagent Dispatcher \textbar{} Permission Sandbox};
+    \node[layer] (l2) at (0, -6.0) {\textbf{L2 Cognition} \quad LLM Router \textbar{} Persona Vector \textbar{} Skill Library \textbar{} Knowledge Base};
+    \node[layer] (l1) at (0, -7.2) {\textbf{L1 Sensing} \quad 7 数据源接入 \textbar{} 变点检测 (CUSUM/MAD) \textbar{} 事件知识图谱 \textbar{} Embedding};
+
+    \draw[arrow] (l7) -- (l4);
+    \draw[arrow] (l4) -- (l5);
+    \draw[arrow] (l4) -- (l3);
+    \draw[arrow] (l3) -- (l1);
+    \draw[arrow] (l4) -- (l2);
+    \draw[arrow] (l2) -- (l6);
+    \draw[arrow] (l5) -- (l6);
+    \draw[arrow] (l1) -- (l6);
+\end{tikzpicture}
+\caption{Ripple 2.0 七层架构总览}
+\end{figure}
+
+\subsection{L1 Sensing 感知层}
+
+\textbf{职责}: 把外部世界 (社交平台 / 预测市场 / 资本流) 的原始信号变成结构化数据。
+
+\textbf{关键能力}:
 \begin{itemize}
-\item 7 真实数据源(英文/中文/数字/文本)需要 LLM 做 \textbf{语义对齐}
-\item 矛盾推理需要 LLM 做 \textbf{上下文理解}(为什么 A 平台火 B 平台不火)
-\item 输出推荐角度需要 LLM 做 \textbf{创意联想}
+    \item \textbf{7 数据源并行扫描}: Polymarket / Manifold / HackerNews 直连; 微博 / 抖音 / 百度 / B 站经第三方聚合 (\texttt{xxapi.cn})
+    \item \textbf{变点检测}: CUSUM 累积和检测 + MAD-zscore 鲁棒统计 (适应噪声)
+    \item \textbf{事件知识图谱}: 实体-话题-平台-时间四元组
+    \item \textbf{Embedding}: 字符 trigram hash (256 维) + 可替换为 sentence-transformers
 \end{itemize}
 
-\textbf{2. 12 Agent 协作必须用 AI}
+\textbf{输出对象}: \texttt{HotItem (source, title, rank, raw\_value, normalized, url, metadata)} 与 \texttt{Citation (url, title, source\_type, retrieved\_at, snippet, confidence)}。
+
+\subsection{L2 Cognition 认知层}
+
+\textbf{职责}: AI 思考所需的工作内存与长期知识。
+
+\textbf{核心模块}:
 \begin{itemize}
-\item ForumDebateAgent 需要 \textbf{多 Agent 辩论}(单一规则无法覆盖)
-\item ScriptWriterAgent 需要 \textbf{风格学习与生成}(完全 AI 任务)
-\item RiskReviewerAgent 需要 \textbf{语义级合规判断}(关键词扫描不够)
-\item InsightAnalystAgent 需要 \textbf{综合归因}(多 Agent 输出整合)
+    \item \textbf{LLM Router}: 多 Provider 抽象 (默认 MiMo, Fallback MiniMax → DeepSeek → Hunyuan), 真流式 SSE, 调用观测
+    \item \textbf{Persona Vector}: 256 维 + 10 维可解释指标 (详见 §\ref{sec:cap-persona})
+    \item \textbf{Skill Library}: Markdown 加载 + 自进化 (仿 Claude Code)
+    \item \textbf{Knowledge Base}: 向量检索 + 关键词过滤
 \end{itemize}
 
-\textbf{3. 五层记忆系统必须用 AI}
-\begin{itemize}
-\item Layer 3 extractMemories 用 LLM 从对话中提取知识
-\item Layer 4 findRelevantMemories 用 Sonnet 侧查选择相关记忆
-\item Layer 5 上下文动态拼装基于 LLM 输出
-\end{itemize}
+\subsection{L3 Action 行动层}
 
-\textbf{对照实验}: 如果完全去掉 AI,Ripple 退化为「12 个 RSS 聚合 + 模板化文案」,
-完全失去差异化价值。
+\textbf{职责}: 把能力做成可组合的工具, 由上层 Reasoning 调度。
 
-% --------------------------------------------
+\textbf{工具注册表 (Tool Registry)}: 一个工具的定义包含
 
-\subsection{AI 核心能力}
-
-\subsubsection{1. Claude Code 架构移植}
-
-100\% 借鉴 \textbf{2025-03-31 发布的 Claude Code 51 万行 TypeScript 源码} 架构,
-按照 Anthropic 公开论文与第三方逆向分析,落地为 Python 实现。
-
-\textbf{借鉴的具体设计}:
-
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-\textbf{Claude Code 设计} & \textbf{Ripple 对应实现} \\
-\midrule
-\texttt{query.ts while(true)} & \texttt{agent\_loop.py AgentLoop.run()} async generator \\
-\texttt{State} 整对象替换 & \texttt{state.py LoopState} 用 \texttt{dataclasses.replace()} \\
-10 种 Terminal 枚举 & \texttt{TerminalReason} enum(完整 10 类) \\
-7 种 continue 路径 & \texttt{ContinueReason} enum(完整 7 类) \\
-四层上下文压缩 & \texttt{compression.py CompressionPipeline} \\
-Circuit Breaker & \texttt{MAX\_CONSECUTIVE\_AUTOCOMPACT\_FAILURES = 3} \\
-五层记忆 & \texttt{memory\_system.py MemorySystem} \\
-Hooks 系统 & \texttt{hooks.py HookRegistry} 5 类事件 \\
-Skills 渐进披露 & \texttt{skills/loader.py SkillLoader} YAML frontmatter \\
-Subagent (Task) & \texttt{subagent.py run\_subagent()} 同构子循环 \\
-\bottomrule
-\end{tabularx}
-
-\subsubsection{2. 五层记忆系统}
-
-\begin{itemize}
-\item \textbf{Layer 1 - 指令记忆}:KOC.md / USER.md / BRAND.md(项目级持久规则)
-    \begin{itemize}
-    \item Managed → User → Project → Local → AutoMem 五级覆盖
-    \item 支持 \texttt{@include} 指令(MAX\_INCLUDE\_DEPTH = 5)
-    \end{itemize}
-\item \textbf{Layer 2 - memdir 文件存储}:灵感库 / 素材库 / 作品库 / 复盘库
-    \begin{itemize}
-    \item MEMORY.md 索引,200 行 / 25KB 硬上限
-    \item 按 mtime 排序,扫描 200 文件 / 30 行/文件
-    \end{itemize}
-\item \textbf{Layer 3 - extractMemories 自动提取}:对话结束后 fork 子代理后台提取
-    \begin{itemize}
-    \item 与主代理互斥(\texttt{in\_progress} 标志)
-    \item 仅 fire-and-forget,不阻塞主响应
-    \end{itemize}
-\item \textbf{Layer 4 - findRelevantMemories 智能检索}:Sonnet 侧查选择最相关的 5 条
-    \begin{itemize}
-    \item 文件名白名单校验(防 LLM 幻觉)
-    \item 保守策略:不确定时少选
-    \end{itemize}
-\item \textbf{Layer 5 - 上下文注入}:动态拼装 system prompt
-    \begin{itemize}
-    \item 固定段落(操作手册)适合 prompt cache
-    \item 动态段落每轮重组
-    \end{itemize}
-\end{itemize}
-
-\subsubsection{3. 四层上下文压缩}
-
-\begin{lstlisting}[language=python, caption=四层压缩管线]
-async def run_full_pipeline(messages, tracking):
-    m = self.apply_tool_result_budget(messages)  # Layer 0: 截断超大 tool result
-    m = self.snip_compact(m)                     # Layer 1: 删旧消息(零成本)
-    m = self.microcompact(m)                     # Layer 2: 按 tool_use_id 删冗余
-    if tokens(m) > autocompact_threshold:
-        m = await self.context_collapse(m)       # Layer 3: 摘要替换片段
-        if tokens(m) > autocompact_threshold:
-            m = await self.maybe_autocompact(m, tracking)  # Layer 4: 全量摘要
-    return m
+\begin{lstlisting}[language=Python, caption={Tool 注册示例}]
+@register_tool(
+    name="oracle.scan",
+    description="并行扫描 7 数据源, 返回 HotItem 矩阵",
+    permission_level=PermissionLevel.NETWORK,
+    input_model=OracleScanInput,
+    output_model=OracleScanOutput,
+    cost_estimate_ms=15000,
+    tags=["sensing", "oracle"],
+)
+async def oracle_scan(input, ctx, bus): ...
 \end{lstlisting}
 
-\textbf{Circuit Breaker}: 连续 3 次 auto-compact 失败 → 自动禁用,防"一晚 25 万次 API"环路。
+每次工具调用都被 \textbf{ReplayRecorder} 自动记录: 输入哈希 + 输出摘要 + 耗时 + Merkle 链, 支持任意节点重放。
 
-\subsubsection{4. Hooks 系统(5 类事件)}
+\textbf{权限分级}: \texttt{READ < NETWORK < GENERATE < WRITE < DESTRUCTIVE}, 高权限工具调用需用户明示授权 (仿 Claude Code 权限分层)。
 
+\subsection{L4 Reasoning 推理层}
+
+\textbf{职责}: 决定 \textit{要做什么}, 是 OS 的 \textbf{kernel scheduler}。
+
+\textbf{TAOR 认知循环}:
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=0.6cm,
+    box/.style={rectangle, rounded corners, draw=ripple-primary, fill=ripple-light,
+                minimum width=2.0cm, minimum height=0.8cm, font=\small\bfseries},
+    arrow/.style={->, >=Stealth, thick}
+]
+    \node[box] (sense) {Perceive};
+    \node[box, right=of sense] (think) {Think};
+    \node[box, right=of think] (plan) {Plan};
+    \node[box, right=of plan] (act) {Act};
+    \node[box, right=of act] (obs) {Observe};
+    \node[box, right=of obs] (refl) {Reflect};
+    \node[box, right=of refl] (upd) {Update};
+
+    \draw[arrow] (sense) -- (think);
+    \draw[arrow] (think) -- (plan);
+    \draw[arrow] (plan) -- (act);
+    \draw[arrow] (act) -- (obs);
+    \draw[arrow] (obs) -- node[above, font=\tiny]{未达成} (think.south east);
+    \draw[arrow] (obs) -- (refl);
+    \draw[arrow] (refl) -- (upd);
+    \draw[arrow, dashed] (upd) to[bend right=18] node[above, font=\tiny]{更新 Skill/Persona/Memory} (think);
+\end{tikzpicture}
+\caption{TAOR + Reflection 认知循环}
+\end{figure}
+
+\textbf{核心模块}:
 \begin{itemize}
-\item \textbf{PreToolUse}: 拦截危险工具,修改 input,权限决策
-\item \textbf{PostToolUse}: 审计日志,追加上下文
-\item \textbf{Stop}: 模型主动结束时,可阻塞继续
-\item \textbf{PreCompact}: 压缩前归档
-\item \textbf{PermissionRequest}: 敏感操作弹窗确认
+    \item \textbf{Adaptive Planner}: 用 LLM 把用户的一句话拆为 \texttt{TaskDAG}, 选择需要哪些 Skill 和 Tool
+    \item \textbf{Critic}: 对 Planner 的决策提反对意见, 生成 counter-arguments
+    \item \textbf{Forum Debate}: 多人格 (KOC / 法务 / 营销) 辩论, 共识收敛
+    \item \textbf{Verifier}: 多源交叉验证, 计算一致性 score
+    \item \textbf{Reflector}: 任务结束后反思, 更新 Skill / Persona
+    \item \textbf{Replay Recorder}: 记录每一步 ReplayNode + Merkle 摘要
 \end{itemize}
 
-\textbf{聚合优先级}: deny > ask > allow
+\subsection{L5 Decision 决策层 (Ripple 原创)}
 
-\textbf{Hook 配置快照}: \texttt{capture\_snapshot()} 信任后冻结,防 TOCTOU 攻击。
+这是 Ripple 区别于通用 Agent 框架的关键, 提供 6 大决策能力 (详细见 §\ref{sec:capabilities-10}):
 
-\subsubsection{5. Skills 系统(YAML frontmatter + 渐进披露)}
-
-\textbf{5 个 Killer Skills}:
-
-\begin{tabularx}{\textwidth}{lX}
-\toprule
-\textbf{Skill} & \textbf{说明} \\
-\midrule
-oracle-early-signal & 7 真实数据源 + CUSUM + 矛盾推理早期信号雷达 \\
-koc-content-package & 选题确定后生成完整多平台内容包 \\
-viral-formula-library & 标题学/封面学/节奏学 7 公式 + 5 风格 \\
-copyright-asset-library & 版权友好素材清单 + 风险检测 \\
-ai-detection-bypass & 降 AI 味的 15 个具体技巧(保留人味) \\
-\bottomrule
+\begin{tabularx}{\textwidth}{>{\bfseries\color{ripple-primary}}l X}
+    \toprule
+    SimPredictor & 虚拟受众团 (5 cohort) 对多版本内容评分, 自动选最优 \\
+    \midrule
+    Risk-Reward Scorer & 选题双头打分 (爆款潜力 vs 翻车风险) + 监管敏感度 + 推荐动作 \\
+    \midrule
+    Trend Chain Analyzer & 资本→国际→中文→大众 四阶段因果链推理 \\
+    \midrule
+    Cohort Affinity & 内容对人群的吸引力预测 + 破圈建议 \\
+    \midrule
+    Cross-Platform Translator & 一条源内容 → 多平台 (小红书/视频号/B站/抖音/微博/公众号) 改写 \\
+    \midrule
+    Campaign Planner & 7 天战役图 (流量结构约束 + MIP/贪心调度) \\
+    \bottomrule
 \end{tabularx}
 
-\textbf{渐进披露}: 启动时只读 frontmatter(\texttt{description} / \texttt{when\_to\_use}),
-节省上下文;调用时才加载正文。
+\subsection{L6 Persistence 持久化层}
 
-% --------------------------------------------
+\textbf{多存储统一抽象}:
 
-\subsection{AI 如何解决核心痛点}
+\begin{itemize}
+    \item \textbf{SQLite} (\texttt{users / sessions / persona\_vectors / memory\_entries / replay\_nodes / audit\_log / campaigns / topics / event\_log})
+    \item \textbf{Vector Store}: 用于语义检索 (chromadb / lance, 当前用 Hash trigram 占位)
+    \item \textbf{Markdown 文件}: \texttt{\textasciitilde/.ripple/memory/<user>/} 用户级记忆 (仿 Claude Code MEMORY.md)
+    \item \textbf{Event Log}: append-only 事件溯源, 是 Replay 的底层
+\end{itemize}
 
-\begin{tabularx}{\textwidth}{lXX}
-\toprule
-\textbf{KOC 痛点} & \textbf{AI 能力} & \textbf{Ripple Agent} \\
-\midrule
-追热点慢半拍 & 多源早期信号融合 & OracleAgent + CUSUM \\
-"AI 味重被喷装" & 风格 ICL 学习 + 降 AI 技巧 & StyleDecoder + ai-detection-bypass Skill \\
-跨平台改死人 & 长上下文一次生成 & ScriptWriter + MiniMax M2.7 \\
-不知道为啥不爆 & 多 Agent 归因推理 & InsightAnalystAgent \\
-合规风险高 & 自动检测 + 法规对照 & RiskReviewerAgent + 关键词库 \\
-版权风险 & 反向图搜 + 合规图库 & MaterialCuratorAgent \\
-灵感记不下来 & 全端入口 + 后台 AI 整理 & 灵感捕捉 + Auto-Dream \\
-\bottomrule
+\textbf{多层记忆系统}:
+
+\begin{figure}[ht]
+\centering
+\begin{tabularx}{\textwidth}{>{\bfseries\color{ripple-primary}}l X X}
+    \toprule
+    层 & 内容 & 生命周期 \\
+    \midrule
+    User & 用户偏好 / 边界 / 订阅级别 & 永久 \\
+    Persona & 人设向量 + 风格规则 + 禁忌 & 长期 (有 EMA 增量更新) \\
+    Project & 当前营销项目 / 系列内容 / 历史决策 & 项目期 \\
+    Session & 当前对话上下文 & 会话内 \\
+    Long-term & 跨项目知识 / 历史 Replay 摘要 & 长期 (后台 Dream 巩固) \\
+    \bottomrule
 \end{tabularx}
+\end{figure}
 
-% --------------------------------------------
+\textbf{后台 Dream 巩固} (仿 Claude Code 后台压缩): 定时任务巡检日志, 把活跃 Session 压缩为 long-term 摘要, 合并矛盾, 重写指针索引。
 
-\subsection{AI 技术方案}
+\subsection{L7 Distribution 分发层}
 
-\subsubsection{LLM 路由(BYOK 多 Provider)}
-
-\textbf{支持的 Provider}(全部 OpenAI 兼容接口):
-
-\begin{itemize}
-\item \textbf{首选}: 小米 MiMo-V2.5-Pro(额度充裕 + 强推理)
-\item \textbf{备用}: MiniMax M2.7(长上下文 + 中文优势 + 成本)
-\item \textbf{兜底}: 腾讯混元 turbos(赛道适配性 + 已备案)
-\item \textbf{BYOK 国内}: DeepSeek / 豆包 / 通义千问 / 智谱 GLM / 月之暗面 Kimi
-\item \textbf{BYOK 国际}: OpenAI GPT-4o / Anthropic Claude
-\item \textbf{本地}: Ollama / LM Studio / MLX(Apple Silicon)
-\end{itemize}
-
-\textbf{路由策略}:
-\begin{enumerate}
-\item 用户在 UI 设置主/备/兜底三档
-\item LiteLLM Router 自动 fallback
-\item 失败计数与熔断
-\end{enumerate}
-
-\subsubsection{Embedding 与向量检索}
+\textbf{三端一致}:
 
 \begin{itemize}
-\item PostgreSQL 16 + pgvector 0.7+
-\item HNSW 索引(低延迟)
-\item 强制 \texttt{tenant\_id} 过滤(RLS)
-\item 1536 维 OpenAI 兼容 embedding
+    \item \textbf{Web App} (Next.js 风格静态 + SSE): \url{http://120.55.247.6/chat}
+    \item \textbf{MCP Skill} (\texttt{npx @ripple/mcp}): 在 Cursor / Claude Code 里调用 Ripple 工具集
+    \item \textbf{Tauri 桌面端} (Mac/Win): 系统托盘 + 全局快捷键 + 离线 SQLite
+    \item \textbf{CLI / TUI}: \texttt{ripple ask "<query>"} 命令行直接调用
 \end{itemize}
 
-\subsubsection{多模态生成}
+\subsection{核心数据流}
 
-\begin{itemize}
-\item \textbf{文本}: MiniMax M2.7 + 混元 turbos
-\item \textbf{图像}: 腾讯混元生图(主力,赛道适配)+ SDXL(本地)
-\item \textbf{视频}: 混元生视频 \texttt{SubmitHunyuanToVideoJob}(V2)
-\item \textbf{语音}: 火山方舟 ASR + TTS(V2)
-\end{itemize}
+一次完整 Aha Demo 的数据流:
 
-\subsubsection{安全与合规}
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=0.4cm and 0.5cm,
+    box/.style={rectangle, rounded corners, draw=ripple-primary, fill=ripple-light,
+                minimum width=2.6cm, minimum height=0.7cm, font=\footnotesize, align=center},
+    arrow/.style={->, >=Stealth, thick, draw=ripple-accent}
+]
+    \node[box] (q) {用户一句话};
+    \node[box, right=of q] (p) {Planner};
+    \node[box, right=of p] (mem) {Memory Recall};
+    \node[box, below=of mem] (oracle) {Oracle Scan};
+    \node[box, left=of oracle] (rr) {Risk-Reward};
+    \node[box, left=of rr] (sim) {SimPredictor};
+    \node[box, below=of sim] (camp) {Campaign Planner};
+    \node[box, right=of camp] (crit) {Self-Critique};
+    \node[box, right=of crit] (cite) {Citation Enforce};
+    \node[box, below=of cite] (final) {最终结论 + Replay};
 
-\begin{itemize}
-\item OWASP LLM Top 10 v2 全覆盖
-\item Prompt Injection 防御(分层 + delimiter)
-\item 输出 PII 脱敏
-\item AI 标识自动添加(《AI 标识办法》)
-\item 调用混元(已备案)做兜底
-\end{itemize}
+    \draw[arrow] (q) -- (p);
+    \draw[arrow] (p) -- (mem);
+    \draw[arrow] (mem) -- (oracle);
+    \draw[arrow] (oracle) -- (rr);
+    \draw[arrow] (rr) -- (sim);
+    \draw[arrow] (sim) -- (camp);
+    \draw[arrow] (camp) -- (crit);
+    \draw[arrow] (crit) -- (cite);
+    \draw[arrow] (cite) -- (final);
+\end{tikzpicture}
+\caption{一次完整 Aha Demo 的数据流}
+\end{figure}
 
-\subsubsection{可观测性}
-
-\begin{itemize}
-\item Langfuse(LLM trace + cost + prompt 版本)
-\item Sentry(错误追踪)
-\item OpenTelemetry(统一 trace\_id)
-\item Prometheus + Grafana(metrics)
-\end{itemize}
+每个箭头都是流式事件 (\texttt{SSE}), 前端实时展示思考过程, 这就是评委看到的 \textit{「Gemini Deep Research 风格」} 体验。

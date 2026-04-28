@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ripple — KOC 决策智能 OS</title>
+<meta name="description" content="一句话生成爆款选题 + 7 天战役图 + 多版本文案。基于 7 数据源真实信号 + Persona Vector + Replay Graph">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #131829;
+    --bg3: #1a2138;
+    --text: #e8edf5;
+    --text2: #a3aec5;
+    --text3: #6e7a93;
+    --accent: #5e8aff;
+    --accent2: #7aa2ff;
+    --accent3: #4dffd2;
+    --border: rgba(255,255,255,.08);
+    --warn: #ffc73a;
+    --error: #ff6b8a;
+    --ok: #4dffd2;
+    --thinking: #8b9cc4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased; line-height: 1.6;
+  }
+  body { display: flex; flex-direction: column; }
+
+  /* Top bar */
+  .topbar {
+    display: flex; align-items: center; padding: 12px 24px; gap: 16px;
+    border-bottom: 1px solid var(--border); background: var(--bg2);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .logo { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+  .logo-mark { width: 28px; height: 28px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent3) 100%);
+    display: grid; place-items: center; color: #000; font-weight: 800; font-size: 14px;
+  }
+  .topbar .meta { color: var(--text3); font-size: 13px; flex: 1; }
+  .topbar .pill {
+    padding: 4px 10px; border-radius: 999px; background: var(--bg3);
+    font-size: 12px; color: var(--text2); border: 1px solid var(--border);
+  }
+  .topbar .pill.ok { color: var(--ok); border-color: rgba(77,255,210,.25); }
+
+  /* Layout */
+  .stage { flex: 1; display: grid; grid-template-columns: 280px 1fr 360px;
+    overflow: hidden; min-height: 0; }
+  @media (max-width: 1100px) { .stage { grid-template-columns: 1fr; } .side { display: none; } }
+  .side { background: var(--bg2); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 18px 16px; }
+  .side.right { border-right: 0; border-left: 1px solid var(--border); }
+  .side h3 { font-size: 12px; text-transform: uppercase; color: var(--text3);
+    letter-spacing: .08em; margin-bottom: 10px; }
+  .side .item { padding: 10px 12px; border-radius: 8px; cursor: pointer;
+    color: var(--text2); font-size: 14px; transition: .2s; margin-bottom: 4px; }
+  .side .item:hover { background: var(--bg3); color: var(--text); }
+  .side .item.active { background: var(--bg3); color: var(--text); }
+  .side .item .muted { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* Chat area */
+  .chat { display: flex; flex-direction: column; min-height: 0; position: relative; }
+  .messages { flex: 1; overflow-y: auto; padding: 32px 32px 200px; scroll-behavior: smooth; }
+  .empty { max-width: 720px; margin: 60px auto 0; text-align: center; color: var(--text2); }
+  .empty h1 { font-size: 32px; color: var(--text); margin-bottom: 12px; font-weight: 700;
+    background: linear-gradient(135deg, var(--accent2) 0%, var(--accent3) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .empty p { font-size: 15px; margin-bottom: 20px; }
+  .quick { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; max-width: 640px; margin: 24px auto; }
+  .quick-card { padding: 14px 16px; background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; cursor: pointer; text-align: left; transition: .15s; }
+  .quick-card:hover { border-color: var(--accent); transform: translateY(-2px); background: var(--bg3); }
+  .quick-card .qt { font-size: 13px; color: var(--text); font-weight: 600; margin-bottom: 4px; }
+  .quick-card .qd { font-size: 12px; color: var(--text3); }
+
+  /* Message bubbles */
+  .msg { max-width: 880px; margin: 0 auto 28px; }
+  .msg.user { display: flex; justify-content: flex-end; }
+  .msg.user .bubble { background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    color: #fff; padding: 12px 18px; border-radius: 18px 18px 4px 18px; max-width: 80%; }
+  .msg.ai .bubble { background: transparent; color: var(--text); }
+
+  /* Thinking trace */
+  .thinking-block {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 16px;
+  }
+  .thinking-header {
+    display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+    color: var(--thinking); font-size: 13px; user-select: none;
+  }
+  .thinking-header::before {
+    content: "▼"; font-size: 9px; margin-right: 6px; transition: .2s;
+  }
+  .thinking-block.collapsed .thinking-header::before { transform: rotate(-90deg); }
+  .thinking-body { margin-top: 10px; max-height: 380px; overflow-y: auto; }
+  .thinking-block.collapsed .thinking-body { display: none; }
+  .thinking-line {
+    display: flex; gap: 10px; align-items: flex-start; padding: 6px 0;
+    color: var(--text2); font-size: 13px; line-height: 1.5;
+  }
+  .thinking-line .dot {
+    flex-shrink: 0; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text3); margin-top: 7px;
+  }
+  .thinking-line.active .dot {
+    background: var(--accent3);
+    box-shadow: 0 0 8px var(--accent3);
+    animation: pulse 1.2s infinite;
+  }
+  .thinking-line .stage-name {
+    color: var(--text3); font-size: 11px; padding: 1px 6px; border-radius: 4px;
+    background: var(--bg3); margin-right: 4px;
+  }
+  .thinking-line .agent-name { color: var(--accent2); font-weight: 500; }
+
+  /* Cards */
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 14px; }
+  .card-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .card-h .title { font-weight: 600; font-size: 14px; color: var(--text); }
+  .card-h .actions { display: flex; gap: 6px; }
+  .card-btn { padding: 4px 10px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text2); font-size: 11px; cursor: pointer; }
+  .card-btn:hover { border-color: var(--accent); color: var(--text); }
+  .card-tag { font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    background: var(--bg3); color: var(--accent3); border: 1px solid rgba(77,255,210,.3); }
+
+  /* Topic panel */
+  .topic-row {
+    display: flex; gap: 12px; padding: 10px; border-radius: 8px;
+    background: var(--bg3); margin-bottom: 8px; align-items: center;
+  }
+  .topic-row .src { font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    background: rgba(94,138,255,.15); color: var(--accent2); flex-shrink: 0; }
+  .topic-row .title { flex: 1; font-size: 13px; }
+  .topic-row .scores { display: flex; gap: 8px; flex-shrink: 0; }
+  .topic-row .score { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .score.potential { background: rgba(77,255,210,.15); color: var(--accent3); }
+  .score.risk { background: rgba(255,107,138,.15); color: var(--error); }
+  .score.regu-high { background: rgba(255,107,138,.25); color: var(--error); }
+  .score.regu-mid { background: rgba(255,199,58,.15); color: var(--warn); }
+  .score.regu-low { background: rgba(77,255,210,.1); color: var(--ok); }
+
+  /* Campaign timeline */
+  .timeline { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .day-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px; text-align: center; }
+  .day-card .day-num { font-size: 18px; font-weight: 700; color: var(--accent2); }
+  .day-card .role { font-size: 10px; padding: 2px 6px; border-radius: 4px;
+    background: var(--bg2); color: var(--text2); margin: 4px auto 6px;
+    display: inline-block; }
+  .day-card .topic { font-size: 11px; color: var(--text2); }
+  .day-card .kpi { font-size: 10px; color: var(--text3); margin-top: 6px; }
+
+  /* Sim predictor */
+  .sim-bar { display: flex; align-items: center; gap: 10px; padding: 6px 0;
+    border-bottom: 1px dashed rgba(255,255,255,.05); font-size: 12px; }
+  .sim-bar .name { width: 180px; color: var(--text2); flex-shrink: 0; }
+  .sim-bar .bar { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; position: relative; }
+  .sim-bar .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent3)); transition: width 1s; }
+  .sim-bar .num { width: 50px; text-align: right; font-weight: 600; color: var(--text); flex-shrink: 0; }
+
+  /* Persona radar (side panel) */
+  .radar { width: 100%; aspect-ratio: 1; }
+  .radar-grid { stroke: var(--border); fill: none; }
+  .radar-poly { stroke: var(--accent3); fill: var(--accent3); fill-opacity: 0.18; stroke-width: 1.5; }
+  .radar-axis { stroke: var(--border); }
+  .radar-label { font-size: 9px; fill: var(--text3); }
+
+  /* Composer */
+  .composer-wrap {
+    position: absolute; bottom: 0; left: 0; right: 0; padding: 18px 32px 22px;
+    background: linear-gradient(0deg, var(--bg) 30%, transparent);
+    pointer-events: none;
+  }
+  .composer { max-width: 880px; margin: 0 auto; pointer-events: auto;
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 14px; display: flex; gap: 10px; align-items: flex-end;
+    box-shadow: 0 12px 28px rgba(0,0,0,.4);
+  }
+  .composer textarea {
+    flex: 1; background: transparent; border: 0; resize: none; color: var(--text);
+    font-size: 14px; outline: none; font-family: inherit; padding: 6px 0;
+    max-height: 200px; min-height: 28px;
+  }
+  .composer textarea::placeholder { color: var(--text3); }
+  .send-btn { background: var(--accent); color: #fff; border: 0; padding: 8px 14px;
+    border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px;
+    transition: .15s; flex-shrink: 0; }
+  .send-btn:hover { background: var(--accent2); }
+  .send-btn:disabled { opacity: .5; cursor: wait; }
+
+  .typing-cursor::after {
+    content: "▍"; animation: blink 1s infinite; color: var(--accent3);
+    margin-left: 1px;
+  }
+
+  @keyframes blink {
+    0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; }
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: .7; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in { animation: fadeIn .25s ease-out; }
+
+  /* Final summary */
+  .final-card {
+    background: linear-gradient(135deg, rgba(94,138,255,.08) 0%, rgba(77,255,210,.06) 100%);
+    border: 1px solid rgba(94,138,255,.25);
+    padding: 20px 22px; border-radius: 14px; margin-top: 20px;
+  }
+  .final-card .label {
+    display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 999px;
+    background: rgba(77,255,210,.15); color: var(--accent3); margin-bottom: 12px;
+  }
+  .final-card .text { font-size: 14px; color: var(--text); white-space: pre-wrap; line-height: 1.7; }
+
+  /* Citation */
+  .cite-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .cite { display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; background: var(--bg3); border-radius: 999px;
+    font-size: 11px; color: var(--text2); cursor: pointer; }
+  .cite:hover { color: var(--accent2); }
+
+  /* Replay graph */
+  .replay-list { font-size: 11px; }
+  .replay-node { padding: 6px 10px; background: var(--bg3); border-left: 2px solid var(--accent);
+    margin-bottom: 4px; border-radius: 4px; }
+  .replay-node .ph { color: var(--accent2); font-weight: 600; margin-right: 6px; }
+  .replay-node .actor { color: var(--text); }
+  .replay-node .sm { color: var(--text3); margin-top: 2px; font-size: 10px; }
+  .replay-node .merkle { font-family: monospace; color: var(--text3); font-size: 9px; opacity: .6; }
+
+  .small { font-size: 11px; color: var(--text3); }
+
+  /* Spinner */
+  .spinner { display: inline-block; width: 12px; height: 12px;
+    border: 2px solid var(--text3); border-top-color: var(--accent3); border-radius: 50%;
+    animation: spin .8s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-mark">R</div>
+    <div>Ripple <span style="color:var(--text3); font-weight: 400; font-size: 12px;">v2.0 · KOC 决策智能 OS</span></div>
+  </div>
+  <div class="meta">7 数据源 · 10 大原创能力 · Persona Vector · Replay Graph · 反 AI 投毒</div>
+  <span class="pill ok" id="status-pill">● 在线</span>
+  <a href="/" style="color: var(--text3); font-size: 13px; text-decoration: none;">官网</a>
+  <a href="/docs" target="_blank" style="color: var(--text3); font-size: 13px; text-decoration: none;">API</a>
+</div>
+
+<div class="stage">
+  <aside class="side">
+    <h3>历史对话</h3>
+    <div id="history-list">
+      <div class="item active">
+        <div>+ 新建对话</div>
+        <div class="muted">Ctrl+N</div>
+      </div>
+    </div>
+    <div style="height:24px"></div>
+    <h3>能力快捷入口</h3>
+    <div class="item" onclick="quickAsk('扫描 7 个数据源,告诉我现在有哪些刚开始升温的话题')">
+      <div>早期信号雷达</div>
+      <div class="muted">Oracle 7 数据源</div>
+    </div>
+    <div class="item" onclick="quickAsk('我是测评向美妆 KOC,粉丝 5000,这周该发什么内容')">
+      <div>7 天战役规划</div>
+      <div class="muted">Campaign Planner</div>
+    </div>
+    <div class="item" onclick="quickAsk('帮我把这条 HN 文章改写成小红书/视频号/B站三个版本: https://news.ycombinator.com')">
+      <div>跨平台改写</div>
+      <div class="muted">CrossPlatform Translator</div>
+    </div>
+    <div class="item" onclick="quickAsk('给我 3 个版本的开头,主题是 黄金会涨吗')">
+      <div>多版本赛马</div>
+      <div class="muted">SimPredictor</div>
+    </div>
+  </aside>
+
+  <main class="chat" id="chat-area">
+    <div class="messages" id="messages">
+      <div class="empty">
+        <h1>一句话, 让 AI 帮你做决定</h1>
+        <p>不是写文案 — 而是做一场可审的内容战役决策。</p>
+        <p style="font-size: 13px; color: var(--text3);">
+          每个建议都附 [source: url, ts] 引用 · 每个决策都可点 Why 看完整思考链 · 你的人设会被持续学习
+        </p>
+        <div class="quick">
+          <div class="quick-card" onclick="quickAsk('我是测评向美妆 KOC,粉丝 5000,这周该发什么')">
+            <div class="qt">我这周该发什么?</div>
+            <div class="qd">Oracle 雷达 + 7 天战役图</div>
+          </div>
+          <div class="quick-card" onclick="quickAsk('未来一周黄金价格会涨还是会跌? 我作为财经 KOC 该发什么角度')">
+            <div class="qt">金价怎么发帖?</div>
+            <div class="qd">Trend Chain 因果链 + 风险评估</div>
+          </div>
+          <div class="quick-card" onclick="quickAsk('帮我把 HackerNews 上关于 AI Agent 的爆款帖,改写成小红书/视频号/B站三平台版本')">
+            <div class="qt">外网爆款 → 全平台</div>
+            <div class="qd">CrossPlatform Translator</div>
+          </div>
+          <div class="quick-card" onclick="quickAsk('我要发一条关于 DeepSeek 新模型的内容, 帮我生成 3 版开头, 用虚拟受众赛马选最好的')">
+            <div class="qt">SimPredictor 赛马</div>
+            <div class="qd">5 个 cohort 自动评分</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <textarea id="composer-input" placeholder="一句话告诉我你想要什么 (例: 我是美妆 KOC,这周发什么)" rows="1"></textarea>
+        <button id="send-btn" class="send-btn" onclick="sendMessage()">发送 ↑</button>
+      </div>
+    </div>
+  </main>
+
+  <aside class="side right">
+    <h3>当前人设 (Persona)</h3>
+    <div id="persona-panel">
+      <div class="small">尚未校准。校准后这里会显示你的 10 维人设雷达图。</div>
+      <button class="card-btn" style="margin-top:10px" onclick="calibratePersona()">+ 校准人设</button>
+    </div>
+    <div style="height:24px"></div>
+    <h3>本次执行图 (Replay)</h3>
+    <div id="replay-panel" class="replay-list">
+      <div class="small">运行后这里会显示完整决策链路。</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+const API_BASE = window.location.origin.includes('localhost') ?
+  'http://localhost:8000' : '';
+const messages = document.getElementById('messages');
+const replayPanel = document.getElementById('replay-panel');
+const personaPanel = document.getElementById('persona-panel');
+
+let userId = localStorage.getItem('ripple_user_id');
+if (!userId) {
+  userId = 'u_' + Math.random().toString(36).slice(2, 10);
+  localStorage.setItem('ripple_user_id', userId);
+}
+
+let sessionId = 'sess_' + Date.now();
+
+function escapeHtml(s) {
+  return (s + '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function appendUserMsg(text) {
+  const empty = messages.querySelector('.empty');
+  if (empty) empty.remove();
+  const div = document.createElement('div');
+  div.className = 'msg user fade-in';
+  div.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function createAiBubble() {
+  const div = document.createElement('div');
+  div.className = 'msg ai fade-in';
+  div.innerHTML = `<div class="bubble"></div>`;
+  messages.appendChild(div);
+  return div.querySelector('.bubble');
+}
+
+function thinkBlock(bubble) {
+  let block = bubble.querySelector('.thinking-block');
+  if (!block) {
+    block = document.createElement('div');
+    block.className = 'thinking-block';
+    block.innerHTML = `
+      <div class="thinking-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span><span class="spinner" id="th-spinner"></span>正在思考 · 深度分析中</span>
+        <span style="color:var(--text3); font-size:11px" id="th-meta">0 步</span>
+      </div>
+      <div class="thinking-body" id="th-body"></div>
+    `;
+    bubble.appendChild(block);
+  }
+  return block;
+}
+
+function addThinkingLine(block, text, stage = '', actor = '') {
+  const body = block.querySelector('.thinking-body');
+  // mark previous lines as inactive
+  body.querySelectorAll('.thinking-line.active').forEach(el => el.classList.remove('active'));
+  const line = document.createElement('div');
+  line.className = 'thinking-line active fade-in';
+  let stageHtml = stage ? `<span class="stage-name">${escapeHtml(stage)}</span>` : '';
+  let actorHtml = actor ? `<span class="agent-name">${escapeHtml(actor)}</span> · ` : '';
+  line.innerHTML = `<div class="dot"></div><div>${stageHtml}${actorHtml}${escapeHtml(text)}</div>`;
+  body.appendChild(line);
+  body.scrollTop = body.scrollHeight;
+  const meta = block.querySelector('#th-meta');
+  meta.textContent = body.children.length + ' 步';
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function finishThinking(block) {
+  const spinner = block.querySelector('.spinner');
+  if (spinner) spinner.remove();
+  block.querySelectorAll('.thinking-line.active').forEach(el => el.classList.remove('active'));
+  const header = block.querySelector('.thinking-header > span:first-child');
+  if (header) header.innerHTML = '<span style="color:var(--accent3)">✓</span> 完成思考';
+}
+
+function renderTopicPanel(bubble, data) {
+  const card = document.createElement('div');
+  card.className = 'card fade-in';
+  let html = `<div class="card-h"><div class="title">候选话题决策卡 · Risk-Reward Scorer</div>
+    <span class="card-tag">L5 决策层</span></div>`;
+  html += `<div>`;
+  (data.topics || []).slice(0, 5).forEach(t => {
+    const rr = t.risk_reward || {};
+    const reg = rr.regulatory_sensitivity || 'low';
+    const recColor = rr.recommendation === 'push' ? 'var(--accent3)' :
+                     rr.recommendation === 'avoid' ? 'var(--error)' : 'var(--warn)';
+    html += `<div class="topic-row">
+      <span class="src">${escapeHtml(t.source || '')}</span>
+      <div class="title">${escapeHtml(t.title || '')}</div>
+      <div class="scores">
+        <span class="score potential">潜力 ${(rr.potential_score || 0).toFixed(2)}</span>
+        <span class="score risk">风险 ${(rr.risk_score || 0).toFixed(2)}</span>
+        <span class="score regu-${reg}">${reg.toUpperCase()}</span>
+        <span class="score" style="color:${recColor};font-weight:700">${(rr.recommendation || '').toUpperCase()}</span>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  card.innerHTML = html;
+  bubble.appendChild(card);
+}
+
+function renderCampaign(bubble, data) {
+  const card = document.createElement('div');
+  card.className = 'card fade-in';
+  let html = `<div class="card-h"><div class="title">7 天战役图 · Campaign Planner</div>
+    <span class="card-tag">引流${(data.flow_structure?.acquire||0)*100|0}% 信任${(data.flow_structure?.trust||0)*100|0}% 转化${(data.flow_structure?.convert||0)*100|0}%</span></div>`;
+  html += `<div class="timeline">`;
+  (data.days || []).slice(0, 7).forEach(d => {
+    html += `<div class="day-card">
+      <div class="day-num">D${d.day_index}</div>
+      <div class="role">${escapeHtml(d.role || '')}</div>
+      <div class="topic">${escapeHtml((d.topic || '').slice(0, 24))}</div>
+      <div class="kpi">${escapeHtml((d.expected_kpi || '').slice(0, 16))}</div>
+    </div>`;
+  });
+  html += `</div>`;
+  card.innerHTML = html;
+  bubble.appendChild(card);
+}
+
+function renderOracleScan(bubble, data) {
+  const card = document.createElement('div');
+  card.className = 'card fade-in';
+  const items = data.items_by_source || {};
+  const top = data.top_per_source || {};
+  let html = `<div class="card-h"><div class="title">Oracle 早期信号雷达 · L1 感知层</div>
+    <span class="card-tag">${data.succeeded}/${(data.succeeded||0)+(data.failed||0)} 数据源 · ${data.duration_ms}ms</span></div>`;
+  for (const [src, list] of Object.entries(top)) {
+    if (!list.length) continue;
+    html += `<div style="margin-bottom:8px"><span class="src" style="font-size:11px;padding:2px 8px;background:var(--bg3);border-radius:999px;color:var(--accent2)">${escapeHtml(src)}</span> <span class="small">Top ${list.length}</span></div>`;
+    list.forEach(it => {
+      html += `<div class="topic-row">
+        <span class="src">#${it.rank}</span>
+        <div class="title">${escapeHtml(it.title || '')}</div>
+        <div class="small">${(it.value || 0).toLocaleString()}</div>
+      </div>`;
+    });
+  }
+  card.innerHTML = html;
+  bubble.appendChild(card);
+}
+
+function renderSimVariants(bubble, data) {
+  const card = document.createElement('div');
+  card.className = 'card fade-in';
+  let html = `<div class="card-h"><div class="title">多版本赛马 · SimPredictor</div>
+    <span class="card-tag">${(data.variants||[]).length} 版本 × 5 cohort</span></div>`;
+  (data.variants || []).forEach((v, i) => {
+    const sim = (data.sim_results || [])[i];
+    const score = sim ? sim.overall_score : 0.5;
+    html += `<div style="margin-bottom:10px;padding:10px;background:var(--bg3);border-radius:8px;${data.winner === v.id ? 'border:1px solid var(--accent3)' : ''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div><strong>${escapeHtml(v.id)}</strong> · ${escapeHtml(v.style||'')}</div>
+        ${data.winner === v.id ? '<span class="card-tag">★ 推荐版本</span>' : ''}
+      </div>
+      <div class="sim-bar">
+        <div class="name">综合得分</div>
+        <div class="bar"><div class="bar-fill" style="width:${score*100}%"></div></div>
+        <div class="num">${score.toFixed(2)}</div>
+      </div>
+      ${(sim?.cohort_breakdown || []).map(c => `
+        <div class="sim-bar">
+          <div class="name">${escapeHtml(c.cohort_id)}</div>
+          <div class="bar"><div class="bar-fill" style="width:${c.affinity_score*100}%"></div></div>
+          <div class="num">${c.affinity_score.toFixed(2)}</div>
+        </div>`).join('')}
+      <div class="small" style="margin-top:6px">${escapeHtml((v.content || '').slice(0, 200))}</div>
+    </div>`;
+  });
+  card.innerHTML = html;
+  bubble.appendChild(card);
+}
+
+function renderCrossPlatform(bubble, data) {
+  const card = document.createElement('div');
+  card.className = 'card fade-in';
+  let html = `<div class="card-h"><div class="title">跨平台改写 · CrossPlatform Translator</div>
+    <span class="card-tag">${(data.packs||[]).length} 平台版本</span></div>`;
+  (data.packs || []).forEach(p => {
+    html += `<div style="margin-bottom:12px;padding:12px;background:var(--bg3);border-radius:8px">
+      <div style="margin-bottom:6px"><strong>${escapeHtml(p.platform)}</strong>: ${escapeHtml(p.title || '')}</div>
+      <div class="small" style="margin-bottom:4px">钩子: ${escapeHtml(p.hook || '-')}</div>
+      <div style="font-size:13px;white-space:pre-wrap">${escapeHtml((p.content || '').slice(0, 500))}</div>
+    </div>`;
+  });
+  card.innerHTML = html;
+  bubble.appendChild(card);
+}
+
+function renderFinalSummary(bubble, data) {
+  const card = document.createElement('div');
+  card.className = 'final-card fade-in';
+  card.innerHTML = `
+    <div class="label">★ 最终结论</div>
+    <div class="text">${escapeHtml(data.text || '')}</div>
+  `;
+  bubble.appendChild(card);
+}
+
+function renderPersonaRadar(bubble, data) {
+  const dims = data.dimensions || {};
+  const card = document.createElement('div');
+  card.className = 'card fade-in';
+  card.innerHTML = `<div class="card-h"><div class="title">人设向量 (Persona) · ${escapeHtml(data.branch || 'main')}</div>
+    <span class="card-tag">v${data.version} · ${data.sample_count} 样本</span></div>
+    <div class="small">drift_score: ${(data.drift_score || 0).toFixed(3)}</div>
+    <pre style="font-size:11px;color:var(--text3);margin-top:8px;overflow-x:auto">${escapeHtml(JSON.stringify(dims, null, 2))}</pre>`;
+  bubble.appendChild(card);
+  drawPersonaRadar(dims, data);
+}
+
+function drawPersonaRadar(dims, full) {
+  const labels = ['正式度','专业度','幽默感','句长','emoji','第一人称','疑问','感叹','术语','袒露'];
+  const keys = ['formality','technicality','humor_density','sentence_length_avg','emoji_density','first_person_freq','questions_freq','exclamation_freq','professional_jargon','vulnerability_disclosure'];
+  const N = labels.length;
+  const cx = 100, cy = 100, R = 78;
+  const points = keys.map((k, i) => {
+    let v = dims[k] || 0;
+    if (k === 'sentence_length_avg') v = Math.min(1.0, v / 100);
+    const ang = -Math.PI / 2 + (Math.PI * 2 * i) / N;
+    return { x: cx + Math.cos(ang) * R * v, y: cy + Math.sin(ang) * R * v, ang, v, label: labels[i] };
+  });
+  const polyPath = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+  let svg = `<svg viewBox="0 0 200 200" class="radar">`;
+  for (let r = 1; r <= 4; r++) {
+    let pts = [];
+    for (let i = 0; i < N; i++) {
+      const ang = -Math.PI / 2 + (Math.PI * 2 * i) / N;
+      pts.push(`${(cx + Math.cos(ang) * R * r/4).toFixed(1)},${(cy + Math.sin(ang) * R * r/4).toFixed(1)}`);
+    }
+    svg += `<polygon class="radar-grid" points="${pts.join(' ')}"/>`;
+  }
+  for (let i = 0; i < N; i++) {
+    const ang = -Math.PI / 2 + (Math.PI * 2 * i) / N;
+    const x2 = cx + Math.cos(ang) * R, y2 = cy + Math.sin(ang) * R;
+    svg += `<line class="radar-axis" x1="${cx}" y1="${cy}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+    const lx = cx + Math.cos(ang) * (R + 14), ly = cy + Math.sin(ang) * (R + 14);
+    svg += `<text class="radar-label" x="${lx.toFixed(1)}" y="${(ly+3).toFixed(1)}" text-anchor="middle">${labels[i]}</text>`;
+  }
+  svg += `<polygon class="radar-poly" points="${polyPath}"/>`;
+  svg += `</svg>`;
+  personaPanel.innerHTML = svg + `<div class="small" style="margin-top:8px">分支 ${escapeHtml(full.branch || 'main')} · v${full.version || 1} · ${full.sample_count || 0} 样本</div>`;
+}
+
+function renderReplayGraph(graph) {
+  const nodes = graph.nodes || [];
+  if (!nodes.length) return;
+  let html = '';
+  nodes.forEach(n => {
+    html += `<div class="replay-node">
+      <span class="ph">[${escapeHtml(n.phase || '')}]</span>
+      <span class="actor">${escapeHtml(n.actor || '')}</span>
+      <div class="sm">${escapeHtml((n.summary || '').slice(0, 80))}</div>
+      <div class="merkle">⛓ ${escapeHtml(n.merkle || '')}</div>
+    </div>`;
+  });
+  replayPanel.innerHTML = html;
+}
+
+async function loadPersona() {
+  try {
+    const r = await fetch(`${API_BASE}/api/v2/persona/${userId}`);
+    if (r.ok) {
+      const d = await r.json();
+      drawPersonaRadar(d.dimensions || {}, d);
+    }
+  } catch (e) {}
+}
+
+async function calibratePersona() {
+  const text = prompt('粘贴 3-5 篇你的历史代表作 (用 --- 分隔), 用于校准人设向量:', '');
+  if (!text) return;
+  const samples = text.split(/---+/).map(s => s.trim()).filter(Boolean);
+  if (!samples.length) return;
+  personaPanel.innerHTML = '<div class="small"><span class="spinner"></span>正在分析人设...</div>';
+  try {
+    const r = await fetch(`${API_BASE}/api/v2/persona/calibrate`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, samples }),
+    });
+    const data = await r.json();
+    drawPersonaRadar(data.dimensions || {}, data);
+  } catch (e) {
+    personaPanel.innerHTML = '<div class="small" style="color:var(--error)">校准失败: ' + e + '</div>';
+  }
+}
+
+function quickAsk(text) {
+  document.getElementById('composer-input').value = text;
+  sendMessage();
+}
+
+let inflight = false;
+async function sendMessage() {
+  if (inflight) return;
+  const input = document.getElementById('composer-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  inflight = true;
+  document.getElementById('send-btn').disabled = true;
+
+  appendUserMsg(text);
+  const bubble = createAiBubble();
+  const block = thinkBlock(bubble);
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/v2/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+      body: JSON.stringify({
+        query: text, user_id: userId, session_id: sessionId,
+      }),
+    });
+
+    if (!resp.ok) {
+      addThinkingLine(block, '请求失败: ' + resp.status);
+      return;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx;
+      while ((idx = buffer.indexOf('\n\n')) >= 0) {
+        const chunk = buffer.slice(0, idx).trim();
+        buffer = buffer.slice(idx + 2);
+        if (!chunk.startsWith('data:')) continue;
+        const json = chunk.slice(5).trim();
+        if (!json) continue;
+        try {
+          const evt = JSON.parse(json);
+          handleEvent(evt, bubble, block);
+        } catch (e) {}
+      }
+    }
+    finishThinking(block);
+  } catch (e) {
+    addThinkingLine(block, '出错: ' + e);
+    finishThinking(block);
+  } finally {
+    inflight = false;
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+}
+
+function handleEvent(evt, bubble, block) {
+  const t = evt.type;
+  if (t === 'thinking') {
+    addThinkingLine(block, evt.text || '');
+  } else if (t === 'agent_start') {
+    addThinkingLine(block, (evt.description || '启动'), 'AGENT', evt.agent);
+  } else if (t === 'agent_progress') {
+    addThinkingLine(block, evt.step || '', 'STEP', evt.agent);
+  } else if (t === 'agent_end') {
+    addThinkingLine(block, evt.success ? '✓ 完成' : '✗ 失败', 'END', evt.agent);
+  } else if (t === 'tool_call') {
+    addThinkingLine(block, '调用 ' + (evt.tool || ''), 'TOOL');
+  } else if (t === 'tool_result') {
+    addThinkingLine(block, (evt.summary || '').slice(0, 80), 'RESULT');
+  } else if (t === 'report_card') {
+    const ct = evt.card_type;
+    const data = evt.data || {};
+    if (ct === 'oracle_scan') renderOracleScan(bubble, data);
+    else if (ct === 'topic_panel') renderTopicPanel(bubble, data);
+    else if (ct === 'campaign_timeline') renderCampaign(bubble, data);
+    else if (ct === 'script_variants') renderSimVariants(bubble, data);
+    else if (ct === 'cross_platform') renderCrossPlatform(bubble, data);
+    else if (ct === 'persona_radar') renderPersonaRadar(bubble, data);
+    else if (ct === 'final_summary') renderFinalSummary(bubble, data);
+    else if (ct === 'replay_graph') renderReplayGraph(data);
+  } else if (t === 'error') {
+    addThinkingLine(block, '⚠ ' + (evt.message || ''));
+  } else if (t === 'done') {
+    addThinkingLine(block, '✓ 完成 (run_id=' + (evt.run_id || '?') + ')', 'DONE');
+  }
+}
+
+document.getElementById('composer-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+document.getElementById('composer-input').addEventListener('input', (e) => {
+  e.target.style.height = '28px';
+  e.target.style.height = Math.min(200, e.target.scrollHeight) + 'px';
+});
+
+loadPersona();
+
+// Health check
+fetch(`${API_BASE}/api/v2/health`).then(r => r.json()).then(d => {
+  document.getElementById('status-pill').textContent = '● ' + d.kernel + ' v' + d.version;
+}).catch(() => {
+  document.getElementById('status-pill').textContent = '● 离线';
+  document.getElementById('status-pill').classList.remove('ok');
+});
+</script>
+</body>
+</html>

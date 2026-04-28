@@ -1,0 +1,134 @@
+\section{竞品矩阵分析}\label{sec:competitor}
+
+\subsection{8 类对标全景}
+
+我们调研了 GitHub / 黑客松 / YouTube\&PH / 国内平台 4 大平台来源, 商业化 / 开源 2 类形态, 单 Agent / 多 Agent 协同 2 种架构, 总共 8 类对标。
+
+\subsubsection{Type 1: GitHub 开源 (有源码)}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}l l l X}
+    \toprule
+    项目 & Stars (检索时) & 形态 & 与 Ripple 对比 \\
+    \midrule
+    Hermes Agent (NousResearch) & $\sim$10万+ & 主代理 + delegate 子代理 & 通用 CLI Agent; Ripple 垂直 KOC 决策, 数据源与工具更聚焦 \\
+    \midrule
+    CrewAI & $\sim$5万 & 多角色 Crew + Flow 状态机 & 通用框架; Ripple 自带 7 数据源 + 国内热搜 + Persona Vector \\
+    \midrule
+    LangGraph (LangChain) & $\sim$3万 & 显式 DAG / 状态机 & 通用编排; Ripple 已落地具体 KOC 工作流 \\
+    \midrule
+    MetaGPT & $\sim$5万+ & SOP 多角色 (软件公司) & 通用 SDE; 与 KOC 内容业完全不同 \\
+    \bottomrule
+\end{tabularx}
+
+\subsubsection{Type 2: 黑客松 / Devpost (Demo 原型)}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}l X}
+    \toprule
+    项目 & 备注 \\
+    \midrule
+    Content\_Studio.ai & Google ADK 7 sub-agents, 架构像 mini Ripple, 缺 Polymarket/微博等数据源 \\
+    \midrule
+    Social Media Autopilot & 5 agents, OAuth 实发可参考, 早信号维度薄 \\
+    \midrule
+    Instant-gram & 偏单代理, 多源见闻 → 帖, 无雷达指标体系 \\
+    \bottomrule
+\end{tabularx}
+
+\subsubsection{Type 3: YouTube / Product Hunt / 国外社区 (商业化)}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}l X}
+    \toprule
+    Jasper / Copy.ai & 商业化写作 SaaS, 模板腔强, \textbf{无早信号 / 无人设 Vector / 无 Replay} \\
+    \midrule
+    Buffer / Later & 排期与渠道管理, 工具链型, 不做预测与多 Agent \\
+    \midrule
+    Brandwatch / Meltwater & 企业 SaaS, 全渠监听, 贵且偏品牌方, 不做内容生产 \\
+    \midrule
+    BuzzSumo / Trendalytics & 趋势 API + 时尚预测, 垂类窄 \\
+    \bottomrule
+\end{tabularx}
+
+\subsubsection{Type 4: 国内平台 (闭源商业)}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}l X}
+    \toprule
+    飞瓜数据 / 新榜 / 千瓜 & 已商业化, 带货榜单 + GMV 估算, \textbf{都是已发生的热度}, 无前导信号 \\
+    \midrule
+    秘塔搜索 / 即梦 / 文心一言 & 通用 AI 助手, 不接平台生态与发布时间线 \\
+    \bottomrule
+\end{tabularx}
+
+\subsection{Ripple 的差异化定位}
+
+\begin{insight}
+Ripple 不是 \textbf{再做一个 Jasper}, 也不是 \textbf{把 LangGraph 包成产品}。
+
+我们的差异化是:
+\begin{itemize}
+    \item \textbf{vs Hermes / CrewAI / LangGraph}: 我们是\textbf{垂直领域的 OS}, 自带 7 数据源 + Persona Vector + Replay Graph, 不是通用框架
+    \item \textbf{vs Jasper / Copy.ai}: 我们是 \textbf{决策系统}, 输出的是 \textit{「为什么这个话题 + 风险评分 + 7 天战役图」} 而不是 \textit{「一段文案」}
+    \item \textbf{vs 飞瓜 / 新榜}: 它们告诉你 \textbf{什么已经火了}, 我们告诉你 \textbf{什么 7-14 天后会火}
+    \item \textbf{vs 通用 AI (ChatGPT / Claude)}: 我们有 \textbf{KOC 领域知识 + 持续人设记忆 + 真实数据源}, 不是黑箱回答
+\end{itemize}
+\end{insight}
+
+\subsection{借鉴与超越}
+
+\subsubsection{借鉴 Claude Code 51 万行架构}
+
+来源: \href{https://venturebeat.com/technology/claude-codes-source-code-appears-to-have-leaked-heres-what-we-know}{VentureBeat 报道} 及多篇基于泄露制品的第三方架构解读 (注意: 我们仅借鉴公开文章中的设计思想, 不复制源码)。
+
+公开讨论中反复出现的设计取向:
+
+\begin{tabularx}{\textwidth}{>{\bfseries}l X}
+    \toprule
+    多层记忆 & \texttt{MEMORY.md} 类指针索引 (短、常驻) + 按主题拆分的 Markdown 记忆文件按需加载 \\
+    \midrule
+    Subagent 编排 & 多任务类型 + 邮箱/队列式消息 + 子代理上下文隔离 + 限制递归/并行 \\
+    \midrule
+    权限与安全 & 工具/命令分级 + 人在回路 + 高风险操作可逆性校验 \\
+    \midrule
+    上下文压缩 & 分级 compaction (多阈值触发) + 缓存对齐 + 辅助模型侧路摘要 \\
+    \midrule
+    后台 Dream & 空闲时多阶段 (浏览 → 模式抽取 → 合并去矛盾 → 重写索引) \\
+    \bottomrule
+\end{tabularx}
+
+Ripple 在 \texttt{apps/api/kernel/persistence/memory/} 走类似路线: 索引 + 按需加载 + 后台压缩。
+
+\subsubsection{借鉴 Hermes Engineer}
+
+\begin{itemize}
+    \item \texttt{delegate\_task} 子代理隔离上下文 → Ripple 的 Subagent Dispatcher
+    \item Skill 自进化闭环 → Ripple 的 Skill Library + Reflector
+    \item SQLite 会话态 → Ripple 的 \texttt{sessions} 表
+    \item ContextCompressor + MemoryManager → Ripple 的 MemoryCompactor
+\end{itemize}
+
+\subsubsection{借鉴 OpenAI Deep Research / Gemini Deep Research}
+
+\begin{itemize}
+    \item 长时任务 (5-30 分钟) + 侧栏步骤 + 引用链 → Ripple 的流式 thinking + 分步事件 + Citation
+    \item 可中断 refinement → Ripple 的 SSE 客户端可断开
+    \item 异步作业 + webhook → Ripple 的 \texttt{run\_id} 持久化, 可后查
+\end{itemize}
+
+\subsubsection{借鉴 Polymarket / Kalshi}
+
+\begin{itemize}
+    \item Gamma API 公共读 → Ripple 直连
+    \item Volume24hr 作为信号强度 → Ripple 用作 normalized
+    \item 概率市场作为先行指标 → Ripple 的 Trend Chain 第一阶段
+\end{itemize}
+
+\subsubsection{借鉴 Reflexion / SELF-REFINE / Voyager}
+
+\begin{itemize}
+    \item Reflection → Ripple 的 Reflector
+    \item SELF-REFINE 生成-批评-修订 → Ripple 的 SelfCritiqueLoop
+    \item Voyager Skill Library → Ripple 的 Markdown skill 加载 + 自进化
+\end{itemize}
+
+\begin{insight}
+Ripple 不是 \textbf{自创轮子}, 而是 \textbf{站在巨人肩膀上做垂直整合}。每个借鉴都标注来源 (见 §\ref{sec:references}), 体现了「借鉴 + 超越」的工程纪律。
+\end{insight}

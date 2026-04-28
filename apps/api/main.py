@@ -44,10 +44,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Ripple API",
-    description="KOC 早期信号雷达 + 多 Agent 内容工厂",
-    version="0.1.0",
+    description="KOC 决策智能 OS - 早期信号雷达 + 多层记忆 + Persona Vector + Replay Graph",
+    version="2.0.0",
     lifespan=lifespan,
 )
+
+try:
+    from kernel.distribution.api_v2 import router as v2_router
+    app.include_router(v2_router)
+    logger.info("Mounted v2 router at /api/v2")
+except Exception as e:
+    logger.error(f"Failed to mount v2 router: {e}")
 
 app.add_middleware(
     CORSMiddleware,

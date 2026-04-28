@@ -1,0 +1,33 @@
+{
+  "name": "@ripple/mcp",
+  "version": "0.2.0",
+  "description": "Ripple KOC 决策智能 OS - MCP Server,在 Cursor / Claude Code 里调用 Ripple 的 7 层架构",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "ripple-mcp": "src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "ripple",
+    "koc",
+    "ai-agent",
+    "content-creation"
+  ],
+  "author": "戴尚好 <bcefghj@163.com>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bcefghj/ripple.git",
+    "directory": "packages/ripple-mcp"
+  }
+}

@@ -1,0 +1,74 @@
+\section{商业化路线}
+
+\subsection{用户分层与商业模型}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}l X X}
+    \toprule
+    用户层 & 痛点 & 商业模型 \\
+    \midrule
+    千粉 KOC (个人) & 不知道发什么 / 不知道怎么写 & Freemium SaaS, 每月 5 次 Oracle 扫描免费 \\
+    \midrule
+    腰部 KOC (1-10 万粉) & 风格保持 / 多平台分发 / 节奏规划 & 月费 $\sim$199, Persona Vector + 7 天战役图 + 跨平台改写 \\
+    \midrule
+    头部 KOC / MCN (10 万+) & 多账号管理 / 团队协作 / 数据回测 & 企业版 $\sim$2000/月, 多 Persona 隔离 + 团队权限 + Audit Log \\
+    \midrule
+    腾讯 PCG 内部 & 视频号 / 公众号生态扶植 & B2B 合作, API 集成到创作者工具链 \\
+    \bottomrule
+\end{tabularx}
+
+\subsection{三阶段商业化路径}
+
+\subsubsection{阶段 1: 开源工具 (0-3 个月)}
+
+\begin{itemize}
+    \item GitHub 开源 Ripple 核心 kernel (Apache 2.0)
+    \item 发布 \texttt{npx @ripple/mcp} 在 Cursor / Claude Code 生态露出
+    \item 目标: 1000 GitHub Stars, 内容创作者社区认可
+\end{itemize}
+
+\subsubsection{阶段 2: SaaS 上线 (3-9 个月)}
+
+\begin{itemize}
+    \item \texttt{ripple.cn} 公测, 千粉 KOC 免费, 腰部 KOC 付费
+    \item 接入腾讯视频号 / 公众号 OAuth, 一键发布
+    \item 目标: 10000 注册用户, 1000 付费用户, MRR \$30k
+\end{itemize}
+
+\subsubsection{阶段 3: 平台生态 (9-18 个月)}
+
+\begin{itemize}
+    \item Skill Marketplace: KOC 可上传自己的 Skill (例如「美妆测评模板」)
+    \item Persona 仓库: 优质人设可订阅 (类似 Substack)
+    \item 与 MCN 机构合作: 团队管理 + 多 KOC 协作
+    \item 目标: ARR \$1M, 成为腰部 KOC 标配
+\end{itemize}
+
+\subsection{腾讯生态契合点}
+
+\begin{insight}
+Ripple 与腾讯 PCG 生态的天然契合:
+
+\begin{itemize}
+    \item \textbf{视频号 / 公众号} 默认输出格式之一
+    \item \textbf{腾讯混元} 作为 LLM Fallback (已集成在 LLM Router)
+    \item \textbf{腾讯云} 是默认部署目标
+    \item \textbf{微信生态} 是 Cross-Platform Translator 的核心目标
+    \item \textbf{Sparkle 创作者数据} 可作为 Cohort Affinity 的真实数据源 (如能合作)
+\end{itemize}
+\end{insight}
+
+\subsection{风险与应对}
+
+\begin{tabularx}{\textwidth}{>{\bfseries}l X}
+    \toprule
+    风险 & 应对 \\
+    \midrule
+    平台 API 政策变化 & 多源冗余 + 第三方聚合 + 用户自带数据 (BYOK 思想) \\
+    \midrule
+    LLM 成本上升 & BYOK + 缓存 + Persona 增量更新 (减少全量重算) \\
+    \midrule
+    KOC 隐私顾虑 & 端侧 SQLite + AES-GCM 加密 + 用户数据不出本地 \\
+    \midrule
+    平台监管 & 引用强制 + Risk-Reward 评估 + 自动合规审查 \\
+    \bottomrule
+\end{tabularx}

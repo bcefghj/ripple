@@ -47,3 +47,12 @@ logs/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+
+# Build artifacts
+docs/proposal/.fonts-detected
+docs/proposal/main.xdv
+apps/api/.ripple/
+
+# venv
+venv/
+*.egg-info/

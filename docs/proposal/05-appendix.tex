@@ -1,0 +1,194 @@
+\section{附录}
+
+\subsection{关键代码示例}
+
+\subsubsection{Claude Code 风格 TAOR 主循环}
+
+\begin{lstlisting}[language=python, caption=apps/api/agent/agent\_loop.py(节选)]
+class AgentLoop:
+    async def run(self, initial_state, system_prompt, can_use_tool):
+        state = initial_state
+        try:
+            while True:
+                # 1) 预算与轮数检查
+                if state.turn_count > self.max_turns:
+                    yield Terminal(reason=TerminalReason.MAX_TURNS, ...)
+                    return
+
+                # 2) 上下文压缩
+                messages = await self.compression.run_full_pipeline(
+                    state.messages, state.auto_compact_tracking
+                )
+
+                # 3) 调用 LLM
+                response = await self.llm_call(messages=messages, ...)
+                tool_calls = response.get("tool_calls", [])
+
+                # 4) 没 tool calls -> Stop hook 链
+                if not tool_calls:
+                    stop_result = await self.hooks.execute_stop({...})
+                    if stop_result.prevent_continuation:
+                        yield Terminal(reason=TerminalReason.STOP_HOOK_PREVENTED)
+                        return
+                    yield Terminal(reason=TerminalReason.COMPLETED, ...)
+                    return
+
+                # 5) 执行工具(经过 PreToolUse hook)
+                tool_results = await self._execute_tools(tool_calls, state)
+
+                # 6) 整对象重建 State
+                state = replace(
+                    state,
+                    messages=state.messages + [response.message] + tool_results,
+                    turn_count=state.turn_count + 1,
+                    transition=Transition(reason=ContinueReason.NEXT_TURN),
+                )
+        except asyncio.CancelledError:
+            yield Terminal(reason=TerminalReason.ABORTED_STREAMING, ...)
+\end{lstlisting}
+
+\subsubsection{Oracle 早期信号雷达 - 12 数据源并行}
+
+\begin{lstlisting}[language=python, caption=apps/api/agents/oracle\_agent.py(节选)]
+class OracleAgent:
+    def __init__(self):
+        self.sources = [
+            PolymarketSource(),    # 国际预测市场
+            ManifoldSource(),      # 社区预测
+            HackerNewsSource(),    # 科技叙事
+            GitHubTrendingSource(),# 开源讨论
+            WeiboMockSource(),     # 微博实时
+            WeixinIndexMockSource(),# 微信指数
+            BaiduIndexMockSource(),# 百度指数
+            XHSInspirationMockSource(),# 小红书灵感
+            JuliangTrendMockSource(),  # 抖音算数
+        ]
+
+    async def scan(self, topic_seed, category, target_platforms):
+        # 12 数据源并行
+        results = await asyncio.gather(
+            *[s.fetch(topic_seed) for s in self.sources],
+            return_exceptions=True,
+        )
+
+        # CUSUM + MAD-zscore 异常检测
+        all_samples = []
+        for r in results:
+            if isinstance(r, list):
+                all_samples.extend(r)
+
+        # 矛盾推理(借鉴 Digital Oracle)
+        contradictions = find_contradictions(all_samples)
+
+        # 聚合成 Top 10 趋势 + 置信度
+        trends = self._aggregate_trends(all_samples, category, target_platforms)
+
+        return OracleReport(trends=trends, ...)
+\end{lstlisting}
+
+\subsubsection{多 Agent 论坛辩论}
+
+\begin{lstlisting}[language=python, caption=apps/api/agents/forum\_debate\_agent.py(节选)]
+class ForumDebateAgent:
+    """1 主持 + 3 专家(数据派/创意派/风险派)辩论 2 轮"""
+    
+    async def debate(self, topic, context, max_rounds=2):
+        # Round 1: 各自独立发言(并行)
+        responses_r1 = await asyncio.gather(*[
+            self._speaker_speak(role, prompt)
+            for role in ["data_expert", "creative_expert", "risk_expert"]
+        ])
+
+        # Round 2-N: 互相反驳
+        for r in range(2, max_rounds + 1):
+            responses_rn = await asyncio.gather(*[
+                self._speaker_speak(role, build_rebuttal_prompt(...))
+                for role in speakers
+            ])
+
+        # 主持人裁判
+        decision = await self._host_decide(topic, all_views)
+
+        return DebateResult(rounds=rounds, final_decision=decision, ...)
+\end{lstlisting}
+
+% --------------------------------------------
+
+\subsection{数据来源与文献}
+
+\subsubsection{学术论文}
+
+\begin{itemize}
+\item PopSim: arxiv:2512.02533 — LLM 多智能体社交沙箱传播预测
+\item AutoCas: arxiv:2502.18040 — 级联扩散自回归 LLM 模型
+\item BuzzProphet: 微博 hashtag 流行度预测(2024-2025)
+\item HyperFusion: SMP Challenge 2025 多模态融合
+\item Loewenstein 1994: Curiosity Gap 理论(Psychological Bulletin)
+\end{itemize}
+
+\subsubsection{行业报告}
+
+\begin{itemize}
+\item 克劳锐《2024 年 KOL 发展年报》:中国万粉以上创作者 1500 万+
+\item Goldman Sachs Research:全球 Creator Economy 2027 \$4800 亿
+\item Ebiquity:中国 2025 KOL 营销市场 ¥930 亿
+\item 36氪《全中国最懂小红书的「郑州帮」》:KOC 真实日常
+\item 36氪《MCN 不是网红们的救世主》:MCN-达人关系矛盾
+\end{itemize}
+
+\subsubsection{开源项目(灵感来源)}
+
+\begin{itemize}
+\item Digital Oracle: \url{https://github.com/komako-workshop/digital-oracle}
+\item Claude Code 51 万行: 基于第三方逆向 \texttt{alejandrobalderas/claude-code-from-source}
+\item MiroFish: \url{https://github.com/666ghj/MiroFish}
+\item BettaFish: \url{https://github.com/666ghj/BettaFish}
+\item Shannon: \url{https://github.com/Kocoro-lab/Shannon}
+\item OASIS: \url{https://github.com/camel-ai/oasis}
+\end{itemize}
+
+\subsubsection{法规与标准}
+
+\begin{itemize}
+\item 《人工智能生成合成内容标识办法》(2025-09-01 施行)
+\item 《互联网信息服务深度合成管理规定》
+\item 《生成式人工智能服务管理暂行办法》
+\item 《个人信息保护法》(PIPL)
+\item OWASP GenAI / LLM Top 10 v2 (2024-11)
+\end{itemize}
+
+\subsubsection{腾讯生态文档}
+
+\begin{itemize}
+\item 腾讯混元 OpenAI 兼容: \url{https://cloud.tencent.com/document/product/1729/111007}
+\item 元器 Agent API: \url{https://yuanqi.tencent.com/guide/publish-agent-api-documentation}
+\item 视频号助手 API: \url{https://developers.weixin.qq.com/doc/channels/api/channels/}
+\item 微信公众平台开发文档: \url{https://developers.weixin.qq.com}
+\end{itemize}
+
+% --------------------------------------------
+
+\subsection{致谢}
+
+感谢腾讯 PCG 校园 AI 产品创意大赛组委会提供这次机会。
+
+感谢以下开源项目与作者(灵感谱系):
+
+\begin{itemize}
+\item \textbf{komako-workshop/digital-oracle}: 早期信号思想的奠基性工作
+\item \textbf{666ghj/MiroFish + BettaFish + MindSpider}: 群体仿真与多 Agent 辩论
+\item \textbf{Anthropic Claude Code}: 51 万行代码架构纪律的标杆
+\item \textbf{Kocoro-lab/Shannon}: 生产级多 Agent 编排
+\item \textbf{NousResearch/Hermes Agent}: 记忆系统设计
+\item \textbf{LangGraph / LiteLLM / FastAPI / Tauri / Streamlit}: 工程基石
+\end{itemize}
+
+感谢 36氪、克劳锐、CSDN 上分享真实工作日常的 KOC 们,
+你们的「不可言说的痛点」是 Ripple 设计的起点。
+
+\bigskip
+
+\begin{flushright}
+\textit{Ripple Team \\
+2026 年 4 月 28 日}
+\end{flushright}

@@ -1,0 +1,234 @@
+\section{产品方案设计}
+
+\subsection{产品概述}
+
+\textbf{Ripple(涟漪)} 是一款面向 KOC 的 AI 原生内容生产平台,
+核心由两大模块组成:
+
+\begin{insight}
+\textbf{1. 早期信号雷达(Oracle)}: 借鉴 Digital Oracle「资本永远先于舆论」理念,
+12 个数据源并行扫描刚开始升温的话题,在热搜出现前 7-14 天发现机会。
+
+\textbf{2. 12 Agent 内容工厂}: 从选题到可发布内容的全自动流水线,
+4 个 Phase × 12 个专业 Agent 协作完成。
+\end{insight}
+
+\subsection{核心功能}
+
+\subsubsection{功能 1:Oracle 早期信号雷达}
+
+\textbf{12 个数据源并行}:
+\begin{enumerate}
+\item Polymarket(预测市场,事件概率定价)
+\item Kalshi(SEC 监管二元合约)
+\item Manifold Markets(社区预测市场)
+\item 微信指数(微信生态搜索意图)
+\item 百度指数(国内全网搜索意图)
+\item 巨量算数(抖音生态趋势)
+\item 小红书灵感日历
+\item 微博实时搜索
+\item HackerNews(科技/创业叙事先行)
+\item GitHub Trending
+\item Reddit r/popular
+\item X/Twitter trending
+\end{enumerate}
+
+\textbf{算法}:
+\begin{itemize}
+\item \textbf{MAD-zscore} 稳健异常检测
+\item \textbf{CUSUM} 单侧上行突变检测
+\item \textbf{矛盾推理}(借鉴 Digital Oracle):找不同信源分歧并解释为什么可以同时正确
+\end{itemize}
+
+\textbf{输出示例}:
+\begin{lstlisting}[language=json, caption=Oracle 报告示例]
+{
+  "trends": [{
+    "topic": "珂润润浸保湿洗颜泡沫",
+    "category": "美妆",
+    "confidence": 0.78,
+    "horizon_days": 5,
+    "evidence": [
+      {"source": "weibo", "value": 1.8, "delta": 0.95},
+      {"source": "xhs_search", "value": 2.1, "delta": 0.87}
+    ],
+    "explanation": "微博讨论 +180%,小红书搜索 +95%",
+    "recommended_angle": "成分党测评 vs 玄学体验",
+    "best_platforms": ["xhs", "channels"],
+    "risks": ["该话题可能被品牌方快速覆盖"]
+  }]
+}
+\end{lstlisting}
+
+\subsubsection{功能 2:12 Agent 内容工厂}
+
+按 \textbf{4 个 Phase} 协作:
+
+\textbf{Phase 1 — 信号感知(并行执行)}
+\begin{itemize}
+\item \textbf{OracleAgent}: 早期信号雷达(核心差异化)
+\item \textbf{TrendScoutAgent}: 已爆热点扫描(辅助参考)
+\item \textbf{StyleDecoderAgent}: KOC 风格学习(从 5-10 条历史作品提取风格卡片)
+\end{itemize}
+
+\textbf{Phase 2 — 决策辩论(顺序执行)}
+\begin{itemize}
+\item \textbf{ForumDebateAgent}: 借鉴 BettaFish ForumEngine,1 主持 + 3 专家(数据派/创意派/风险派)辩论 2 轮
+\item \textbf{TopicStrategistAgent}: 借鉴 Digital Oracle 矛盾推理,输出最终选题策略
+\end{itemize}
+
+\textbf{Phase 3 — 内容生产(并行执行)}
+\begin{itemize}
+\item \textbf{ScriptWriterAgent}: 调 MiniMax M2.7 长上下文,一次生成 6 个平台版本
+\item \textbf{VisualProducerAgent}: 混元生图 + SDXL+ControlNet,5 个候选封面
+\item \textbf{MaterialCuratorAgent}: 调 Unsplash/Pexels/Pixabay 合规图库 + 反向图搜版权检测
+\end{itemize}
+
+\textbf{Phase 4 — 审查发布(并行执行)}
+\begin{itemize}
+\item \textbf{FactCheckerAgent}: 真实性审查,自动添加 [[CITE]] 占位符
+\item \textbf{RiskReviewerAgent}: 合规审查(《AI 生成合成内容标识办法》+ 敏感词 + 平台规则)
+\item \textbf{SimPredictorAgent}: 简化版 OASIS 群体仿真预测(附加增强)
+\item \textbf{InsightAnalystAgent}: 整合所有 Agent 输出,生成归因报告
+\end{itemize}
+
+\subsection{产品架构}
+
+\subsubsection{完整架构图}
+
+\begin{tikzpicture}[node distance=1.2cm, scale=0.9, transform shape]
+\tikzstyle{layer} = [rectangle, draw=ripple-primary, fill=ripple-light, rounded corners, minimum width=12cm, minimum height=1.2cm, align=center]
+\tikzstyle{module} = [rectangle, draw=ripple-accent, fill=white, rounded corners, minimum width=2.8cm, minimum height=0.8cm, align=center, font=\small]
+\tikzstyle{arrow} = [->, thick, draw=ripple-primary]
+
+\node[layer] (entry) {\textbf{入口层}: Web / Tauri 桌面 / 微信小程序 / 移动 PWA};
+\node[layer, below=of entry] (gateway) {\textbf{网关层}: FastAPI + LiteLLM Router + OIDC + Rate Limit};
+\node[layer, below=of gateway] (core) {\textbf{核心层}: query\_loop AsyncGenerator + Terminal 枚举(借鉴 Claude Code)};
+
+\node[below=of core, yshift=-0.3cm] (modules-row1) {};
+\node[module, left=0.3cm of modules-row1] (memory) {五层记忆};
+\node[module, right=0.3cm of modules-row1] (skills) {Skills 系统};
+\node[module, right=0.3cm of skills] (hooks) {Hooks 系统};
+
+\node[below=2cm of core] (agents-label) {\textbf{12 Agent 工厂}};
+
+\node[module, below=0.3cm of agents-label, fill=blue!10] (p1) {Phase 1 \\ 感知 (3 Agent)};
+\node[module, right=0.3cm of p1, fill=blue!10] (p2) {Phase 2 \\ 辩论 (2 Agent)};
+\node[module, right=0.3cm of p2, fill=blue!10] (p3) {Phase 3 \\ 生产 (3 Agent)};
+\node[module, right=0.3cm of p3, fill=blue!10] (p4) {Phase 4 \\ 审查 (4 Agent)};
+
+\node[layer, below=2cm of p2, xshift=2cm] (models) {\textbf{LLM 池}: MiniMax 主 / 混元兜底 / BYOK 自定义 / 本地 Ollama};
+
+\draw[arrow] (entry) -- (gateway);
+\draw[arrow] (gateway) -- (core);
+\draw[arrow] (core) -- (memory);
+\draw[arrow] (core) -- (skills);
+\draw[arrow] (core) -- (hooks);
+\draw[arrow] (p1) -- (p2);
+\draw[arrow] (p2) -- (p3);
+\draw[arrow] (p3) -- (p4);
+\draw[arrow] (p4) -- (models);
+\draw[arrow] (memory) -- (models);
+\end{tikzpicture}
+
+\subsubsection{关键技术栈}
+
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{层} & \textbf{技术选型} \\
+\midrule
+后端 & Python 3.12, FastAPI 0.115, LangGraph 0.2, LiteLLM, Celery+Redis, PostgreSQL 16 + pgvector \\
+前端主站 & Next.js 15 (App Router, RSC, Streaming SSR) \\
+桌面 & Tauri 2.0 (macOS Menu Bar + Cmd+Shift+I + Windows Tray) \\
+小程序 & 微信小程序 + 微信云开发 \\
+移动 & PWA(V1) → React Native(V2) \\
+LLM & MiniMax M2.7 主 + 腾讯混元兜底 + BYOK 用户自定义(DeepSeek/豆包/智谱/Kimi/Claude/GPT/Ollama) \\
+合规 & 《AI 生成合成内容标识办法》全流程 + STRIDE 威胁建模 + OWASP LLM Top 10 v2 \\
+\bottomrule
+\end{tabularx}
+
+\subsection{交互流程}
+
+\subsubsection{典型用户流程(KOC 视角)}
+
+\begin{enumerate}
+\item KOC 打开 Ripple App,在「灵感捕捉」中记下"想做美妆冬季选题"
+\item 点击「今日早期信号」,Ripple 12 个数据源并行扫描,2 秒返回 Top 10 趋势
+\item KOC 选中 Top 1「珂润洗颜泡沫」(置信度 78\%,5 天窗口期)
+\item 点击「生成完整方案」,12 Agent 协作:
+    \begin{itemize}
+    \item 30 秒后:Phase 1 完成(信号感知 + 风格学习)
+    \item 60 秒后:Phase 2 完成(3 专家辩论 + 选题策略)
+    \item 120 秒后:Phase 3 完成(多平台文案 + 5 个封面)
+    \item 150 秒后:Phase 4 完成(合规审查 + 仿真预测 + 归因报告)
+    \end{itemize}
+\item KOC 收到完整内容包:
+    \begin{itemize}
+    \item 10 个候选标题(标注公式)
+    \item 5 个候选封面(高对比/温和/极简/人脸/无脸)
+    \item 6 个平台的差异化版本(视频号/公众号/小红书/抖音/B 站/微博)
+    \item 早期信号报告(为什么会爆)
+    \item 合规自检通过
+    \end{itemize}
+\item KOC 选最满意的版本,直接复制 / 导出 / 一键发布
+\item 发布后 24 小时,InsightAnalystAgent 自动复盘,更新 USER.md 偏好
+\end{enumerate}
+
+\subsection{创新与差异化}
+
+\subsubsection{三大核心差异化}
+
+\textbf{1. 信号视角差异化}
+
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{维度} & \textbf{现有竞品} & \textbf{Ripple} \\
+\midrule
+信号视角 & 看已经火的内容 & 看刚开始升温的早期信号 \\
+预测时效 & T+0 滞后 & T-7 至 T-14 提前发现 \\
+数据源 & 单一平台抓取 & 12 数据源并行 + 矛盾推理 \\
+AI 形态 & 单 LLM 写文案 & 12 Agent 协作工厂 \\
+解释能力 & 黑箱推荐 & 每个建议有信号依据 + 置信度 \\
+\bottomrule
+\end{tabularx}
+
+\textbf{2. 架构差异化}
+
+100\% 借鉴 \textbf{Claude Code 51 万行代码架构}:
+\begin{itemize}
+\item TAOR 主循环(AsyncGenerator + Terminal 枚举)
+\item 五层记忆系统(KOC.md / memdir / extractMemories / findRelevantMemories / 上下文注入)
+\item 四层压缩(Snip → Microcompact → Collapse → Auto-compact)+ Circuit Breaker
+\item 5 类 Hooks(PreToolUse / PostToolUse / Stop / PreCompact / Permission)
+\item Skills 渐进披露(YAML frontmatter + skills\_list / skill\_view)
+\item Subagent(Task = 同构子循环)
+\end{itemize}
+
+\textbf{3. 平台战场差异化}
+
+不是「单平台深耕」也不是「全平台浅尝」,而是 \textbf{腾讯系深度 + 全平台覆盖}:
+\begin{itemize}
+\item \textbf{深度}: 视频号 + 公众号 + 元器 Agent + 混元 API 原生集成
+\item \textbf{广度}: 小红书 + 抖音 + B 站 + 微博 同时支持(用户量保证)
+\item \textbf{灵感入口}: macOS Menu Bar + 微信小程序「+」浮钮 + iOS Share Extension + Android Quick Settings + PWA
+\end{itemize}
+
+\subsubsection{竞品矩阵分析}
+
+\begin{tabularx}{\textwidth}{lXXXX}
+\toprule
+\textbf{产品} & \textbf{定位} & \textbf{客单价} & \textbf{核心能力} & \textbf{劣势} \\
+\midrule
+Buffer & 排期工具 & ¥40/月 & 多平台发布 & AI 浅 \\
+Hootsuite & 企业 SaaS & ¥700/月 & OwlyWriter AI & 贵且重 \\
+Jasper & AI 写作 & ¥420/月 & Brand Voice + Agents & 海外为主 \\
+千瓜数据 & 小红书数据 & ¥1599/月 & 数据分析 & 不生成 \\
+飞瓜数据 & 抖音数据 & 联系销售 & 直播电商 & 不生成 \\
+蝉妈妈 & MCN 工具 & 联系销售 & 达人撮合 & 不通用 \\
+\midrule
+\textbf{Ripple} & \textbf{早期信号 + 内容工厂} & \textbf{¥99/月} & \textbf{12 Agent + 早期信号} & \textbf{V1 阶段} \\
+\bottomrule
+\end{tabularx}
+
+我们的差异化是 \textbf{蓝海定位}:Buffer/Hootsuite/Jasper 在「内容生成红海」,
+千瓜/飞瓜在「数据分析红海」,而「早期信号 + 多 Agent 编排」是空白市场。

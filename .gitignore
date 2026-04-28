@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.env
+*.env.local
+
+# Secrets — never commit
+.env.local
+.env.*.local
+secrets.json
+*_secret*
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+.next/
+.nuxt/
+
+# macOS
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
+
+# Logs
+*.log
+logs/
+
+# SQLite local DB
+*.db
+*.sqlite
+
+# Compiled LaTeX
+*.aux *.log *.out *.toc *.fls *.fdb_latexmk *.synctex.gz

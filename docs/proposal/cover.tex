@@ -1,0 +1,87 @@
+% 封面
+\thispagestyle{empty}
+\begin{titlepage}
+\begin{center}
+
+\vspace*{1cm}
+
+% Logo / 装饰条
+\begin{tikzpicture}
+    \fill[ripple-primary] (0, 0) rectangle (16, 0.15);
+    \fill[ripple-accent] (0, 0.25) rectangle (16, 0.4);
+\end{tikzpicture}
+
+\vspace{2cm}
+
+% 主标题
+{\fontsize{56pt}{60pt}\selectfont\bfseries\color{ripple-primary} Ripple}
+
+\vspace{0.3cm}
+
+% 副标题
+{\fontsize{18pt}{22pt}\selectfont\color{ripple-dark} 涟漪}
+
+\vspace{1cm}
+
+% 一句定位
+\begin{tcolorbox}[
+    colback=ripple-light,
+    colframe=ripple-primary,
+    boxrule=1pt,
+    arc=4pt,
+    width=14cm,
+    halign=center
+]
+    \fontsize{14pt}{20pt}\selectfont\bfseries\color{ripple-primary}
+    KOC 早期信号雷达 + 多 Agent 内容工厂
+\end{tcolorbox}
+
+\vspace{1.5cm}
+
+% Pitch 一句话
+\begin{minipage}{14cm}
+    \centering
+    \fontsize{12pt}{18pt}\selectfont\itshape\color{ripple-gray}
+    「KOC 的 Bloomberg Terminal:在热搜出现前 7-14 天,告诉你下一个会火的话题,\\
+    以及 12 个 Agent 帮你把它做成可发布的内容包。」
+\end{minipage}
+
+\vspace{2.5cm}
+
+% 信息表
+\begin{tabularx}{12cm}{>{\bfseries\color{ripple-primary}}r X}
+    \toprule
+    赛道 & 命题赛道 · 赛题 5 \\
+    \midrule
+    赛题 & AI + 社媒流量增长,连接 KOC 成长 \\
+    \midrule
+    出题方 & PCG 技术公线 · 智能营销 / 小游戏 \\
+    \midrule
+    选手 & \texttt{[选手姓名]} \\
+    \midrule
+    学校 & \texttt{[学校名称]} \\
+    \midrule
+    Demo 链接 & \url{http://localhost:3000} \\
+    \midrule
+    备用链接 & \url{https://ripple-demo.vercel.app} \\
+    \midrule
+    提交日期 & \today \\
+    \bottomrule
+\end{tabularx}
+
+\vfill
+
+% 底部装饰
+\begin{tikzpicture}
+    \fill[ripple-accent] (0, 0) rectangle (16, 0.15);
+    \fill[ripple-primary] (0, 0.25) rectangle (16, 0.4);
+\end{tikzpicture}
+
+\vspace{0.5cm}
+
+{\small\color{ripple-gray}
+腾讯 PCG 校园 AI 产品创意大赛 \textbullet{} 2026
+}
+
+\end{center}
+\end{titlepage}

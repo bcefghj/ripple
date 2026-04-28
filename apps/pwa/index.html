@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ripple PWA</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#1E40AF" />
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50">
+
+<div class="min-h-screen flex flex-col">
+  <header class="bg-blue-600 text-white p-4 sticky top-0">
+    <div class="flex items-center justify-between">
+      <h1 class="font-bold text-xl">🌊 Ripple</h1>
+      <button class="text-2xl">⚙️</button>
+    </div>
+  </header>
+
+  <!-- 灵感输入大按钮 -->
+  <main class="flex-1 p-6">
+    <div class="bg-white rounded-2xl p-6 shadow-md mb-6">
+      <h2 class="font-bold text-lg mb-3">💡 记一条灵感</h2>
+      <textarea
+        id="inspiration-input"
+        class="w-full h-40 p-4 border border-slate-200 rounded-xl resize-none focus:outline-none focus:border-blue-500"
+        placeholder="想到什么写什么..."
+      ></textarea>
+      <button
+        onclick="saveInspiration()"
+        class="w-full mt-4 bg-blue-600 text-white py-4 rounded-xl font-medium text-lg"
+      >
+        保存
+      </button>
+    </div>
+
+    <div class="bg-white rounded-2xl p-6 shadow-md">
+      <h2 class="font-bold text-lg mb-3">🔮 今日早期信号</h2>
+      <div id="signals" class="space-y-3">
+        <div class="text-slate-500 text-center py-4">点击查看 →</div>
+      </div>
+      <button
+        onclick="loadSignals()"
+        class="w-full mt-4 border border-slate-200 py-3 rounded-xl font-medium"
+      >
+        刷新信号
+      </button>
+    </div>
+  </main>
+
+  <footer class="text-center text-slate-400 text-xs p-4">
+    Ripple v0.1 · PWA
+  </footer>
+</div>
+
+<script>
+// 注册 Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW failed:', err));
+}
+
+// 本地存储灵感
+function saveInspiration() {
+  const text = document.getElementById('inspiration-input').value;
+  if (!text.trim()) return;
+  const inspirations = JSON.parse(localStorage.getItem('ripple-inspirations') || '[]');
+  inspirations.unshift({
+    text,
+    created_at: new Date().toISOString(),
+    synced: false
+  });
+  localStorage.setItem('ripple-inspirations', JSON.stringify(inspirations));
+  document.getElementById('inspiration-input').value = '';
+  alert('已保存到本地。联网后会自动同步。');
+}
+
+// 加载早期信号(调用本地后端)
+async function loadSignals() {
+  const signalsEl = document.getElementById('signals');
+  signalsEl.innerHTML = '<div class="text-center py-4">扫描中...</div>';
+
+  try {
+    const resp = await fetch('http://localhost:8000/api/v1/oracle/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic_seed: '生活方式', category: '生活' })
+    });
+    const data = await resp.json();
+    signalsEl.innerHTML = data.trends.slice(0, 5).map((t, i) => `
+      <div class="border-l-4 border-blue-500 pl-3 py-2">
+        <div class="font-bold">${i+1}. ${t.topic}</div>
+        <div class="text-sm text-slate-500">置信度 ${(t.confidence*100).toFixed(0)}% · ${t.horizon_days} 天窗口</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    signalsEl.innerHTML = `<div class="text-red-500 text-sm">需要先启动后端: localhost:8000</div>`;
+  }
+}
+</script>
+
+</body>
+</html>

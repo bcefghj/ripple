@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ripple — KOC 早期信号雷达 + 多 Agent 内容工厂</title>
+<meta name="description" content="KOC 的 Bloomberg Terminal:在热搜出现前 7-14 天发现下一个会火的话题" />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+  body {
+    font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  }
+  .gradient-text {
+    background: linear-gradient(120deg, #1E40AF 0%, #0EA5E9 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .gradient-bg {
+    background: linear-gradient(120deg, #1E40AF 0%, #0EA5E9 100%);
+  }
+  .card-shadow {
+    box-shadow: 0 10px 40px -10px rgba(30, 64, 175, 0.15);
+  }
+  @keyframes ripple {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(4); opacity: 0; }
+  }
+  .ripple-circle {
+    animation: ripple 2s infinite;
+  }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+
+<!-- ===== Nav ===== -->
+<nav class="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-slate-100">
+  <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center space-x-2">
+      <div class="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center text-white font-bold">R</div>
+      <span class="font-bold text-xl">Ripple <span class="text-slate-400 font-normal text-sm">涟漪</span></span>
+    </div>
+    <div class="hidden md:flex space-x-8 text-slate-600">
+      <a href="#features" class="hover:text-blue-600">特性</a>
+      <a href="#agents" class="hover:text-blue-600">12 Agent</a>
+      <a href="#pricing" class="hover:text-blue-600">定价</a>
+      <a href="#demo" class="hover:text-blue-600">Demo</a>
+    </div>
+    <a href="#demo" class="gradient-bg text-white px-6 py-2.5 rounded-lg hover:opacity-90 font-medium text-sm">
+      立即体验
+    </a>
+  </div>
+</nav>
+
+<!-- ===== Hero ===== -->
+<section class="pt-32 pb-20 container mx-auto px-6 text-center">
+  <div class="inline-block mb-6 px-4 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
+    🏆 腾讯 PCG 校园 AI 产品创意大赛 · 赛题 5
+  </div>
+  <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight">
+    KOC 的 <span class="gradient-text">Bloomberg Terminal</span>
+  </h1>
+  <p class="text-xl md:text-2xl text-slate-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+    在热搜出现前 <span class="font-bold text-blue-600">7-14 天</span>,
+    告诉你下一个会火的话题<br>
+    以及 <span class="font-bold text-blue-600">12 个 Agent</span> 帮你把它做成可发布的内容包
+  </p>
+  <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+    <a href="#demo" class="gradient-bg text-white px-8 py-4 rounded-xl text-lg font-medium hover:opacity-90 inline-flex items-center justify-center">
+      🚀 立即体验 Demo
+    </a>
+    <a href="https://github.com/your-org/ripple" class="bg-white text-slate-900 border border-slate-200 px-8 py-4 rounded-xl text-lg font-medium hover:bg-slate-50">
+      📦 GitHub 开源
+    </a>
+  </div>
+
+  <!-- 灵感来源 -->
+  <div class="mt-16 text-sm text-slate-500">
+    <p class="mb-3">灵感谱系</p>
+    <div class="flex flex-wrap justify-center gap-6">
+      <span>📈 Digital Oracle</span>
+      <span>🤖 Claude Code 51 万行</span>
+      <span>🐠 MiroFish</span>
+      <span>🎣 BettaFish</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Core Insight ===== -->
+<section class="py-20 bg-white">
+  <div class="container mx-auto px-6 max-w-4xl">
+    <div class="text-center mb-12">
+      <div class="inline-block mb-4 px-4 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
+        💡 核心洞察
+      </div>
+      <h2 class="text-4xl font-bold mb-4">
+        资本永远<span class="gradient-text">先于</span>舆论
+      </h2>
+      <p class="text-xl text-slate-600 leading-relaxed">
+        当一个人要把自己的钱押在某个结果上时,他会比发一条短视频认真很多。
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 mt-12">
+      <div class="bg-slate-50 p-8 rounded-2xl">
+        <div class="text-red-500 text-3xl mb-3">❌</div>
+        <h3 class="font-bold text-xl mb-3">传统工具:看已经火的</h3>
+        <p class="text-slate-600">
+          千瓜、飞瓜、Buffer、Jasper 都在帮你看「已经爆」的热搜。
+          等你看到的时候,选题已经被 100 个同行写过了。
+        </p>
+      </div>
+      <div class="bg-blue-50 p-8 rounded-2xl border-2 border-blue-200">
+        <div class="text-blue-500 text-3xl mb-3">✓</div>
+        <h3 class="font-bold text-xl mb-3">Ripple:看刚开始升温的</h3>
+        <p class="text-slate-700">
+          12 个数据源并行扫描:Polymarket/Kalshi/微信指数/百度指数/巨量算数/微博实时...
+          找到「刚开始火」的早期信号,提前 7-14 天交到你手中。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Features ===== -->
+<section id="features" class="py-20 container mx-auto px-6">
+  <div class="text-center mb-16">
+    <h2 class="text-4xl font-bold mb-4">四大核心特性</h2>
+    <p class="text-xl text-slate-600">为什么 Ripple 是 KOC 的下一代工具</p>
+  </div>
+
+  <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="bg-white p-6 rounded-2xl card-shadow border border-slate-100">
+      <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl mb-4">🔮</div>
+      <h3 class="font-bold text-lg mb-2">早期信号雷达</h3>
+      <p class="text-sm text-slate-600">
+        12 数据源并行 + CUSUM 算法 + 矛盾推理,提前 7-14 天发现爆款话题
+      </p>
+    </div>
+    <div class="bg-white p-6 rounded-2xl card-shadow border border-slate-100">
+      <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl mb-4">🤖</div>
+      <h3 class="font-bold text-lg mb-2">12 Agent 工厂</h3>
+      <p class="text-sm text-slate-600">
+        Oracle / TrendScout / StyleDecoder / ForumDebate / TopicStrategist /
+        ScriptWriter / Visual / Material / FactCheck / Risk / SimPredictor / Insight
+      </p>
+    </div>
+    <div class="bg-white p-6 rounded-2xl card-shadow border border-slate-100">
+      <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl mb-4">🌐</div>
+      <h3 class="font-bold text-lg mb-2">全平台覆盖</h3>
+      <p class="text-sm text-slate-600">
+        视频号 / 公众号 / 小红书 / 抖音 / B 站 / 微博 一键多版本
+      </p>
+    </div>
+    <div class="bg-white p-6 rounded-2xl card-shadow border border-slate-100">
+      <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl mb-4">🔑</div>
+      <h3 class="font-bold text-lg mb-2">BYOK 自由</h3>
+      <p class="text-sm text-slate-600">
+        MiniMax / 混元 / DeepSeek / 豆包 / Claude / GPT / 本地 Ollama 你决定
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 12 Agents Architecture ===== -->
+<section id="agents" class="py-20 bg-gradient-to-br from-slate-900 to-blue-900 text-white">
+  <div class="container mx-auto px-6 max-w-6xl">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-bold mb-4">12 Agent 协作流水线</h2>
+      <p class="text-xl text-blue-200">借鉴 Claude Code 51 万行架构 + BettaFish 多 Agent 辩论</p>
+    </div>
+
+    <div class="grid md:grid-cols-4 gap-6">
+      <!-- Phase 1 -->
+      <div class="bg-white/10 backdrop-blur p-6 rounded-2xl border border-white/20">
+        <div class="text-blue-300 font-mono text-sm mb-3">Phase 1</div>
+        <h3 class="font-bold text-xl mb-4">信号感知</h3>
+        <ul class="space-y-2 text-sm">
+          <li>🔮 Oracle - 早期信号雷达</li>
+          <li>🔥 TrendScout - 已爆扫描</li>
+          <li>🎨 StyleDecoder - 风格学习</li>
+        </ul>
+      </div>
+      <div class="bg-white/10 backdrop-blur p-6 rounded-2xl border border-white/20">
+        <div class="text-blue-300 font-mono text-sm mb-3">Phase 2</div>
+        <h3 class="font-bold text-xl mb-4">决策辩论</h3>
+        <ul class="space-y-2 text-sm">
+          <li>💬 ForumDebate - 多 Agent 辩论</li>
+          <li>🎯 TopicStrategist - 矛盾推理</li>
+        </ul>
+      </div>
+      <div class="bg-white/10 backdrop-blur p-6 rounded-2xl border border-white/20">
+        <div class="text-blue-300 font-mono text-sm mb-3">Phase 3</div>
+        <h3 class="font-bold text-xl mb-4">内容生产</h3>
+        <ul class="space-y-2 text-sm">
+          <li>✍️ ScriptWriter - 多平台文案</li>
+          <li>🖼 VisualProducer - 封面生成</li>
+          <li>📦 MaterialCurator - 素材+版权</li>
+        </ul>
+      </div>
+      <div class="bg-white/10 backdrop-blur p-6 rounded-2xl border border-white/20">
+        <div class="text-blue-300 font-mono text-sm mb-3">Phase 4</div>
+        <h3 class="font-bold text-xl mb-4">审查发布</h3>
+        <ul class="space-y-2 text-sm">
+          <li>✓ FactChecker - 真实性</li>
+          <li>🛡 Risk - 合规审查</li>
+          <li>🌐 SimPredictor - 仿真</li>
+          <li>📊 Insight - 归因报告</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Demo CTA ===== -->
+<section id="demo" class="py-20 container mx-auto px-6 max-w-4xl text-center">
+  <h2 class="text-4xl font-bold mb-6">立即体验 Demo</h2>
+  <p class="text-xl text-slate-600 mb-12">
+    输入选题 → 12 个 Agent 协作 → 完整内容包
+  </p>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    <a href="http://localhost:8501" target="_blank" class="bg-white p-8 rounded-2xl card-shadow border border-slate-100 hover:border-blue-300 transition-all group">
+      <div class="text-5xl mb-4">🎯</div>
+      <h3 class="font-bold text-xl mb-2">Streamlit Demo</h3>
+      <p class="text-sm text-slate-600 mb-4">完整 12 Agent 演示界面</p>
+      <span class="text-blue-600 font-medium group-hover:underline">localhost:8501 →</span>
+    </a>
+    <a href="http://localhost:8000/docs" target="_blank" class="bg-white p-8 rounded-2xl card-shadow border border-slate-100 hover:border-blue-300 transition-all group">
+      <div class="text-5xl mb-4">⚡</div>
+      <h3 class="font-bold text-xl mb-2">API 文档</h3>
+      <p class="text-sm text-slate-600 mb-4">FastAPI Swagger UI</p>
+      <span class="text-blue-600 font-medium group-hover:underline">localhost:8000/docs →</span>
+    </a>
+  </div>
+
+  <div class="mt-12 p-6 bg-blue-50 rounded-xl text-left">
+    <h4 class="font-bold mb-3">本地启动指南</h4>
+    <pre class="text-sm bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto">
+# 1. 启动后端
+cd apps/api
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env  # 填入 MINIMAX_API_KEY
+uvicorn main:app --reload --port 8000
+
+# 2. 启动 Streamlit Demo
+cd apps/streamlit_demo
+./run.sh</pre>
+  </div>
+</section>
+
+<!-- ===== Pricing ===== -->
+<section id="pricing" class="py-20 bg-slate-100">
+  <div class="container mx-auto px-6 max-w-5xl">
+    <div class="text-center mb-12">
+      <h2 class="text-4xl font-bold mb-4">定价</h2>
+      <p class="text-xl text-slate-600">三档,适合不同阶段的 KOC</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="bg-white p-8 rounded-2xl card-shadow">
+        <h3 class="font-bold text-2xl mb-2">Free</h3>
+        <div class="text-4xl font-black mb-1">¥0<span class="text-base font-normal text-slate-400">/月</span></div>
+        <p class="text-slate-500 text-sm mb-6">兼职素人 KOC</p>
+        <ul class="space-y-3 text-sm mb-8">
+          <li>✓ 每日 3 条早期信号订阅</li>
+          <li>✓ 灵感库(无限存储)</li>
+          <li>✓ 简易内容生成(限额)</li>
+          <li>✓ 单平台支持</li>
+        </ul>
+        <button class="w-full py-3 border border-slate-200 rounded-lg font-medium">免费开始</button>
+      </div>
+
+      <div class="bg-white p-8 rounded-2xl card-shadow border-2 border-blue-500 relative">
+        <div class="absolute top-0 right-6 -translate-y-1/2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full font-medium">
+          推荐
+        </div>
+        <h3 class="font-bold text-2xl mb-2">Pro</h3>
+        <div class="text-4xl font-black mb-1">¥99<span class="text-base font-normal text-slate-400">/月</span></div>
+        <p class="text-slate-500 text-sm mb-6">腰部 KOC / 小团队</p>
+        <ul class="space-y-3 text-sm mb-8">
+          <li>✓ 完整 12 Agent 工厂</li>
+          <li>✓ 全平台支持</li>
+          <li>✓ 风格学习与记忆</li>
+          <li>✓ 群体仿真预测</li>
+          <li>✓ BYOK 自定义模型</li>
+        </ul>
+        <button class="w-full py-3 gradient-bg text-white rounded-lg font-medium">升级 Pro</button>
+      </div>
+
+      <div class="bg-white p-8 rounded-2xl card-shadow">
+        <h3 class="font-bold text-2xl mb-2">Enterprise</h3>
+        <div class="text-4xl font-black mb-1">联系</div>
+        <p class="text-slate-500 text-sm mb-6">MCN / 品牌 / 4A</p>
+        <ul class="space-y-3 text-sm mb-8">
+          <li>✓ 多账号统一管理</li>
+          <li>✓ 团队协作 + 权限</li>
+          <li>✓ SLA + 私有部署</li>
+          <li>✓ 专属客户成功</li>
+          <li>✓ 定制 Agent</li>
+        </ul>
+        <button class="w-full py-3 border border-slate-200 rounded-lg font-medium">联系我们</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer class="py-12 bg-slate-900 text-slate-400 text-center text-sm">
+  <div class="container mx-auto px-6">
+    <div class="flex justify-center items-center space-x-2 mb-4">
+      <div class="w-6 h-6 gradient-bg rounded flex items-center justify-center text-white font-bold text-xs">R</div>
+      <span class="font-bold text-white">Ripple 涟漪</span>
+    </div>
+    <p>© 2026 Ripple Team · 腾讯 PCG 校园 AI 产品创意大赛 · 赛题 5</p>
+    <p class="mt-2">本作品由 AI 辅助创作 · 遵守《AI 生成合成内容标识办法》</p>
+  </div>
+</footer>
+
+</body>
+</html>

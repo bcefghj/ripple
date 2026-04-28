@@ -1,0 +1,219 @@
+\section{AI 原生能力说明}
+
+\subsection{为什么必须用 AI(AI 原生性论证)}
+
+\begin{insight}
+\textbf{Ripple 是 AI 原生产品}:离开多源信号融合 + 多 Agent 推理,产品不复存在。
+\end{insight}
+
+\textbf{论证}:
+
+\textbf{1. Oracle 早期信号雷达必须用 AI}
+\begin{itemize}
+\item 12 数据源(英文/中文/数字/文本)需要 LLM 做 \textbf{语义对齐}
+\item 矛盾推理需要 LLM 做 \textbf{上下文理解}(为什么 A 平台火 B 平台不火)
+\item 输出推荐角度需要 LLM 做 \textbf{创意联想}
+\end{itemize}
+
+\textbf{2. 12 Agent 协作必须用 AI}
+\begin{itemize}
+\item ForumDebateAgent 需要 \textbf{多 Agent 辩论}(单一规则无法覆盖)
+\item ScriptWriterAgent 需要 \textbf{风格学习与生成}(完全 AI 任务)
+\item RiskReviewerAgent 需要 \textbf{语义级合规判断}(关键词扫描不够)
+\item InsightAnalystAgent 需要 \textbf{综合归因}(多 Agent 输出整合)
+\end{itemize}
+
+\textbf{3. 五层记忆系统必须用 AI}
+\begin{itemize}
+\item Layer 3 extractMemories 用 LLM 从对话中提取知识
+\item Layer 4 findRelevantMemories 用 Sonnet 侧查选择相关记忆
+\item Layer 5 上下文动态拼装基于 LLM 输出
+\end{itemize}
+
+\textbf{对照实验}: 如果完全去掉 AI,Ripple 退化为「12 个 RSS 聚合 + 模板化文案」,
+完全失去差异化价值。
+
+% --------------------------------------------
+
+\subsection{AI 核心能力}
+
+\subsubsection{1. Claude Code 架构移植}
+
+100\% 借鉴 \textbf{2025-03-31 发布的 Claude Code 51 万行 TypeScript 源码} 架构,
+按照 Anthropic 公开论文与第三方逆向分析,落地为 Python 实现。
+
+\textbf{借鉴的具体设计}:
+
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Claude Code 设计} & \textbf{Ripple 对应实现} \\
+\midrule
+\texttt{query.ts while(true)} & \texttt{agent\_loop.py AgentLoop.run()} async generator \\
+\texttt{State} 整对象替换 & \texttt{state.py LoopState} 用 \texttt{dataclasses.replace()} \\
+10 种 Terminal 枚举 & \texttt{TerminalReason} enum(完整 10 类) \\
+7 种 continue 路径 & \texttt{ContinueReason} enum(完整 7 类) \\
+四层上下文压缩 & \texttt{compression.py CompressionPipeline} \\
+Circuit Breaker & \texttt{MAX\_CONSECUTIVE\_AUTOCOMPACT\_FAILURES = 3} \\
+五层记忆 & \texttt{memory\_system.py MemorySystem} \\
+Hooks 系统 & \texttt{hooks.py HookRegistry} 5 类事件 \\
+Skills 渐进披露 & \texttt{skills/loader.py SkillLoader} YAML frontmatter \\
+Subagent (Task) & \texttt{subagent.py run\_subagent()} 同构子循环 \\
+\bottomrule
+\end{tabularx}
+
+\subsubsection{2. 五层记忆系统}
+
+\begin{itemize}
+\item \textbf{Layer 1 - 指令记忆}:KOC.md / USER.md / BRAND.md(项目级持久规则)
+    \begin{itemize}
+    \item Managed → User → Project → Local → AutoMem 五级覆盖
+    \item 支持 \texttt{@include} 指令(MAX\_INCLUDE\_DEPTH = 5)
+    \end{itemize}
+\item \textbf{Layer 2 - memdir 文件存储}:灵感库 / 素材库 / 作品库 / 复盘库
+    \begin{itemize}
+    \item MEMORY.md 索引,200 行 / 25KB 硬上限
+    \item 按 mtime 排序,扫描 200 文件 / 30 行/文件
+    \end{itemize}
+\item \textbf{Layer 3 - extractMemories 自动提取}:对话结束后 fork 子代理后台提取
+    \begin{itemize}
+    \item 与主代理互斥(\texttt{in\_progress} 标志)
+    \item 仅 fire-and-forget,不阻塞主响应
+    \end{itemize}
+\item \textbf{Layer 4 - findRelevantMemories 智能检索}:Sonnet 侧查选择最相关的 5 条
+    \begin{itemize}
+    \item 文件名白名单校验(防 LLM 幻觉)
+    \item 保守策略:不确定时少选
+    \end{itemize}
+\item \textbf{Layer 5 - 上下文注入}:动态拼装 system prompt
+    \begin{itemize}
+    \item 固定段落(操作手册)适合 prompt cache
+    \item 动态段落每轮重组
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{3. 四层上下文压缩}
+
+\begin{lstlisting}[language=python, caption=四层压缩管线]
+async def run_full_pipeline(messages, tracking):
+    m = self.apply_tool_result_budget(messages)  # Layer 0: 截断超大 tool result
+    m = self.snip_compact(m)                     # Layer 1: 删旧消息(零成本)
+    m = self.microcompact(m)                     # Layer 2: 按 tool_use_id 删冗余
+    if tokens(m) > autocompact_threshold:
+        m = await self.context_collapse(m)       # Layer 3: 摘要替换片段
+        if tokens(m) > autocompact_threshold:
+            m = await self.maybe_autocompact(m, tracking)  # Layer 4: 全量摘要
+    return m
+\end{lstlisting}
+
+\textbf{Circuit Breaker}: 连续 3 次 auto-compact 失败 → 自动禁用,防"一晚 25 万次 API"环路。
+
+\subsubsection{4. Hooks 系统(5 类事件)}
+
+\begin{itemize}
+\item \textbf{PreToolUse}: 拦截危险工具,修改 input,权限决策
+\item \textbf{PostToolUse}: 审计日志,追加上下文
+\item \textbf{Stop}: 模型主动结束时,可阻塞继续
+\item \textbf{PreCompact}: 压缩前归档
+\item \textbf{PermissionRequest}: 敏感操作弹窗确认
+\end{itemize}
+
+\textbf{聚合优先级}: deny > ask > allow
+
+\textbf{Hook 配置快照}: \texttt{capture\_snapshot()} 信任后冻结,防 TOCTOU 攻击。
+
+\subsubsection{5. Skills 系统(YAML frontmatter + 渐进披露)}
+
+\textbf{5 个 Killer Skills}:
+
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+\textbf{Skill} & \textbf{说明} \\
+\midrule
+oracle-early-signal & 12 数据源 + CUSUM + 矛盾推理早期信号雷达 \\
+koc-content-package & 选题确定后生成完整多平台内容包 \\
+viral-formula-library & 标题学/封面学/节奏学 7 公式 + 5 风格 \\
+copyright-asset-library & 版权友好素材清单 + 风险检测 \\
+ai-detection-bypass & 降 AI 味的 15 个具体技巧(保留人味) \\
+\bottomrule
+\end{tabularx}
+
+\textbf{渐进披露}: 启动时只读 frontmatter(\texttt{description} / \texttt{when\_to\_use}),
+节省上下文;调用时才加载正文。
+
+% --------------------------------------------
+
+\subsection{AI 如何解决核心痛点}
+
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{KOC 痛点} & \textbf{AI 能力} & \textbf{Ripple Agent} \\
+\midrule
+追热点慢半拍 & 多源早期信号融合 & OracleAgent + CUSUM \\
+"AI 味重被喷装" & 风格 ICL 学习 + 降 AI 技巧 & StyleDecoder + ai-detection-bypass Skill \\
+跨平台改死人 & 长上下文一次生成 & ScriptWriter + MiniMax M2.7 \\
+不知道为啥不爆 & 多 Agent 归因推理 & InsightAnalystAgent \\
+合规风险高 & 自动检测 + 法规对照 & RiskReviewerAgent + 关键词库 \\
+版权风险 & 反向图搜 + 合规图库 & MaterialCuratorAgent \\
+灵感记不下来 & 全端入口 + 后台 AI 整理 & 灵感捕捉 + Auto-Dream \\
+\bottomrule
+\end{tabularx}
+
+% --------------------------------------------
+
+\subsection{AI 技术方案}
+
+\subsubsection{LLM 路由(BYOK 多 Provider)}
+
+\textbf{支持的 Provider}(全部 OpenAI 兼容接口):
+
+\begin{itemize}
+\item \textbf{主力}: MiniMax M2.7(长上下文 + 中文优势 + 成本)
+\item \textbf{兜底}: 腾讯混元 turbos(赛道适配性 + 已备案)
+\item \textbf{BYOK 国内}: DeepSeek / 豆包 / 通义千问 / 智谱 GLM / 月之暗面 Kimi
+\item \textbf{BYOK 国际}: OpenAI GPT-4o / Anthropic Claude
+\item \textbf{本地}: Ollama / LM Studio / MLX(Apple Silicon)
+\end{itemize}
+
+\textbf{路由策略}:
+\begin{enumerate}
+\item 用户在 UI 设置主/备/兜底三档
+\item LiteLLM Router 自动 fallback
+\item 失败计数与熔断
+\end{enumerate}
+
+\subsubsection{Embedding 与向量检索}
+
+\begin{itemize}
+\item PostgreSQL 16 + pgvector 0.7+
+\item HNSW 索引(低延迟)
+\item 强制 \texttt{tenant\_id} 过滤(RLS)
+\item 1536 维 OpenAI 兼容 embedding
+\end{itemize}
+
+\subsubsection{多模态生成}
+
+\begin{itemize}
+\item \textbf{文本}: MiniMax M2.7 + 混元 turbos
+\item \textbf{图像}: 腾讯混元生图(主力,赛道适配)+ SDXL(本地)
+\item \textbf{视频}: 混元生视频 \texttt{SubmitHunyuanToVideoJob}(V2)
+\item \textbf{语音}: 火山方舟 ASR + TTS(V2)
+\end{itemize}
+
+\subsubsection{安全与合规}
+
+\begin{itemize}
+\item OWASP LLM Top 10 v2 全覆盖
+\item Prompt Injection 防御(分层 + delimiter)
+\item 输出 PII 脱敏
+\item AI 标识自动添加(《AI 标识办法》)
+\item 调用混元(已备案)做兜底
+\end{itemize}
+
+\subsubsection{可观测性}
+
+\begin{itemize}
+\item Langfuse(LLM trace + cost + prompt 版本)
+\item Sentry(错误追踪)
+\item OpenTelemetry(统一 trace\_id)
+\item Prometheus + Grafana(metrics)
+\end{itemize}

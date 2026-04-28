@@ -1,0 +1,24 @@
+[project]
+name = "ripple-api"
+version = "0.1.0"
+description = "Ripple — KOC 早期信号雷达 + 多 Agent 内容工厂"
+requires-python = ">=3.10"
+authors = [{name = "Ripple Team"}]
+license = {text = "MIT"}
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "B", "C4", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

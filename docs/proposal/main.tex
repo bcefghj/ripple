@@ -1,0 +1,212 @@
+% !TEX program = xelatex
+% Ripple — KOC 早期信号雷达 + 多 Agent 内容工厂
+% 腾讯 PCG 校园 AI 产品创意大赛 · 赛题 5
+% 编译: ./build.sh
+
+% ctex 自动按系统选择字体集(macOS=mac,Linux=ubuntu/fandol,Windows=windows)
+% 如未安装思源/Noto,使用系统自带中文字体,保证可编译
+\documentclass[11pt, a4paper, fontset=mac, scheme=plain, UTF8]{ctexart}
+
+% Unicode 符号支持(✓ ✗ ★ ⚠ 等)
+\usepackage{amssymb}
+\usepackage{pifont}
+\usepackage{newunicodechar}
+\newunicodechar{✓}{\ding{51}}
+\newunicodechar{✗}{\ding{55}}
+\newunicodechar{★}{\ding{72}}
+\newunicodechar{☆}{\ding{73}}
+\newunicodechar{⚠}{\ding{53}}
+\newunicodechar{→}{\textrightarrow}
+\newunicodechar{←}{\textleftarrow}
+\newunicodechar{⇒}{\ensuremath{\Rightarrow}}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{≈}{\ensuremath{\approx}}
+\newunicodechar{×}{\ensuremath{\times}}
+\newunicodechar{÷}{\ensuremath{\div}}
+\newunicodechar{∞}{\ensuremath{\infty}}
+\newunicodechar{■}{\ensuremath{\blacksquare}}
+\newunicodechar{□}{\ensuremath{\square}}
+\newunicodechar{●}{\ensuremath{\bullet}}
+\newunicodechar{○}{\ensuremath{\circ}}
+\newunicodechar{🔥}{\ding{96}}
+\newunicodechar{💡}{\ding{72}}
+
+% ============ 页面布局 ============
+\usepackage[a4paper, margin=2.2cm, top=2.5cm, bottom=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Ripple · KOC 早期信号雷达}
+\fancyhead[R]{\small 腾讯 PCG 校园 AI 产品创意大赛 · 赛题 5}
+\fancyfoot[C]{\thepage}
+
+% ============ 颜色与主题 ============
+\usepackage{xcolor}
+\definecolor{ripple-primary}{HTML}{1E40AF}
+\definecolor{ripple-accent}{HTML}{0EA5E9}
+\definecolor{ripple-dark}{HTML}{0F172A}
+\definecolor{ripple-gray}{HTML}{475569}
+\definecolor{ripple-light}{HTML}{F1F5F9}
+
+% ============ 链接 ============
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=ripple-primary,
+    urlcolor=ripple-accent,
+    citecolor=ripple-primary,
+    pdftitle={Ripple — KOC 早期信号雷达 + 多 Agent 内容工厂},
+    pdfauthor={Ripple Team},
+    pdfsubject={腾讯 PCG 校园 AI 产品创意大赛 赛题 5},
+    pdfkeywords={KOC, AI Agent, 早期信号, 内容生成, 腾讯, 视频号}
+}
+
+% ============ 图表与代码 ============
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds, calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{listings}
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{ripple-primary}\bfseries,
+    stringstyle=\color{ripple-accent},
+    commentstyle=\color{ripple-gray}\itshape,
+    backgroundcolor=\color{ripple-light},
+    frame=single,
+    framerule=0pt,
+    breaklines=true,
+    showstringspaces=false,
+    numbers=left,
+    numberstyle=\tiny\color{ripple-gray},
+    captionpos=b
+}
+
+% 自定义 JSON 语言(listings 不内置)
+\lstdefinelanguage{json}{
+    string=[s]{"}{"},
+    stringstyle=\color{ripple-accent},
+    comment=[l]{//},
+    commentstyle=\color{ripple-gray}\itshape,
+    morestring=[b]",
+    literate=
+        *{:}{{{\color{ripple-primary}{:}}}}{1}
+        {,}{{{\color{ripple-primary}{,}}}}{1}
+        {\{}{{{\color{ripple-dark}{\{}}}}{1}
+        {\}}{{{\color{ripple-dark}{\}}}}}{1}
+        {[}{{{\color{ripple-dark}{[}}}}{1}
+        {]}{{{\color{ripple-dark}{]}}}}{1}
+}
+
+% 自定义 YAML 语言
+\lstdefinelanguage{yaml}{
+    keywords={true,false,null,yes,no},
+    keywordstyle=\color{ripple-primary}\bfseries,
+    sensitive=true,
+    comment=[l]{\#},
+    commentstyle=\color{ripple-gray}\itshape,
+    stringstyle=\color{ripple-accent},
+    morestring=[b]',
+    morestring=[b]"
+}
+
+% ============ 表格 ============
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{array}
+\renewcommand{\arraystretch}{1.3}
+
+% ============ 标题样式 ============
+\usepackage{titlesec}
+\titleformat{\section}
+    {\Large\bfseries\color{ripple-primary}}
+    {\thesection}{1em}{}
+    [{\vspace{0.2em}\hrule height 1pt}]
+\titleformat{\subsection}
+    {\large\bfseries\color{ripple-dark}}
+    {\thesubsection}{0.8em}{}
+\titleformat{\subsubsection}
+    {\normalsize\bfseries\color{ripple-gray}}
+    {\thesubsubsection}{0.6em}{}
+
+% ============ 引用块 ============
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+
+\newtcolorbox{insight}[1][]{
+    colback=ripple-light,
+    colframe=ripple-primary,
+    boxrule=0.5pt,
+    arc=2pt,
+    title=\textbf{核心洞察},
+    fonttitle=\color{white},
+    coltitle=white,
+    breakable,
+    #1
+}
+
+\newtcolorbox{quote-box}[1][]{
+    colback=ripple-light,
+    colframe=ripple-accent,
+    boxrule=0.5pt,
+    arc=2pt,
+    leftrule=4pt,
+    breakable,
+    #1
+}
+
+\newtcolorbox{warning-box}[1][]{
+    colback=red!5,
+    colframe=red!50!black,
+    boxrule=0.5pt,
+    arc=2pt,
+    title=\textbf{风险提示},
+    fonttitle=\color{white},
+    breakable,
+    #1
+}
+
+% ============ 列表 ============
+\usepackage{enumitem}
+\setlist{itemsep=0.3em, parsep=0em, topsep=0.3em}
+
+% ============ 文档元信息 ============
+\title{\Huge\bfseries\color{ripple-primary} Ripple\\[0.3em]\large\color{ripple-dark} KOC 早期信号雷达 + 多 Agent 内容工厂}
+\author{\large 选手姓名 \\ \normalsize 学校 · 学院 · 专业}
+\date{\today}
+
+% ============ 主体开始 ============
+\begin{document}
+
+\input{cover}
+\thispagestyle{empty}
+\newpage
+
+% 执行摘要
+\input{00-executive-summary}
+\newpage
+
+% 模块 1: 用户洞察与问题定义
+\input{01-insight}
+\newpage
+
+% 模块 2: 产品方案设计
+\input{02-product}
+\newpage
+
+% 模块 3: AI 原生能力说明
+\input{03-ai-native}
+\newpage
+
+% 模块 4: 加分项
+\input{04-bonus}
+\newpage
+
+% 附录
+\input{05-appendix}
+
+\end{document}

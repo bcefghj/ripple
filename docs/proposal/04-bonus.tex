@@ -1,0 +1,237 @@
+\section{加分项:可行性与商业化思考}
+
+\subsection{落地可行性}
+
+\subsubsection{MVP 已实现(本次大赛交付)}
+
+\begin{itemize}
+\item ✓ Claude Code 风格架构核心(\texttt{agent\_loop.py / state.py / compression.py / hooks.py / memory\_system.py})
+\item ✓ 五层记忆系统完整实现
+\item ✓ 5 个 Killer Skills(YAML frontmatter + 渐进披露)
+\item ✓ 12 个 Agent 全部实现并集成
+\item ✓ OracleAgent 早期信号雷达(9 个真实数据源已接通,3 个 mock 待商务采购)
+\item ✓ FastAPI 后端 + WebSocket 流式输出
+\item ✓ Streamlit Demo + 静态产品介绍页
+\item ✓ 微信小程序 + 移动 PWA 入口
+\item ✓ 完整安全文档(STRIDE / OWASP LLM Top 10 v2)
+\item ✓ LaTeX PDF 提案文档
+\end{itemize}
+
+\subsubsection{V2 路线图(复赛/决赛 + 之后)}
+
+\begin{tabularx}{\textwidth}{lXl}
+\toprule
+\textbf{阶段} & \textbf{交付内容} & \textbf{时间} \\
+\midrule
+V1 大赛版 & 当前所有功能 & 5 月 6 日前 \\
+V1.5 复赛版 & Tauri 桌面端 + 微信小程序生产化 & 5 月 19-29 日 \\
+V2 决赛版 & 商业 API 接入 + 真实 KOC 试用 & 6 月 \\
+V3 公测 & Beta 内测 + 100 个种子 KOC & 7-8 月 \\
+V4 商业化 & Pro 订阅上线 + 第一个 MCN 客户 & Q4 2026 \\
+V5 规模化 & 10k MAU + 1k 付费 & Q1-Q2 2027 \\
+\bottomrule
+\end{tabularx}
+
+\subsubsection{技术门槛与团队能力}
+
+\textbf{已具备}:
+\begin{itemize}
+\item Python 全栈(后端 + Agent + Streamlit)
+\item Web 全栈(HTML / CSS / Tailwind)
+\item AI 工程(LLM Router + Skills 系统)
+\item 安全工程(STRIDE + 加密)
+\item 文档与提案能力(LaTeX + 答辩话术)
+\end{itemize}
+
+\textbf{需要外部支持(诚实评估)}:
+\begin{itemize}
+\item Tauri/Rust 桌面工程(可学,V1.5 阶段补)
+\item 微信生态深度对接(需开发者认证)
+\item 商业数据源采购(千瓜/飞瓜需付费签约)
+\item 算法备案(商用前必须)
+\end{itemize}
+
+% --------------------------------------------
+
+\subsection{商业化思考}
+
+\subsubsection{TAM / SAM / SOM 三层市场}
+
+\begin{insight}
+所有数字均为 \textbf{推算/假设},引用源已标注。商业评估时建议交叉验证。
+\end{insight}
+
+\textbf{TAM (Total Addressable Market)}:
+\begin{itemize}
+\item 高盛全球 Creator Economy: 2025 年 \$2500 亿 → 2027 年 \$4800 亿
+\item 中国 KOL 营销市场(Ebiquity): 2025 年 ¥930 亿
+\end{itemize}
+
+\textbf{SAM (Serviceable Addressable Market)}:
+\begin{itemize}
+\item 中国 KOC 数(克劳锐 2024): 万粉以上约 1500 万,年增 5\%
+\item 假设 KOC 工具市场是其中 \textbf{5-10\%} 的钱包占比 → ¥45-90 亿
+\end{itemize}
+
+\textbf{SOM (Serviceable Obtainable Market)}:
+\begin{itemize}
+\item 3 年目标:覆盖 0.1\% 中国 KOC = 1.5 万付费用户
+\item 平均 ARPU ¥99/月 = 年化 ¥1.78 亿
+\item Y1 保守目标:1k 付费,MRR ¥10 万
+\end{itemize}
+
+\subsubsection{商业模式画布}
+
+\begin{tabularx}{\textwidth}{>{\bfseries\color{ripple-primary}}lX}
+\toprule
+关键伙伴 & 腾讯混元/元器、微信开放平台、Polymarket(数据)、合规图库(Unsplash/Pexels) \\
+\midrule
+关键活动 & 12 Agent 协作、早期信号扫描、合规审查、KOC 风格学习 \\
+\midrule
+关键资源 & 早期信号算法 IP、5 个 Skills 模板库、KOC 风格画像数据(脱敏聚合) \\
+\midrule
+价值主张 & 提前 7-14 天发现爆款 + 12 Agent 工厂全自动 + 全平台覆盖 + BYOK 自由 \\
+\midrule
+客户关系 & 自助(C 端)+ CS(企业)+ 社群(KOC 之间互助) \\
+\midrule
+渠道 & 内容 SEO(微信 / 小红书 / B 站)+ KOL 推广 + 大赛背书 + MCN 合作 \\
+\midrule
+客户细分 & C1 兼职 KOC(Free)/ C2 腰部 KOC(Pro)/ B1 工作室 / B2 MCN / B3 品牌 \\
+\midrule
+成本结构 & LLM API 调用(BYOK 转嫁部分)、云基础设施、合规图库、人力 \\
+\midrule
+收入来源 & Pro 订阅(¥99/月)+ Enterprise 年费(¥5-20 万)+ MCN 团购 \\
+\bottomrule
+\end{tabularx}
+
+\subsubsection{Unit Economics(诚实计算)}
+
+\textbf{Pro 订阅版本(C 端腰部 KOC)}:
+
+\begin{tabularx}{\textwidth}{lXX}
+\toprule
+\textbf{项目} & \textbf{保守估算} & \textbf{乐观估算} \\
+\midrule
+月费 P & ¥99 & ¥99 \\
+LLM/云/用户/月 & ¥40 & ¥20 \\
+月毛利 M & ¥59 & ¥79 \\
+CAC(获客成本) & ¥300 & ¥120 \\
+月流失率 d & 12\% & 6\% \\
+LTV ≈ M/d & ¥492 & ¥1317 \\
+LTV/CAC & 1.6x & 11x \\
+Payback Period & 5 个月 & 1.5 个月 \\
+\bottomrule
+\end{tabularx}
+
+\textbf{Enterprise 版本(B 端 MCN)}:
+\begin{itemize}
+\item 年费 ¥5-20 万
+\item 销售周期 6-12 个月
+\item 续费率目标 80\%
+\item NRR(净收入留存) 110-130\%
+\end{itemize}
+
+\subsubsection{增长策略}
+
+\textbf{Y1 重点}: PLG(产品自主增长)
+\begin{itemize}
+\item 免费版强 hook(每日 3 条早期信号)
+\item KOC 自然 sharing(场景:KOC 在小红书晒"用 Ripple 找到爆款选题")
+\item 大赛背书 + 媒体报道
+\end{itemize}
+
+\textbf{Y2 重点}: SLG(销售驱动)
+\begin{itemize}
+\item 第一个 MCN 标杆客户(免费 PoC)
+\item 行业白皮书与案例
+\item 与一两个垂类 MCN 战略合作
+\end{itemize}
+
+\textbf{Y3 重点}: 生态合作
+\begin{itemize}
+\item 进入腾讯生态(元器 Agent 上架)
+\item 微信小店服务商体系
+\item 与广告主对接(互选 brief 自动生成)
+\end{itemize}
+
+\subsubsection{真正的护城河(诚实版)}
+
+\textbf{短期(0-12 月)}: 几乎没有传统护城河
+\begin{itemize}
+\item 单点功能(早期信号、多 Agent 编排)可被复制
+\item 我们的优势是「\textbf{先发执行 + 完整产品」}
+\end{itemize}
+
+\textbf{中期(12-36 月)}: 数据飞轮 + 评估协议
+\begin{itemize}
+\item KOC 使用越多 → 风格画像越准 → 推荐越精
+\item 自建领域 eval 协议(同一套特征与回测)
+\item 与 1-2 家 MCN 的 workflow 深度集成
+\end{itemize}
+
+\textbf{长期(36+ 月)}: 生态 + 品牌 + 网络效应
+\begin{itemize}
+\item 进入腾讯生态(被接受为标准 Agent)
+\item 创作者社群(KOC 互相推荐)
+\item 品牌认知(KOC 工具 = Ripple)
+\end{itemize}
+
+\subsubsection{风险评估(SWOT)}
+
+\textbf{Strength}:
+\begin{itemize}
+\item 创新角度(早期信号 + 多 Agent)绝对差异化
+\item Claude Code 架构纪律确保扩展性
+\item 8 天交付能力证明执行力
+\end{itemize}
+
+\textbf{Weakness}:
+\begin{itemize}
+\item 学生团队,无销售/法务能力
+\item 无商业级数据源采购预算(部分 mock)
+\item 短期无 SOC2/算法备案,难进大企业
+\end{itemize}
+
+\textbf{Opportunity}:
+\begin{itemize}
+\item 视频号广告 +60\% YoY,创作者经济持续增长
+\item 大模型成本快速下降,毛利空间扩大
+\item BYOK 模式 + 多 Provider 降低成本风险
+\end{itemize}
+
+\textbf{Threat}:
+\begin{itemize}
+\item 腾讯元宝/元器/混元覆盖通用功能(应对:深差异化)
+\item 平台政策变化(视频号/抖音封禁第三方)(应对:走官方授权)
+\item 同质化(3 个月内出 10 个竞品)(应对:数据飞轮 + 品牌)
+\end{itemize}
+
+\subsubsection{诚实的退出路径}
+
+\begin{itemize}
+\item \textbf{P1 - 被腾讯生态吸纳}: 元器上架成为 KOC 标准 Agent
+\item \textbf{P2 - 被 MCN 收购}: 战略合作 → 全资收购
+\item \textbf{P3 - 团队 acqui-hire}: 进入大厂 Creator/Marketing 团队
+\item \textbf{P4 - 独立运营}: ARR ¥1000 万 + 持续运营
+\end{itemize}
+
+\textbf{我们诚实评估}: P1-P3 概率 >> P4。学生作品的最佳归宿是「能力被证明 + 团队被认可」,
+而非追求独角兽叙事。
+
+% --------------------------------------------
+
+\subsection{合规清单}
+
+\begin{itemize}
+\item ✓ 《AI 生成合成内容标识办法》(2025-09-01 施行):AI 内容显式 + 隐式标识
+\item ✓ 《互联网信息服务深度合成管理规定》:服务提供者标识义务
+\item ✓ 《个人信息保护法》(PIPL):最小必要 + 用户同意 + 删除权
+\item ✓ STRIDE 威胁建模(详见 \texttt{docs/security/STRIDE.md})
+\item ✓ OWASP LLM Top 10 v2 全覆盖(详见同上)
+\item ✓ 多租户 RLS 强制 \texttt{tenant\_id} 隔离
+\item ✓ BYOK API Key Argon2id + AES-256-GCM 加密
+\item ✓ 不训练用户数据(用户协议明确)
+\item ✓ 调用混元(已备案)做兜底,降低备案压力
+\item ◯ 商用前完成算法备案(第三方协助)
+\item ◯ 商用前 SOC 2 路径(企业版必须)
+\end{itemize}

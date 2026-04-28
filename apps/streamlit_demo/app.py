@@ -42,7 +42,7 @@ with st.sidebar:
     st.markdown(
         "**「资本永远先于舆论。」**\n\n"
         "Ripple 借鉴金融界 Digital Oracle 的早期信号思想,"
-        "用 12 个数据源并行扫描「刚开始升温」的话题,"
+        "用 7 个真实数据源并行扫描「刚开始升温」的话题,"
         "在热搜出现前 7-14 天发现机会。"
     )
     st.divider()
@@ -90,7 +90,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("""
-> 「KOC 追热点永远慢半拍,等看到热搜时已经红海。Ripple 用 12 个数据源并行扫描刚开始升温的话题,
+> 「KOC 追热点永远慢半拍,等看到热搜时已经红海。Ripple 用 7 个真实数据源并行扫描刚开始升温的话题,
 > 让你提前 7-14 天发现机会,12 个 Agent 协作生成可发布的多平台内容包。」
 """)
 
@@ -111,8 +111,8 @@ with tab_oracle:
     st.markdown(
         "**借鉴 Digital Oracle:** 真信号在搜索量、资本流、预测市场,"
         "不在已经爆的热搜。\n\n"
-        "**12 数据源并行扫描:** Polymarket / Kalshi / Manifold / 微信指数 / 百度指数 / "
-        "巨量算数 / 小红书灵感 / 微博实时 / HackerNews / GitHub Trending / Reddit / X"
+        "**7 真实数据源并行扫描:** Polymarket / Manifold / HackerNews / "
+        "微博热搜 / 抖音热搜 / 百度热搜 / B站热门"
     )
 
     col1, col2, col3 = st.columns([2, 1, 1])
@@ -136,7 +136,7 @@ with tab_oracle:
         )
 
     if st.button("🔍 扫描早期信号", type="primary", use_container_width=True):
-        with st.spinner(f"正在并行扫描 12 个数据源..."):
+        with st.spinner("正在并行扫描 7 个真实数据源..."):
             oracle = OracleAgent()
             try:
                 report = asyncio.run(oracle.scan(topic_seed, category, platforms))
@@ -191,8 +191,8 @@ with tab_demo:
     )
 
     st.info(
-        "💡 完整 12 Agent 流水线需要 LLM API(MiniMax/混元/Claude)。"
-        "请先在 `.env` 配置 `MINIMAX_API_KEY`,然后启动 FastAPI 后端:\n"
+        "💡 完整 12 Agent 流水线需要 LLM API。"
+        "请先在 `.env` 配置 `XIAOMI_API_KEY` 或 `MINIMAX_API_KEY`,然后启动 FastAPI 后端:\n"
         "```bash\ncd apps/api\nuvicorn main:app --reload --port 8000\n```"
     )
 
@@ -303,15 +303,15 @@ graph TB
   Agents --> P4[Phase 4 审查发布<br/>FactChecker / Risk / SimPredictor / Insight]
 
   Agents --> Models[LiteLLM Router]
-  Models --> M1[MiniMax M2.7 主力]
-  Models --> M2[腾讯混元 兜底]
-  Models --> M3[BYOK: DeepSeek/豆包/Claude/...]
-  Models --> M4[本地: Ollama/LM Studio]
+  Models --> M1[小米 MiMo-V2.5-Pro 首选]
+  Models --> M2[MiniMax M2.7 备用]
+  Models --> M3[腾讯混元 / DeepSeek / 豆包 / Claude / ...]
+  Models --> M4[本地: Ollama / LM Studio]
 """, language="mermaid")
 
     st.markdown("### 5 Killer Skills")
     skills = [
-        ("oracle-early-signal", "12 数据源 + CUSUM + 矛盾推理 早期信号雷达"),
+        ("oracle-early-signal", "7 真实数据源 + CUSUM + 矛盾推理 早期信号雷达"),
         ("koc-content-package", "选题确定后生成完整多平台内容包"),
         ("viral-formula-library", "标题学/封面学/节奏学 7 公式 + 5 风格"),
         ("copyright-asset-library", "版权友好素材清单 + 风险检测"),
@@ -342,10 +342,10 @@ with tab_about:
     with col2:
         st.markdown("""
         **核心技术栈**:
-        - Python 3.12 + FastAPI + LangGraph + LiteLLM
+        - Python 3.12 + FastAPI + LiteLLM
         - PostgreSQL + pgvector
         - Next.js 15 / Tauri 2 / 微信小程序 / PWA
-        - MiniMax M2.7 主力 + 腾讯混元兜底 + BYOK 用户自定义
+        - 小米 MiMo 首选 + MiniMax M2.7 备用 + 腾讯混元兜底 + BYOK
 
         **合规**:
         - 《AI 生成合成内容标识办法》全合规
@@ -368,7 +368,7 @@ with tab_about:
         "Ripple 涟漪": [
             "看刚开始升温的早期信号",
             "T-7 至 T-14 提前发现",
-            "12 数据源并行 + 矛盾推理",
+            "7 真实数据源并行 + 矛盾推理",
             "12 Agent 协作工厂",
             "每个建议有信号依据 + 置信度",
             "视频号深度 + 全平台覆盖",

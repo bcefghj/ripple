@@ -40,5 +40,10 @@ logs/
 *.db
 *.sqlite
 
-# Compiled LaTeX
-*.aux *.log *.out *.toc *.fls *.fdb_latexmk *.synctex.gz
+# Compiled LaTeX (keep main.pdf)
+*.aux
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz

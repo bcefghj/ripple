@@ -1,5 +1,7 @@
 """
-Ripple OracleAgent v2 × MiniMax M2.7 — 全真实数据深度测试
+Ripple OracleAgent v2 — 全真实数据深度测试
+
+LLM 优先级: 小米 MiMo-V2.5-Pro > MiniMax M2.7
 
 两个场景:
   A. 国内跨平台时差: Oracle 扫描微博/抖音/百度/B站实时热搜,
@@ -25,10 +27,21 @@ from typing import Any, Dict
 
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
+XIAOMI_API_KEY = os.environ.get("XIAOMI_API_KEY", "")
 MINIMAX_API_KEY = os.environ.get("MINIMAX_API_KEY", "")
-if not MINIMAX_API_KEY:
-    raise SystemExit("请设置环境变量 MINIMAX_API_KEY，例如: export MINIMAX_API_KEY=sk-...")
-MINIMAX_MODEL = "MiniMax-M2.7"
+
+if XIAOMI_API_KEY:
+    LLM_API_KEY = XIAOMI_API_KEY
+    LLM_MODEL = "mimo-v2.5-pro"
+    LLM_BASE_URL = "https://token-plan-cn.xiaomimimo.com/v1/chat/completions"
+    LLM_DISPLAY = "小米 MiMo v2.5 Pro"
+elif MINIMAX_API_KEY:
+    LLM_API_KEY = MINIMAX_API_KEY
+    LLM_MODEL = "MiniMax-M2.7"
+    LLM_BASE_URL = "https://api.minimax.chat/v1/chat/completions"
+    LLM_DISPLAY = "MiniMax M2.7"
+else:
+    raise SystemExit("请设置环境变量 XIAOMI_API_KEY 或 MINIMAX_API_KEY")
 
 def divider(c="=", n=68): print(c * n)
 def section(t, c="─", n=68): print(); print(c * n); print(f"  {t}"); print(c * n)
@@ -41,15 +54,15 @@ def wrap(text, w=62, prefix="    "):
                 print(prefix + line)
 
 
-async def minimax_call(sys_prompt: str, user_prompt: str, max_tokens: int = 2500):
+async def llm_call(sys_prompt: str, user_prompt: str, max_tokens: int = 2500):
     import httpx
     t0 = time.time()
     async with httpx.AsyncClient(timeout=180) as c:
         r = await c.post(
-            "https://api.minimax.chat/v1/chat/completions",
-            headers={"Authorization": f"Bearer {MINIMAX_API_KEY}", "Content-Type": "application/json"},
+            LLM_BASE_URL,
+            headers={"Authorization": f"Bearer {LLM_API_KEY}", "Content-Type": "application/json"},
             json={
-                "model": MINIMAX_MODEL,
+                "model": LLM_MODEL,
                 "messages": [
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": user_prompt},
@@ -191,7 +204,7 @@ async def scenario_a():
 
     oracle_text = oracle.format_report(report, chosen.topic)
 
-    print(f"\n  [Step 2/3] MiniMax {MINIMAX_MODEL} 生成内容包中...")
+    print(f"\n  [Step 2/3] {LLM_DISPLAY} 生成内容包中...")
     sys_p = "你是 Ripple AI Agent 的内容策略师,擅长根据跨平台早期信号为 KOC 生成内容包。你的特长是基于真实热搜数据发现内容窗口,帮 KOC 比别人早 2-3 天抢占话题。"
     user_p = f"""以下是 Ripple 早期信号雷达的真实扫描报告:
 
@@ -227,7 +240,7 @@ async def scenario_a():
 }}
 只输出 JSON。"""
 
-    content, tokens, ms2 = await minimax_call(sys_p, user_p, max_tokens=2500)
+    content, tokens, ms2 = await llm_call(sys_p, user_p, max_tokens=2500)
     print(f"  生成完成 ({ms2 / 1000:.1f}s, {tokens:,} tokens)")
 
     pkg = parse_json(content)
@@ -324,7 +337,7 @@ async def scenario_b():
 
     oracle_text = oracle.format_report(report, chosen_topic)
 
-    print(f"\n  [Step 2/3] MiniMax {MINIMAX_MODEL} 生成跨文化解读内容包中...")
+    print(f"\n  [Step 2/3] {LLM_DISPLAY} 生成跨文化解读内容包中...")
     sys_p = "你是 Ripple AI Agent 的跨文化内容策略师,擅长将国际预测市场(Polymarket)的数据翻译成中国社交媒体用户能理解的内容。你的核心能力是「把华尔街的数据变成普通人的信息优势」。"
     user_p = f"""以下是 Ripple 早期信号雷达的真实扫描报告:
 
@@ -366,7 +379,7 @@ async def scenario_b():
 }}
 只输出 JSON。"""
 
-    content, tokens, ms2 = await minimax_call(sys_p, user_p, max_tokens=4000)
+    content, tokens, ms2 = await llm_call(sys_p, user_p, max_tokens=4000)
     print(f"  生成完成 ({ms2 / 1000:.1f}s, {tokens:,} tokens)")
 
     pkg = parse_json(content)
@@ -416,12 +429,12 @@ async def scenario_b():
 async def main():
     divider()
     print()
-    print("  Ripple OracleAgent v2 × MiniMax M2.7")
+    print(f"  Ripple OracleAgent v2 × {LLM_DISPLAY}")
     print("  全真实数据深度测试")
     print()
     print("  数据源: Polymarket / Manifold / HackerNews /")
     print("          微博热搜 / 抖音热搜 / 百度热搜 / B站热搜")
-    print("  模型: MiniMax M2.7")
+    print(f"  模型: {LLM_DISPLAY}")
     print("  Mock 数据: 零")
     divider()
 

@@ -856,7 +856,7 @@ class OracleAgent:
                     else:
                         absent_from.append(other_p)
 
-                if len(present_in) == 1 and absent_from and sample.rank <= 15:
+                if len(present_in) == 1 and absent_from and sample.rank <= 10:
                     gaps.append(TrendCandidate(
                         topic=sample.keyword,
                         category="跨平台时差",

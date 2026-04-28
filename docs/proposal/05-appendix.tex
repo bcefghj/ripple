@@ -47,42 +47,37 @@ class AgentLoop:
             yield Terminal(reason=TerminalReason.ABORTED_STREAMING, ...)
 \end{lstlisting}
 
-\subsubsection{Oracle 早期信号雷达 - 12 数据源并行}
+\subsubsection{Oracle 早期信号雷达 v2 - 7 真实数据源并行}
 
 \begin{lstlisting}[language=python, caption=apps/api/agents/oracle\_agent.py(节选)]
 class OracleAgent:
     def __init__(self):
         self.sources = [
-            PolymarketSource(),    # 国际预测市场
-            ManifoldSource(),      # 社区预测
-            HackerNewsSource(),    # 科技叙事
-            GitHubTrendingSource(),# 开源讨论
-            WeiboMockSource(),     # 微博实时
-            WeixinIndexMockSource(),# 微信指数
-            BaiduIndexMockSource(),# 百度指数
-            XHSInspirationMockSource(),# 小红书灵感
-            JuliangTrendMockSource(),  # 抖音算数
+            PolymarketSource(),    # Polymarket 预测市场 (真实交易量)
+            ManifoldSource(),      # Manifold 社区预测
+            HackerNewsSource(),    # HackerNews 科技叙事
+            WeiboHotSource(),      # 微博热搜 (xxapi.cn 真实数据)
+            DouyinHotSource(),     # 抖音热搜 (xxapi.cn 真实数据)
+            BaiduHotSource(),      # 百度热搜 (xxapi.cn 真实数据)
+            BilibiliHotSource(),   # B站热门 (xxapi.cn 真实数据)
         ]
 
     async def scan(self, topic_seed, category, target_platforms):
-        # 12 数据源并行
+        # 7 真实数据源并行扫描
+        hotlists = {}
+        tasks = [(s.name, s.fetch_hotlist()) for s in self.sources]
         results = await asyncio.gather(
-            *[s.fetch(topic_seed) for s in self.sources],
-            return_exceptions=True,
+            *[t[1] for t in tasks], return_exceptions=True
         )
 
-        # CUSUM + MAD-zscore 异常检测
-        all_samples = []
-        for r in results:
-            if isinstance(r, list):
-                all_samples.extend(r)
+        # 跨平台矩阵比对 + 矛盾推理
+        contradictions = find_contradictions(hotlists, topic_keywords)
 
-        # 矛盾推理(借鉴 Digital Oracle)
-        contradictions = find_contradictions(all_samples)
-
-        # 聚合成 Top 10 趋势 + 置信度
-        trends = self._aggregate_trends(all_samples, category, target_platforms)
-
+        # CUSUM + MAD-zscore 聚合趋势 + 置信度
+        trends = self._aggregate_trends(
+            topic_seed, topic_keywords, hotlists,
+            all_samples, contradictions, category, target_platforms
+        )
         return OracleReport(trends=trends, ...)
 \end{lstlisting}
 

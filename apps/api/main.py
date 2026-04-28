@@ -7,7 +7,7 @@ API:
     POST /api/v1/ripple/run            - 运行完整流水线
     GET  /api/v1/ripple/run/{req_id}   - 查询任务结果
     WS   /api/v1/ripple/stream         - WebSocket 流式 Agent 状态
-    GET  /api/v1/oracle/scan           - 仅运行早期信号雷达
+    POST /api/v1/oracle/scan           - 仅运行早期信号雷达
     GET  /api/v1/providers             - 列出可用 LLM Provider
     POST /api/v1/byok                  - 添加用户 API Key
     GET  /health                       - 健康检查
@@ -81,8 +81,8 @@ async def llm_call_bridge(
     router = get_router()
     response = await router.complete(
         messages=messages,
-        provider="minimax",
-        fallback_providers=["hunyuan", "deepseek"],
+        provider="xiaomi",
+        fallback_providers=["minimax", "hunyuan", "deepseek"],
         max_tokens=max_tokens,
         temperature=temperature,
     )

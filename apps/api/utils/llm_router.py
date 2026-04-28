@@ -63,6 +63,19 @@ class LLMResponse:
 # ============================================================
 
 PROVIDERS: Dict[str, ProviderConfig] = {
+    "xiaomi": ProviderConfig(
+        name="xiaomi",
+        display_name="小米 MiMo",
+        api_key=settings.xiaomi_api_key,
+        api_base=settings.xiaomi_api_base,
+        default_model=settings.xiaomi_default_model,
+        available_models=[
+            "mimo-v2.5-pro",
+            "mimo-v2.5",
+            "mimo-v2-pro",
+            "mimo-v2-omni",
+        ],
+    ),
     "minimax": ProviderConfig(
         name="minimax",
         display_name="MiniMax",
@@ -190,7 +203,7 @@ class LLMRouter:
         )
     """
 
-    def __init__(self, default_provider: str = "minimax"):
+    def __init__(self, default_provider: str = "xiaomi"):
         self.default_provider = default_provider
         self._setup_litellm()
 
@@ -334,10 +347,9 @@ class LLMRouter:
             return model if model.startswith("anthropic/") else f"anthropic/{model}"
         elif provider == "deepseek":
             return f"deepseek/{model}"
-        elif provider in ("ollama", "lmstudio"):
+        elif provider in ("ollama", "lmstudio", "xiaomi"):
             return f"openai/{model}"  # OpenAI compat
         else:
-            # 国内 OpenAI 兼容供应商,使用 openai/ 前缀
             return f"openai/{model}"
 
     async def _http_complete_openai_compat(
@@ -410,19 +422,23 @@ def get_router() -> LLMRouter:
 # ============================================================
 
 
+_DEFAULT_FALLBACK = ["xiaomi", "minimax", "hunyuan", "deepseek"]
+
+
 async def chat(
     messages: List[Dict[str, str]],
-    provider: str = "minimax",
+    provider: str = "xiaomi",
     model: Optional[str] = None,
     **kwargs,
 ) -> str:
     """便捷接口:返回 content 字符串"""
     router = get_router()
+    fallback = [p for p in _DEFAULT_FALLBACK if p != provider]
     response = await router.complete(
         messages=messages,
         provider=provider,
         model=model,
-        fallback_providers=["hunyuan", "deepseek"] if provider == "minimax" else None,
+        fallback_providers=fallback,
         **kwargs,
     )
     return response.content
@@ -430,16 +446,17 @@ async def chat(
 
 async def chat_with_response(
     messages: List[Dict[str, str]],
-    provider: str = "minimax",
+    provider: str = "xiaomi",
     model: Optional[str] = None,
     **kwargs,
 ) -> LLMResponse:
     """便捷接口:返回完整 LLMResponse"""
     router = get_router()
+    fallback = [p for p in _DEFAULT_FALLBACK if p != provider]
     return await router.complete(
         messages=messages,
         provider=provider,
         model=model,
-        fallback_providers=["hunyuan", "deepseek"] if provider == "minimax" else None,
+        fallback_providers=fallback,
         **kwargs,
     )

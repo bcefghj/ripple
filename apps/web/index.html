@@ -1,323 +1,564 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Ripple — KOC 早期信号雷达 + 多 Agent 内容工厂</title>
-<meta name="description" content="KOC 的 Bloomberg Terminal:在热搜出现前 7-14 天发现下一个会火的话题" />
-<script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ripple 涟漪 — KOC 早期信号雷达 + 多 Agent 内容工厂</title>
+<meta name="description" content="在热搜出现前 7-14 天发现下一个爆款话题，12 个 AI Agent 帮你生成可发布的内容包。腾讯 PCG 校园 AI 产品创意大赛参赛作品。">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
-  body {
-    font-family: 'Inter', 'Noto Sans SC', sans-serif;
-  }
-  .gradient-text {
-    background: linear-gradient(120deg, #1E40AF 0%, #0EA5E9 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  .gradient-bg {
-    background: linear-gradient(120deg, #1E40AF 0%, #0EA5E9 100%);
-  }
-  .card-shadow {
-    box-shadow: 0 10px 40px -10px rgba(30, 64, 175, 0.15);
-  }
-  @keyframes ripple {
-    0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(4); opacity: 0; }
-  }
-  .ripple-circle {
-    animation: ripple 2s infinite;
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8fafc;--surface:#fff;--text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --primary:#3b82f6;--primary-dark:#2563eb;--accent:#06b6d4;--accent2:#8b5cf6;
+  --gradient:linear-gradient(135deg,#3b82f6,#06b6d4);
+  --gradient2:linear-gradient(135deg,#8b5cf6,#ec4899);
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 6px rgba(0,0,0,.04);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.1);
+  --radius:12px;--radius-lg:20px;
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
+a{color:var(--primary);text-decoration:none}
+a:hover{text-decoration:underline}
+img{max-width:100%;height:auto}
+
+/* Animations */
+@keyframes ripple-ring{
+  0%{transform:scale(.5);opacity:.7}
+  100%{transform:scale(2.5);opacity:0}
+}
+@keyframes float-up{
+  0%{transform:translateY(30px);opacity:0}
+  100%{transform:translateY(0);opacity:1}
+}
+@keyframes pulse-glow{
+  0%,100%{box-shadow:0 0 20px rgba(59,130,246,.3)}
+  50%{box-shadow:0 0 40px rgba(59,130,246,.6)}
+}
+@keyframes count-up{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes slide-left{0%{transform:translateX(-40px);opacity:0}100%{transform:translateX(0);opacity:1}}
+@keyframes slide-right{0%{transform:translateX(40px);opacity:0}100%{transform:translateX(0);opacity:1}}
+@keyframes blink-dot{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes platform-light{0%{background:#e2e8f0}30%{background:#fbbf24}60%{background:#22c55e}100%{background:#22c55e}}
+
+.reveal{opacity:0;transform:translateY(30px);transition:all .7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* Layout */
+.container{max-width:1100px;margin:0 auto;padding:0 24px}
+section{padding:80px 0}
+
+/* Hero */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;background:linear-gradient(180deg,#eff6ff 0%,#f8fafc 100%);overflow:hidden}
+.hero-ripples{position:absolute;width:100%;height:100%;top:0;left:0;pointer-events:none}
+.hero-ripple{position:absolute;border:2px solid rgba(59,130,246,.15);border-radius:50%;animation:ripple-ring 4s ease-out infinite}
+.hero-ripple:nth-child(1){width:200px;height:200px;top:50%;left:50%;margin:-100px 0 0 -100px;animation-delay:0s}
+.hero-ripple:nth-child(2){width:200px;height:200px;top:50%;left:50%;margin:-100px 0 0 -100px;animation-delay:1s}
+.hero-ripple:nth-child(3){width:200px;height:200px;top:50%;left:50%;margin:-100px 0 0 -100px;animation-delay:2s}
+.hero-ripple:nth-child(4){width:200px;height:200px;top:50%;left:50%;margin:-100px 0 0 -100px;animation-delay:3s}
+.hero-content{position:relative;z-index:1;max-width:700px}
+.hero h1{font-size:3.5rem;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px}
+.hero .subtitle{font-size:1.35rem;color:var(--text2);margin-bottom:12px;line-height:1.6}
+.hero .tagline{font-size:1rem;color:var(--text3);margin-bottom:36px;font-style:italic}
+.btn-group{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 32px;border-radius:50px;font-size:1rem;font-weight:600;cursor:pointer;border:none;transition:all .3s}
+.btn-primary{background:var(--gradient);color:#fff;animation:pulse-glow 3s infinite}
+.btn-primary:hover{transform:translateY(-2px);text-decoration:none}
+.btn-secondary{background:var(--surface);color:var(--text);border:1.5px solid #e2e8f0}
+.btn-secondary:hover{border-color:var(--primary);color:var(--primary);text-decoration:none}
+
+/* Stats */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:60px}
+.stat-item{text-align:center}
+.stat-num{font-size:2.2rem;font-weight:800;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:.85rem;color:var(--text3);margin-top:4px}
+
+/* Pain Points */
+.pain-section{background:#fff}
+.pain-section h2{text-align:center;font-size:2.2rem;margin-bottom:12px}
+.pain-section .section-desc{text-align:center;color:var(--text2);margin-bottom:48px;font-size:1.1rem}
+.pain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.pain-card{background:var(--bg);border-radius:var(--radius-lg);padding:32px;position:relative;overflow:hidden;transition:transform .3s,box-shadow .3s}
+.pain-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.pain-icon{font-size:2.5rem;margin-bottom:16px}
+.pain-card h3{font-size:1.2rem;margin-bottom:8px;color:var(--text)}
+.pain-card .problem{color:#ef4444;font-size:.9rem;margin-bottom:12px}
+.pain-card .solution{color:#22c55e;font-size:.9rem}
+.pain-card .arrow{display:flex;align-items:center;justify-content:center;margin:12px 0;color:var(--primary);font-size:1.5rem}
+
+/* Oracle Section */
+.oracle-section{background:linear-gradient(180deg,#f8fafc,#eff6ff)}
+.oracle-section h2{text-align:center;font-size:2.2rem;margin-bottom:12px}
+.oracle-section .section-desc{text-align:center;color:var(--text2);margin-bottom:48px;font-size:1.1rem}
+.oracle-demo{background:var(--surface);border-radius:var(--radius-lg);padding:36px;box-shadow:var(--shadow);margin-bottom:32px}
+.oracle-demo h3{font-size:1.3rem;margin-bottom:20px;color:var(--text)}
+.matrix-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+.matrix-cell{background:#f1f5f9;border-radius:8px;padding:12px;text-align:center;transition:background .6s}
+.matrix-cell.hot{background:#fef3c7;border:1.5px solid #f59e0b}
+.matrix-cell.miss{background:#fee2e2;border:1.5px dashed #ef4444}
+.matrix-cell.live{animation:platform-light 2s forwards}
+.matrix-cell .platform-name{font-weight:600;font-size:.85rem;margin-bottom:4px}
+.matrix-cell .platform-rank{font-size:1.5rem;font-weight:800}
+.matrix-cell .platform-status{font-size:.75rem;color:var(--text3)}
+.polymarket-banner{background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-radius:var(--radius);padding:24px 28px;margin:20px 0;display:flex;align-items:center;gap:20px}
+.polymarket-banner .pm-vol{font-size:2rem;font-weight:800;color:#22c55e}
+.polymarket-banner .pm-label{font-size:.9rem;color:#94a3b8}
+.polymarket-banner .pm-topic{font-size:1.1rem;font-weight:600;flex:1}
+
+/* Agent Pipeline */
+.pipeline-section{background:#fff}
+.pipeline-section h2{text-align:center;font-size:2.2rem;margin-bottom:12px}
+.pipeline-section .section-desc{text-align:center;color:var(--text2);margin-bottom:48px;font-size:1.1rem}
+.pipeline-phases{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.phase-card{background:var(--bg);border-radius:var(--radius-lg);padding:24px;text-align:center;position:relative;transition:all .5s}
+.phase-card.active{background:linear-gradient(135deg,#eff6ff,#dbeafe);border:2px solid var(--primary)}
+.phase-num{width:40px;height:40px;border-radius:50%;background:var(--gradient);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;margin-bottom:12px}
+.phase-card h3{font-size:1rem;margin-bottom:8px}
+.phase-agents{list-style:none;text-align:left;font-size:.85rem;color:var(--text2)}
+.phase-agents li{padding:3px 0}
+.phase-connector{display:none}
+
+/* Cases */
+.cases-section{background:linear-gradient(180deg,#fff,#f8fafc)}
+.cases-section h2{text-align:center;font-size:2.2rem;margin-bottom:12px}
+.cases-section .section-desc{text-align:center;color:var(--text2);margin-bottom:48px;font-size:1.1rem}
+.case-card{background:var(--surface);border-radius:var(--radius-lg);padding:36px;box-shadow:var(--shadow);margin-bottom:28px;overflow:hidden}
+.case-card h3{font-size:1.3rem;margin-bottom:4px}
+.case-tag{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.75rem;font-weight:600;margin-bottom:12px}
+.case-tag.tag-a{background:#dbeafe;color:#2563eb}
+.case-tag.tag-b{background:#fae8ff;color:#9333ea}
+.case-tag.tag-c{background:#dcfce7;color:#16a34a}
+.case-flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:12px;align-items:start;margin:16px 0}
+.case-step{background:var(--bg);border-radius:var(--radius);padding:16px;font-size:.9rem}
+.case-step h4{font-size:.85rem;color:var(--primary);margin-bottom:6px;font-weight:700}
+.case-arrow{display:flex;align-items:center;color:var(--primary);font-size:1.5rem;padding-top:20px}
+.case-output{background:#f0fdf4;border-radius:var(--radius);padding:16px;margin-top:12px;font-size:.9rem;line-height:1.6;border-left:4px solid #22c55e}
+.case-output h4{font-size:.85rem;color:#16a34a;margin-bottom:8px}
+
+/* Tech Highlights */
+.tech-section{background:#fff}
+.tech-section h2{text-align:center;font-size:2.2rem;margin-bottom:48px}
+.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.tech-card{background:var(--bg);border-radius:var(--radius-lg);padding:28px;transition:transform .3s}
+.tech-card:hover{transform:translateY(-4px)}
+.tech-card h3{font-size:1.05rem;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.tech-card p{font-size:.9rem;color:var(--text2);line-height:1.6}
+
+/* Downloads */
+.download-section{background:linear-gradient(135deg,#1e293b,#0f172a);color:#fff;text-align:center}
+.download-section h2{font-size:2.2rem;margin-bottom:12px}
+.download-section .section-desc{color:#94a3b8;margin-bottom:40px;font-size:1.1rem}
+.download-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-bottom:40px}
+.download-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius-lg);padding:28px;transition:all .3s}
+.download-card:hover{background:rgba(255,255,255,.1);transform:translateY(-3px);text-decoration:none}
+.download-card .dl-icon{font-size:2rem;margin-bottom:12px}
+.download-card h3{font-size:1.1rem;margin-bottom:6px;color:#fff}
+.download-card p{font-size:.85rem;color:#94a3b8}
+
+/* Footer */
+footer{background:#0f172a;color:#94a3b8;text-align:center;padding:32px 24px;font-size:.85rem}
+
+/* Responsive */
+@media(max-width:768px){
+  .hero h1{font-size:2.2rem}
+  .hero .subtitle{font-size:1.05rem}
+  .stats-bar{grid-template-columns:repeat(2,1fr);gap:16px}
+  .pain-grid,.pipeline-phases,.tech-grid,.download-grid{grid-template-columns:1fr}
+  .matrix-grid{grid-template-columns:repeat(2,1fr)}
+  .case-flow{grid-template-columns:1fr;gap:8px}
+  .case-arrow{transform:rotate(90deg);justify-content:center;padding:0}
+  section{padding:48px 0}
+}
 </style>
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body>
 
-<!-- ===== Nav ===== -->
-<nav class="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-slate-100">
-  <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-    <div class="flex items-center space-x-2">
-      <div class="w-8 h-8 gradient-bg rounded-lg flex items-center justify-center text-white font-bold">R</div>
-      <span class="font-bold text-xl">Ripple <span class="text-slate-400 font-normal text-sm">涟漪</span></span>
+<!-- ==================== Hero ==================== -->
+<section class="hero" id="top">
+  <div class="hero-ripples">
+    <div class="hero-ripple"></div>
+    <div class="hero-ripple"></div>
+    <div class="hero-ripple"></div>
+    <div class="hero-ripple"></div>
+  </div>
+  <div class="hero-content">
+    <h1>Ripple 涟漪</h1>
+    <p class="subtitle">KOC 的 Bloomberg Terminal<br>在热搜出现前 7-14 天发现下一个爆款话题</p>
+    <p class="tagline">「资本永远先于舆论。我们让 KOC 看见涟漪,而不是等海啸到来。」</p>
+    <div class="btn-group">
+      <a href="http://120.55.247.6/demo" class="btn btn-primary" target="_blank">在线体验 Demo</a>
+      <a href="https://github.com/bcefghj/ripple" class="btn btn-secondary" target="_blank">GitHub 源码</a>
+      <a href="/ripple_report.pdf" class="btn btn-secondary" target="_blank">下载技术报告 PDF</a>
     </div>
-    <div class="hidden md:flex space-x-8 text-slate-600">
-      <a href="#features" class="hover:text-blue-600">特性</a>
-      <a href="#agents" class="hover:text-blue-600">12 Agent</a>
-      <a href="#pricing" class="hover:text-blue-600">定价</a>
-      <a href="#demo" class="hover:text-blue-600">Demo</a>
-    </div>
-    <a href="#demo" class="gradient-bg text-white px-6 py-2.5 rounded-lg hover:opacity-90 font-medium text-sm">
-      立即体验
-    </a>
-  </div>
-</nav>
-
-<!-- ===== Hero ===== -->
-<section class="pt-32 pb-20 container mx-auto px-6 text-center">
-  <div class="inline-block mb-6 px-4 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
-    🏆 腾讯 PCG 校园 AI 产品创意大赛 · 赛题 5
-  </div>
-  <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight">
-    KOC 的 <span class="gradient-text">Bloomberg Terminal</span>
-  </h1>
-  <p class="text-xl md:text-2xl text-slate-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-    在热搜出现前 <span class="font-bold text-blue-600">7-14 天</span>,
-    告诉你下一个会火的话题<br>
-    以及 <span class="font-bold text-blue-600">12 个 Agent</span> 帮你把它做成可发布的内容包
-  </p>
-  <div class="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-    <a href="#demo" class="gradient-bg text-white px-8 py-4 rounded-xl text-lg font-medium hover:opacity-90 inline-flex items-center justify-center">
-      🚀 立即体验 Demo
-    </a>
-    <a href="https://github.com/your-org/ripple" class="bg-white text-slate-900 border border-slate-200 px-8 py-4 rounded-xl text-lg font-medium hover:bg-slate-50">
-      📦 GitHub 开源
-    </a>
-  </div>
-
-  <!-- 灵感来源 -->
-  <div class="mt-16 text-sm text-slate-500">
-    <p class="mb-3">灵感谱系</p>
-    <div class="flex flex-wrap justify-center gap-6">
-      <span>📈 Digital Oracle</span>
-      <span>🤖 Claude Code 51 万行</span>
-      <span>🐠 MiroFish</span>
-      <span>🎣 BettaFish</span>
+    <div class="stats-bar reveal">
+      <div class="stat-item"><div class="stat-num" data-target="7">0</div><div class="stat-label">真实数据源</div></div>
+      <div class="stat-item"><div class="stat-num" data-target="12">0</div><div class="stat-label">AI Agent 协作</div></div>
+      <div class="stat-item"><div class="stat-num" data-target="11">0</div><div class="stat-label">LLM Provider</div></div>
+      <div class="stat-item"><div class="stat-num" data-target="0">0</div><div class="stat-label">Mock 数据</div></div>
     </div>
   </div>
 </section>
 
-<!-- ===== Core Insight ===== -->
-<section class="py-20 bg-white">
-  <div class="container mx-auto px-6 max-w-4xl">
-    <div class="text-center mb-12">
-      <div class="inline-block mb-4 px-4 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
-        💡 核心洞察
+<!-- ==================== Pain Points ==================== -->
+<section class="pain-section" id="pain">
+  <div class="container">
+    <h2 class="reveal">KOC 的三大痛点</h2>
+    <p class="section-desc reveal">80% 的 KOC 追热点永远慢半拍,等看到热搜时已是红海</p>
+    <div class="pain-grid">
+      <div class="pain-card reveal">
+        <div class="pain-icon">🎯</div>
+        <h3>定位难</h3>
+        <p class="problem">不知道做什么内容、跟什么热点</p>
+        <div class="arrow">↓</div>
+        <p class="solution">Ripple: 7 真实数据源扫描,提前 7-14 天发现机会</p>
       </div>
-      <h2 class="text-4xl font-bold mb-4">
-        资本永远<span class="gradient-text">先于</span>舆论
-      </h2>
-      <p class="text-xl text-slate-600 leading-relaxed">
-        当一个人要把自己的钱押在某个结果上时,他会比发一条短视频认真很多。
-      </p>
-    </div>
-
-    <div class="grid md:grid-cols-2 gap-6 mt-12">
-      <div class="bg-slate-50 p-8 rounded-2xl">
-        <div class="text-red-500 text-3xl mb-3">❌</div>
-        <h3 class="font-bold text-xl mb-3">传统工具:看已经火的</h3>
-        <p class="text-slate-600">
-          千瓜、飞瓜、Buffer、Jasper 都在帮你看「已经爆」的热搜。
-          等你看到的时候,选题已经被 100 个同行写过了。
-        </p>
+      <div class="pain-card reveal">
+        <div class="pain-icon">✍️</div>
+        <h3>内容差</h3>
+        <p class="problem">标题没吸引力、文案缺数据支撑</p>
+        <div class="arrow">↓</div>
+        <p class="solution">Ripple: 12 Agent 生成引用真实热搜数据的内容包</p>
       </div>
-      <div class="bg-blue-50 p-8 rounded-2xl border-2 border-blue-200">
-        <div class="text-blue-500 text-3xl mb-3">✓</div>
-        <h3 class="font-bold text-xl mb-3">Ripple:看刚开始升温的</h3>
-        <p class="text-slate-700">
-          12 个数据源并行扫描:Polymarket/Kalshi/微信指数/百度指数/巨量算数/微博实时...
-          找到「刚开始火」的早期信号,提前 7-14 天交到你手中。
-        </p>
+      <div class="pain-card reveal">
+        <div class="pain-icon">📊</div>
+        <h3>运营盲</h3>
+        <p class="problem">不知道何时发布、如何差异化</p>
+        <div class="arrow">↓</div>
+        <p class="solution">Ripple: 跨平台时差分析 + 信息差窗口 + 发布策略</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ===== Features ===== -->
-<section id="features" class="py-20 container mx-auto px-6">
-  <div class="text-center mb-16">
-    <h2 class="text-4xl font-bold mb-4">四大核心特性</h2>
-    <p class="text-xl text-slate-600">为什么 Ripple 是 KOC 的下一代工具</p>
-  </div>
+<!-- ==================== Oracle Demo ==================== -->
+<section class="oracle-section" id="oracle">
+  <div class="container">
+    <h2 class="reveal">核心创新: 早期信号雷达 (Oracle)</h2>
+    <p class="section-desc reveal">借鉴 Digital Oracle「资本永远先于舆论」哲学,CUSUM 异常检测 + 矛盾推理,发现别人看不到的信号</p>
 
-  <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-    <div class="bg-white p-6 rounded-2xl card-shadow border border-slate-100">
-      <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl mb-4">🔮</div>
-      <h3 class="font-bold text-lg mb-2">早期信号雷达</h3>
-      <p class="text-sm text-slate-600">
-        12 数据源并行 + CUSUM 算法 + 矛盾推理,提前 7-14 天发现爆款话题
-      </p>
-    </div>
-    <div class="bg-white p-6 rounded-2xl card-shadow border border-slate-100">
-      <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl mb-4">🤖</div>
-      <h3 class="font-bold text-lg mb-2">12 Agent 工厂</h3>
-      <p class="text-sm text-slate-600">
-        Oracle / TrendScout / StyleDecoder / ForumDebate / TopicStrategist /
-        ScriptWriter / Visual / Material / FactCheck / Risk / SimPredictor / Insight
-      </p>
-    </div>
-    <div class="bg-white p-6 rounded-2xl card-shadow border border-slate-100">
-      <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl mb-4">🌐</div>
-      <h3 class="font-bold text-lg mb-2">全平台覆盖</h3>
-      <p class="text-sm text-slate-600">
-        视频号 / 公众号 / 小红书 / 抖音 / B 站 / 微博 一键多版本
-      </p>
-    </div>
-    <div class="bg-white p-6 rounded-2xl card-shadow border border-slate-100">
-      <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl mb-4">🔑</div>
-      <h3 class="font-bold text-lg mb-2">BYOK 自由</h3>
-      <p class="text-sm text-slate-600">
-        MiniMax / 混元 / DeepSeek / 豆包 / Claude / GPT / 本地 Ollama 你决定
-      </p>
-    </div>
-  </div>
-</section>
-
-<!-- ===== 12 Agents Architecture ===== -->
-<section id="agents" class="py-20 bg-gradient-to-br from-slate-900 to-blue-900 text-white">
-  <div class="container mx-auto px-6 max-w-6xl">
-    <div class="text-center mb-16">
-      <h2 class="text-4xl font-bold mb-4">12 Agent 协作流水线</h2>
-      <p class="text-xl text-blue-200">借鉴 Claude Code 51 万行架构 + BettaFish 多 Agent 辩论</p>
-    </div>
-
-    <div class="grid md:grid-cols-4 gap-6">
-      <!-- Phase 1 -->
-      <div class="bg-white/10 backdrop-blur p-6 rounded-2xl border border-white/20">
-        <div class="text-blue-300 font-mono text-sm mb-3">Phase 1</div>
-        <h3 class="font-bold text-xl mb-4">信号感知</h3>
-        <ul class="space-y-2 text-sm">
-          <li>🔮 Oracle - 早期信号雷达</li>
-          <li>🔥 TrendScout - 已爆扫描</li>
-          <li>🎨 StyleDecoder - 风格学习</li>
-        </ul>
-      </div>
-      <div class="bg-white/10 backdrop-blur p-6 rounded-2xl border border-white/20">
-        <div class="text-blue-300 font-mono text-sm mb-3">Phase 2</div>
-        <h3 class="font-bold text-xl mb-4">决策辩论</h3>
-        <ul class="space-y-2 text-sm">
-          <li>💬 ForumDebate - 多 Agent 辩论</li>
-          <li>🎯 TopicStrategist - 矛盾推理</li>
-        </ul>
-      </div>
-      <div class="bg-white/10 backdrop-blur p-6 rounded-2xl border border-white/20">
-        <div class="text-blue-300 font-mono text-sm mb-3">Phase 3</div>
-        <h3 class="font-bold text-xl mb-4">内容生产</h3>
-        <ul class="space-y-2 text-sm">
-          <li>✍️ ScriptWriter - 多平台文案</li>
-          <li>🖼 VisualProducer - 封面生成</li>
-          <li>📦 MaterialCurator - 素材+版权</li>
-        </ul>
-      </div>
-      <div class="bg-white/10 backdrop-blur p-6 rounded-2xl border border-white/20">
-        <div class="text-blue-300 font-mono text-sm mb-3">Phase 4</div>
-        <h3 class="font-bold text-xl mb-4">审查发布</h3>
-        <ul class="space-y-2 text-sm">
-          <li>✓ FactChecker - 真实性</li>
-          <li>🛡 Risk - 合规审查</li>
-          <li>🌐 SimPredictor - 仿真</li>
-          <li>📊 Insight - 归因报告</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ===== Demo CTA ===== -->
-<section id="demo" class="py-20 container mx-auto px-6 max-w-4xl text-center">
-  <h2 class="text-4xl font-bold mb-6">立即体验 Demo</h2>
-  <p class="text-xl text-slate-600 mb-12">
-    输入选题 → 12 个 Agent 协作 → 完整内容包
-  </p>
-
-  <div class="grid md:grid-cols-2 gap-6">
-    <a href="http://localhost:8501" target="_blank" class="bg-white p-8 rounded-2xl card-shadow border border-slate-100 hover:border-blue-300 transition-all group">
-      <div class="text-5xl mb-4">🎯</div>
-      <h3 class="font-bold text-xl mb-2">Streamlit Demo</h3>
-      <p class="text-sm text-slate-600 mb-4">完整 12 Agent 演示界面</p>
-      <span class="text-blue-600 font-medium group-hover:underline">localhost:8501 →</span>
-    </a>
-    <a href="http://localhost:8000/docs" target="_blank" class="bg-white p-8 rounded-2xl card-shadow border border-slate-100 hover:border-blue-300 transition-all group">
-      <div class="text-5xl mb-4">⚡</div>
-      <h3 class="font-bold text-xl mb-2">API 文档</h3>
-      <p class="text-sm text-slate-600 mb-4">FastAPI Swagger UI</p>
-      <span class="text-blue-600 font-medium group-hover:underline">localhost:8000/docs →</span>
-    </a>
-  </div>
-
-  <div class="mt-12 p-6 bg-blue-50 rounded-xl text-left">
-    <h4 class="font-bold mb-3">本地启动指南</h4>
-    <pre class="text-sm bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto">
-# 1. 启动后端
-cd apps/api
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # 填入 MINIMAX_API_KEY
-uvicorn main:app --reload --port 8000
-
-# 2. 启动 Streamlit Demo
-cd apps/streamlit_demo
-./run.sh</pre>
-  </div>
-</section>
-
-<!-- ===== Pricing ===== -->
-<section id="pricing" class="py-20 bg-slate-100">
-  <div class="container mx-auto px-6 max-w-5xl">
-    <div class="text-center mb-12">
-      <h2 class="text-4xl font-bold mb-4">定价</h2>
-      <p class="text-xl text-slate-600">三档,适合不同阶段的 KOC</p>
-    </div>
-
-    <div class="grid md:grid-cols-3 gap-6">
-      <div class="bg-white p-8 rounded-2xl card-shadow">
-        <h3 class="font-bold text-2xl mb-2">Free</h3>
-        <div class="text-4xl font-black mb-1">¥0<span class="text-base font-normal text-slate-400">/月</span></div>
-        <p class="text-slate-500 text-sm mb-6">兼职素人 KOC</p>
-        <ul class="space-y-3 text-sm mb-8">
-          <li>✓ 每日 3 条早期信号订阅</li>
-          <li>✓ 灵感库(无限存储)</li>
-          <li>✓ 简易内容生成(限额)</li>
-          <li>✓ 单平台支持</li>
-        </ul>
-        <button class="w-full py-3 border border-slate-200 rounded-lg font-medium">免费开始</button>
-      </div>
-
-      <div class="bg-white p-8 rounded-2xl card-shadow border-2 border-blue-500 relative">
-        <div class="absolute top-0 right-6 -translate-y-1/2 bg-blue-500 text-white text-xs px-3 py-1 rounded-full font-medium">
-          推荐
+    <div class="oracle-demo reveal">
+      <h3>场景 A: 跨平台时差 — 发现内容窗口</h3>
+      <p style="color:var(--text2);margin-bottom:16px">Oracle 并行扫描 4 大国内平台实时热搜,发现在微博已爆但抖音/B站还未覆盖的话题</p>
+      <div class="matrix-grid" id="matrix-demo">
+        <div class="matrix-cell" data-delay="0">
+          <div class="platform-name">微博热搜</div>
+          <div class="platform-rank" style="color:#ef4444">#3</div>
+          <div class="platform-status">已上榜 · 790万热度</div>
         </div>
-        <h3 class="font-bold text-2xl mb-2">Pro</h3>
-        <div class="text-4xl font-black mb-1">¥99<span class="text-base font-normal text-slate-400">/月</span></div>
-        <p class="text-slate-500 text-sm mb-6">腰部 KOC / 小团队</p>
-        <ul class="space-y-3 text-sm mb-8">
-          <li>✓ 完整 12 Agent 工厂</li>
-          <li>✓ 全平台支持</li>
-          <li>✓ 风格学习与记忆</li>
-          <li>✓ 群体仿真预测</li>
-          <li>✓ BYOK 自定义模型</li>
-        </ul>
-        <button class="w-full py-3 gradient-bg text-white rounded-lg font-medium">升级 Pro</button>
+        <div class="matrix-cell" data-delay="400">
+          <div class="platform-name">抖音热搜</div>
+          <div class="platform-rank" style="color:#22c55e">—</div>
+          <div class="platform-status">未覆盖 → 内容窗口!</div>
+        </div>
+        <div class="matrix-cell" data-delay="800">
+          <div class="platform-name">百度热搜</div>
+          <div class="platform-rank" style="color:#f59e0b">#8</div>
+          <div class="platform-status">搜索量上升中</div>
+        </div>
+        <div class="matrix-cell" data-delay="1200">
+          <div class="platform-name">B站热门</div>
+          <div class="platform-rank" style="color:#22c55e">—</div>
+          <div class="platform-status">未覆盖 → 内容窗口!</div>
+        </div>
       </div>
+      <div style="background:#fef3c7;border-radius:8px;padding:16px;font-size:.9rem;border-left:4px solid #f59e0b">
+        <strong>Oracle 判断:</strong> 该话题仅在微博爆发,抖音/B站尚未覆盖。预估窗口期 2-4 天。KOC 应立即在短视频平台布局,抢占首发红利。
+      </div>
+    </div>
 
-      <div class="bg-white p-8 rounded-2xl card-shadow">
-        <h3 class="font-bold text-2xl mb-2">Enterprise</h3>
-        <div class="text-4xl font-black mb-1">联系</div>
-        <p class="text-slate-500 text-sm mb-6">MCN / 品牌 / 4A</p>
-        <ul class="space-y-3 text-sm mb-8">
-          <li>✓ 多账号统一管理</li>
-          <li>✓ 团队协作 + 权限</li>
-          <li>✓ SLA + 私有部署</li>
-          <li>✓ 专属客户成功</li>
-          <li>✓ 定制 Agent</li>
-        </ul>
-        <button class="w-full py-3 border border-slate-200 rounded-lg font-medium">联系我们</button>
+    <div class="oracle-demo reveal">
+      <h3>场景 B: 跨国信息差 — Polymarket 真实交易数据</h3>
+      <p style="color:var(--text2);margin-bottom:16px">Oracle 扫描国际预测市场,发现全球资本关注但国内完全没人讨论的话题</p>
+      <div class="polymarket-banner" id="pm-banner">
+        <div>
+          <div class="pm-vol" id="pm-volume">$0</div>
+          <div class="pm-label">24h 交易量</div>
+        </div>
+        <div class="pm-topic">国际热门事件 — Polymarket 真实合约</div>
+        <div style="text-align:right">
+          <div style="font-size:.8rem;color:#94a3b8">国内热搜覆盖</div>
+          <div style="font-size:1.3rem;font-weight:700;color:#ef4444">0 / 4 平台</div>
+        </div>
+      </div>
+      <div style="background:#f0fdf4;border-radius:8px;padding:16px;font-size:.9rem;border-left:4px solid #22c55e">
+        <strong>Oracle 判断:</strong> Polymarket 上该合约交易量极高,说明全球机构/散户都在关注。但国内四大平台热搜均无覆盖 → 5-7 天信息差窗口。KOC 可以做「跨文化解读」,把华尔街的数据变成普通人的信息优势。
       </div>
     </div>
   </div>
 </section>
 
-<!-- ===== Footer ===== -->
-<footer class="py-12 bg-slate-900 text-slate-400 text-center text-sm">
-  <div class="container mx-auto px-6">
-    <div class="flex justify-center items-center space-x-2 mb-4">
-      <div class="w-6 h-6 gradient-bg rounded flex items-center justify-center text-white font-bold text-xs">R</div>
-      <span class="font-bold text-white">Ripple 涟漪</span>
+<!-- ==================== 12 Agent Pipeline ==================== -->
+<section class="pipeline-section" id="pipeline">
+  <div class="container">
+    <h2 class="reveal">12 Agent 智能工厂</h2>
+    <p class="section-desc reveal">借鉴 Claude Code 51 万行架构,4 Phase × 12 Agent 协作,从信号发现到内容发布一站式完成</p>
+    <div class="pipeline-phases">
+      <div class="phase-card reveal" data-phase="1">
+        <div class="phase-num">1</div>
+        <h3>信号感知</h3>
+        <ul class="phase-agents">
+          <li>🔮 OracleAgent — 早期信号雷达</li>
+          <li>🔥 TrendScoutAgent — 趋势侦察</li>
+          <li>🎨 StyleDecoderAgent — 风格解码</li>
+        </ul>
+      </div>
+      <div class="phase-card reveal" data-phase="2">
+        <div class="phase-num">2</div>
+        <h3>决策辩论</h3>
+        <ul class="phase-agents">
+          <li>💬 ForumDebateAgent — 多视角辩论</li>
+          <li>🎯 TopicStrategistAgent — 选题策略</li>
+        </ul>
+      </div>
+      <div class="phase-card reveal" data-phase="3">
+        <div class="phase-num">3</div>
+        <h3>内容生产</h3>
+        <ul class="phase-agents">
+          <li>✍️ ScriptWriterAgent — 脚本撰写</li>
+          <li>🖼 VisualProducerAgent — 视觉生成</li>
+          <li>📦 MaterialCuratorAgent — 素材策展</li>
+        </ul>
+      </div>
+      <div class="phase-card reveal" data-phase="4">
+        <div class="phase-num">4</div>
+        <h3>审查发布</h3>
+        <ul class="phase-agents">
+          <li>✓ FactCheckerAgent — 事实核查</li>
+          <li>🛡 RiskReviewerAgent — 合规审查</li>
+          <li>🌐 SimPredictorAgent — 传播仿真</li>
+          <li>📊 InsightAnalystAgent — 归因分析</li>
+        </ul>
+      </div>
     </div>
-    <p>© 2026 Ripple Team · 腾讯 PCG 校园 AI 产品创意大赛 · 赛题 5</p>
-    <p class="mt-2">本作品由 AI 辅助创作 · 遵守《AI 生成合成内容标识办法》</p>
   </div>
+</section>
+
+<!-- ==================== Real Cases ==================== -->
+<section class="cases-section" id="cases">
+  <div class="container">
+    <h2 class="reveal">真实案例: 从信号到内容</h2>
+    <p class="section-desc reveal">以下案例均基于 Oracle 实时扫描的真实数据,零 Mock</p>
+
+    <!-- Case A -->
+    <div class="case-card reveal">
+      <span class="case-tag tag-a">场景 A · 跨平台时差</span>
+      <h3>微博热搜 #3 但抖音/B站零覆盖 → 抢先布局短视频</h3>
+      <div class="case-flow">
+        <div class="case-step">
+          <h4>1. Oracle 扫描</h4>
+          <p>并行扫描微博/抖音/百度/B站实时热搜,发现某话题仅在微博排名 #3(790万热度),但抖音/B站完全未覆盖</p>
+        </div>
+        <div class="case-arrow">→</div>
+        <div class="case-step">
+          <h4>2. 信号分析</h4>
+          <p>CUSUM 异常检测 + 跨平台矩阵比对,判定置信度 65%,窗口期 2-4 天,推荐角度:抖音短视频 + B站深度解读</p>
+        </div>
+        <div class="case-arrow">→</div>
+        <div class="case-step">
+          <h4>3. 内容生成</h4>
+          <p>12 Agent 协作生成小红书图文 + 视频号口播脚本 + 6 条标题候选 + 发布时间策略,全部引用真实热搜排名数据</p>
+        </div>
+      </div>
+      <div class="case-output">
+        <h4>输出示例 — 小红书标题</h4>
+        <p>「微博790万人在讨论这件事,但抖音上还没人做!|提前布局指南」</p>
+        <p style="margin-top:4px">「热搜 #3 的话题为什么还没火到短视频?3天内必爆的5个理由」</p>
+      </div>
+    </div>
+
+    <!-- Case B -->
+    <div class="case-card reveal">
+      <span class="case-tag tag-b">场景 B · 跨国信息差</span>
+      <h3>Polymarket $2M+ 交易量,国内热搜零覆盖 → 跨文化解读</h3>
+      <div class="case-flow">
+        <div class="case-step">
+          <h4>1. Oracle 扫描</h4>
+          <p>扫描 Polymarket 预测市场,发现某国际热门事件 24h 交易量超 $2,000,000,但微博/抖音/百度/B站热搜均无该话题</p>
+        </div>
+        <div class="case-arrow">→</div>
+        <div class="case-step">
+          <h4>2. 信息差判定</h4>
+          <p>跨国矩阵比对:国际市场 → 活跃,国内热搜 → 零覆盖。信息差窗口 5-7 天,全球机构已在押注</p>
+        </div>
+        <div class="case-arrow">→</div>
+        <div class="case-step">
+          <h4>3. 内容生成</h4>
+          <p>生成公众号深度文章 + 视频号口播脚本,开头引用 Polymarket 真实交易数据,「把华尔街的数据变成普通人的信息优势」</p>
+        </div>
+      </div>
+      <div class="case-output">
+        <h4>输出示例 — 公众号开头</h4>
+        <p>「Polymarket 上有超过 200 万美元在押注这件事,但国内几乎没人讨论。这意味着一个巨大的信息差窗口正在向你打开...」</p>
+      </div>
+    </div>
+
+    <!-- Case C -->
+    <div class="case-card reveal">
+      <span class="case-tag tag-c">场景 C · 节日热点</span>
+      <h3>「五一旅游」跨平台差异化 → 错位竞争内容</h3>
+      <div class="case-flow">
+        <div class="case-step">
+          <h4>1. Oracle 扫描</h4>
+          <p>以「五一旅游」为种子词扫描全平台,发现:微博主打吐槽/人流量,抖音侧重探店vlog,但公众号深度攻略供给不足</p>
+        </div>
+        <div class="case-arrow">→</div>
+        <div class="case-step">
+          <h4>2. 差异化定位</h4>
+          <p>矛盾推理:抖音「网红打卡」vs 小红书「避坑指南」观点对立 → 最佳角度:数据驱动的冷门路线推荐</p>
+        </div>
+        <div class="case-arrow">→</div>
+        <div class="case-step">
+          <h4>3. 内容生成</h4>
+          <p>视频号攻略脚本 + 公众号深度图文 + 小红书清单帖,各平台内容差异化,避免同质化竞争</p>
+        </div>
+      </div>
+      <div class="case-output">
+        <h4>输出示例 — 视频号脚本开头</h4>
+        <p>「五一去哪玩?微博上50万人在讨论热门景点,但我用 AI 分析了百度搜索数据,找到了5个人少景美的冷门目的地...」</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== Tech Highlights ==================== -->
+<section class="tech-section" id="tech">
+  <div class="container">
+    <h2 class="reveal">技术亮点</h2>
+    <div class="tech-grid">
+      <div class="tech-card reveal">
+        <h3>🏗 Claude Code 架构</h3>
+        <p>借鉴 Anthropic Claude Code 51 万行代码的 TAOR 主循环、5 层记忆系统、4 层上下文压缩、Hooks 系统和 Skills 渐进披露。</p>
+      </div>
+      <div class="tech-card reveal">
+        <h3>📈 CUSUM 异常检测</h3>
+        <p>累积和控制算法 + MAD-zscore 鲁棒统计,在噪声中捕捉话题热度的结构性变化,而非简单阈值触发。</p>
+      </div>
+      <div class="tech-card reveal">
+        <h3>🔀 矛盾推理引擎</h3>
+        <p>当不同平台/市场对同一话题出现分歧时,分歧本身就是最高价值信号。Oracle 自动识别矛盾并转化为内容角度。</p>
+      </div>
+      <div class="tech-card reveal">
+        <h3>🌐 11 LLM Provider</h3>
+        <p>小米 MiMo / MiniMax / 腾讯混元 / DeepSeek / 豆包 / 智谱 / Kimi / OpenAI / Claude / Ollama / LM Studio,BYOK 自带 Key 优先。</p>
+      </div>
+      <div class="tech-card reveal">
+        <h3>🔒 端侧加密</h3>
+        <p>AES-256-GCM + Argon2id (OWASP 2025 推荐),用户 API Key 在设备端加密后才上传,服务器只存密文。</p>
+      </div>
+      <div class="tech-card reveal">
+        <h3>🎭 多 Agent 论坛辩论</h3>
+        <p>借鉴 BettaFish ForumEngine,12 个 Agent 不是各干各的,而是通过辩论 + 反方质疑 + 风险提示协作决策。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== Download & Links ==================== -->
+<section class="download-section" id="download">
+  <div class="container">
+    <h2 class="reveal">体验 & 下载</h2>
+    <p class="section-desc reveal">多种方式了解和使用 Ripple</p>
+    <div class="download-grid">
+      <a href="http://120.55.247.6/demo" class="download-card reveal" target="_blank">
+        <div class="dl-icon">🚀</div>
+        <h3>在线 Demo</h3>
+        <p>无需安装,直接体验 Oracle 扫描 + 12 Agent 内容生成</p>
+      </a>
+      <a href="/ripple_report.pdf" class="download-card reveal" target="_blank">
+        <div class="dl-icon">📄</div>
+        <h3>技术报告 PDF</h3>
+        <p>完整参赛文档:用户洞察 / 产品方案 / AI 原生能力 / 加分项</p>
+      </a>
+      <a href="https://github.com/bcefghj/ripple" class="download-card reveal" target="_blank">
+        <div class="dl-icon">💻</div>
+        <h3>GitHub 源码</h3>
+        <p>MIT 许可,全栈开源,欢迎 Star / Fork / 二次开发</p>
+      </a>
+    </div>
+    <a href="http://120.55.247.6/docs" class="btn btn-primary" target="_blank" style="display:inline-flex">API 文档 (Swagger)</a>
+  </div>
+</section>
+
+<!-- ==================== Footer ==================== -->
+<footer>
+  <p>Ripple v0.1 · 2026 · 腾讯 PCG 校园 AI 产品创意大赛 · 赛题 5: AI + 社媒流量增长,连接 KOC 成长</p>
+  <p style="margin-top:8px">Architecture inspired by Claude Code (510K LOC) · Signal philosophy from Digital Oracle</p>
 </footer>
 
+<script>
+// Reveal on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }});
+}, { threshold: 0.15 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Count up animation for stats
+const statObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    entry.target.querySelectorAll('.stat-num').forEach(el => {
+      const target = parseInt(el.dataset.target);
+      if (target === 0) { el.textContent = '0'; return; }
+      let current = 0;
+      const step = Math.max(1, Math.floor(target / 30));
+      const timer = setInterval(() => {
+        current += step;
+        if (current >= target) { current = target; clearInterval(timer); }
+        el.textContent = current;
+      }, 40);
+    });
+    statObserver.unobserve(entry.target);
+  });
+}, { threshold: 0.5 });
+document.querySelectorAll('.stats-bar').forEach(el => statObserver.observe(el));
+
+// Matrix cell animation
+const matrixObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    entry.target.querySelectorAll('.matrix-cell').forEach(cell => {
+      const delay = parseInt(cell.dataset.delay) || 0;
+      setTimeout(() => cell.classList.add('live'), delay);
+    });
+    matrixObserver.unobserve(entry.target);
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll('#matrix-demo').forEach(el => matrixObserver.observe(el));
+
+// Polymarket volume counter
+const pmObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const el = document.getElementById('pm-volume');
+    const target = 2150000;
+    let current = 0;
+    const step = Math.floor(target / 60);
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= target) { current = target; clearInterval(timer); }
+      el.textContent = '$' + current.toLocaleString();
+    }, 30);
+    pmObserver.unobserve(entry.target);
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll('#pm-banner').forEach(el => pmObserver.observe(el));
+
+// Phase highlight animation
+const phaseObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const cards = entry.target.querySelectorAll('.phase-card');
+    cards.forEach((card, i) => {
+      setTimeout(() => {
+        cards.forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+      }, i * 800);
+    });
+    setTimeout(() => cards.forEach(c => c.classList.add('active')), cards.length * 800);
+    phaseObserver.unobserve(entry.target);
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll('.pipeline-phases').forEach(el => phaseObserver.observe(el));
+</script>
 </body>
 </html>

@@ -10,7 +10,7 @@
 
 \textbf{1. Oracle 早期信号雷达必须用 AI}
 \begin{itemize}
-\item 12 数据源(英文/中文/数字/文本)需要 LLM 做 \textbf{语义对齐}
+\item 7 真实数据源(英文/中文/数字/文本)需要 LLM 做 \textbf{语义对齐}
 \item 矛盾推理需要 LLM 做 \textbf{上下文理解}(为什么 A 平台火 B 平台不火)
 \item 输出推荐角度需要 LLM 做 \textbf{创意联想}
 \end{itemize}
@@ -129,7 +129,7 @@ async def run_full_pipeline(messages, tracking):
 \toprule
 \textbf{Skill} & \textbf{说明} \\
 \midrule
-oracle-early-signal & 12 数据源 + CUSUM + 矛盾推理早期信号雷达 \\
+oracle-early-signal & 7 真实数据源 + CUSUM + 矛盾推理早期信号雷达 \\
 koc-content-package & 选题确定后生成完整多平台内容包 \\
 viral-formula-library & 标题学/封面学/节奏学 7 公式 + 5 风格 \\
 copyright-asset-library & 版权友好素材清单 + 风险检测 \\
@@ -167,7 +167,8 @@ ai-detection-bypass & 降 AI 味的 15 个具体技巧(保留人味) \\
 \textbf{支持的 Provider}(全部 OpenAI 兼容接口):
 
 \begin{itemize}
-\item \textbf{主力}: MiniMax M2.7(长上下文 + 中文优势 + 成本)
+\item \textbf{首选}: 小米 MiMo-V2.5-Pro(额度充裕 + 强推理)
+\item \textbf{备用}: MiniMax M2.7(长上下文 + 中文优势 + 成本)
 \item \textbf{兜底}: 腾讯混元 turbos(赛道适配性 + 已备案)
 \item \textbf{BYOK 国内}: DeepSeek / 豆包 / 通义千问 / 智谱 GLM / 月之暗面 Kimi
 \item \textbf{BYOK 国际}: OpenAI GPT-4o / Anthropic Claude

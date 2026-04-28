@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     hunyuan_api_base: str = "https://api.hunyuan.cloud.tencent.com/v1"
     hunyuan_default_model: str = "hunyuan-turbos-latest"
 
+    # Xiaomi MiMo
+    xiaomi_api_key: str = ""
+    xiaomi_api_base: str = "https://token-plan-cn.xiaomimimo.com/v1"
+    xiaomi_default_model: str = "mimo-v2.5-pro"
+
     # Other LLM providers
     deepseek_api_key: str = ""
     doubao_api_key: str = ""

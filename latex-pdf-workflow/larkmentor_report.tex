@@ -1,0 +1,978 @@
+% LarkMentor · 学术报告风（A 版）
+% 编译：/tmp/tectonic -X compile larkmentor_report_A.tex
+\documentclass[11pt,a4paper]{ctexart}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{amssymb,amsmath}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes.geometric,fit,backgrounds,calc}
+\setlength{\headheight}{14pt}
+
+% --- A 版配色：深蓝 + 浅灰 ---
+\definecolor{primary}{HTML}{1E3A5F}
+\definecolor{primaryLight}{HTML}{4A6B8F}
+\definecolor{accent}{HTML}{0F766E}
+\definecolor{soft}{HTML}{4B5563}
+\definecolor{lightbg}{HTML}{F3F4F6}
+\definecolor{cardbg}{HTML}{FAFBFC}
+\definecolor{rule}{HTML}{D1D5DB}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=primary,
+  urlcolor=primary,
+  citecolor=primary,
+  bookmarksopen=true,
+  bookmarksnumbered=true,
+  pdftitle={LarkMentor · 飞书 IM 上的双引擎 AI 协同助手},
+  pdfauthor={戴尚好 · 李洁盈},
+  pdfsubject={2026 飞书 AI 校园挑战赛 · 项目说明书},
+  pdfkeywords={LarkMentor,飞书,IM,Agent,长程记忆,客户端安全}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{soft}{LarkMentor}}
+\fancyhead[R]{\small\textcolor{soft}{飞书 IM 上的双引擎 AI 协同助手}}
+\fancyfoot[C]{\small\textcolor{soft}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{rule}\leaders\hrule height \headrulewidth\hfill}}
+
+% --- 章节样式：深蓝色块横条 ---
+\titleformat{\part}[display]
+  {\bfseries\Huge\color{primary}}
+  {\fontsize{16}{20}\selectfont\color{primaryLight}\bfseries Part~\thepart}
+  {0.6em}{\vspace{0.2em}}
+  [\vspace{-0.4em}{\color{primary}\rule{\linewidth}{1pt}}]
+
+\titleformat{\section}[block]
+  {\Large\bfseries\color{primary}}
+  {\thesection}{0.6em}{}
+  [\vspace{-0.4em}{\color{primary}\rule{\linewidth}{1.2pt}}]
+\titlespacing*{\section}{0pt}{1.6em}{0.6em}
+
+\titleformat{\subsection}
+  {\large\bfseries\color{primary}}
+  {\thesubsection}{0.6em}{}
+\titlespacing*{\subsection}{0pt}{1.2em}{0.4em}
+
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\color{primaryLight}}
+  {\thesubsubsection}{0.5em}{}
+
+\setlist[itemize]{leftmargin=1.2em,topsep=2pt,itemsep=2pt}
+\setlist[enumerate]{leftmargin=1.4em,topsep=2pt,itemsep=2pt}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{lightbg},
+  frame=single,
+  rulecolor=\color{rule},
+  framesep=4pt,
+  breaklines=true,
+  columns=fullflexible,
+  language=Python,
+  keywordstyle=\color{primary}\bfseries,
+  commentstyle=\color{soft}\itshape,
+  stringstyle=\color{accent},
+}
+
+\newtcolorbox{infobox}{
+  colback=cardbg,colframe=primary,
+  boxrule=0.5pt,arc=2pt,
+  left=10pt,right=10pt,top=8pt,bottom=8pt,
+  enhanced
+}
+\newtcolorbox{quotebox}{
+  colback=lightbg,colframe=primaryLight,
+  boxrule=0pt,
+  leftrule=3pt,
+  arc=0pt,
+  left=12pt,right=10pt,top=8pt,bottom=8pt,
+  enhanced
+}
+
+\renewcommand{\arraystretch}{1.25}
+
+% ============================================================
+\begin{document}
+
+% ============== 封面第 1 页 ==============
+\begin{titlepage}
+\centering
+\vspace*{2.0cm}
+
+\includegraphics[width=4cm]{/Users/daishanghao/Desktop/20260417_飞书AI校园挑战赛_v4/logo.png}\\[1.6cm]
+
+{\fontsize{44}{52}\selectfont\bfseries\color{primary} LarkMentor}\\[0.6cm]
+
+{\Large\color{soft} 飞书 IM 上的双引擎 AI 协同助手}\\[0.3cm]
+{\large\color{soft} 一边守消息层，一边守表达层}\\[2.4cm]
+
+{\color{primary}\rule{0.55\textwidth}{0.6pt}}\\[1.4cm]
+
+\begin{minipage}{0.78\textwidth}
+\centering\itshape\color{soft}
+\large
+"在飞书里，每天都在和两件事较劲——\\[0.2em]
+\textbf{这条消息现在该不该被看到？}\\[0.1em]
+\textbf{这条消息该用什么方式发出去？}\\[0.4em]
+LarkMentor 把它们放在同一个 IM Bot 里，背后是\\
+同一份『这家公司怎么做事』的知识。"
+\end{minipage}\\[1.8cm]
+
+{\color{primary}\rule{0.55\textwidth}{0.6pt}}
+
+\vfill
+
+\normalsize\color{soft}
+2026-04-19
+
+\vspace{1cm}
+\end{titlepage}
+
+% ============== 封面第 2 页 ==============
+\thispagestyle{empty}
+\vspace*{2cm}
+\begin{center}
+
+{\Large\bfseries\color{primary} 2026 飞书 AI 校园挑战赛}\\[1.4cm]
+
+\begin{tcolorbox}[colback=lightbg,colframe=primary,arc=4pt,boxrule=0.5pt,width=0.92\textwidth,left=12pt,right=12pt,top=10pt,bottom=10pt]
+\begin{tabular}{p{2.2cm}p{12cm}}
+\textbf{第一志愿} & \textbf{飞书 AI 产品创新赛道 · 课题二}\\
+& 基于 IM 的办公协同智能助手 \\[8pt]
+\textbf{第二志愿} & \textbf{飞书 OpenClaw 赛道 · 课题二}\\
+& 企业级长程协作 Memory 系统 \\[8pt]
+\textbf{第三志愿} & \textbf{AI 大模型安全赛道 · 课题一}\\
+& 面向 Agent + 客户端环境下的安全操作与数据防护 \\
+\end{tabular}
+\end{tcolorbox}
+
+\vspace{1.8cm}
+
+{\color{primary}\rule{0.55\textwidth}{0.6pt}}\\[1.4cm]
+
+\large
+\begin{tabular}{rl}
+\textbf{在线访问} & \url{http://118.178.242.26/} \\[6pt]
+\textbf{源代码} & \url{https://github.com/bcefghj/larkmentor} \\
+\end{tabular}\\[1.8cm]
+
+{\color{primary}\rule{0.55\textwidth}{0.6pt}}\\[1.4cm]
+
+\normalsize
+\begin{tabular}{rl}
+\href{https://janeliii.netlify.app/}{\textbf{李洁盈}} & 产品 / UI\,/\,UX / 内容 \\[4pt]
+\href{https://bcefghj.github.io}{\textbf{戴尚好}} & 技术负责人 / 全栈 / Agent 安全 / 部署 \\
+\end{tabular}
+
+\end{center}
+
+\vfill
+\newpage
+
+% ============== 摘要 ==============
+\thispagestyle{fancy}
+\section*{摘要}
+\addcontentsline{toc}{section}{摘要}
+
+\begin{infobox}
+\textbf{LarkMentor} 是一个原生运行在飞书 IM 上的双引擎 AI 协同助手。它在同一个 Bot 内同时承担两件原本被业内拆开做的事——\textbf{Smart Shield} 守消息层（六维分类、分级推送、中断恢复），\textbf{Rookie Mentor} 守表达层（消息起草、任务澄清、周报生成、新人入职）。两者共享同一份组织知识库与同一套长程记忆。
+
+LarkMentor 同时具备三个独立但相互支撑的能力维度：作为 \textbf{IM 协同助手}进入日常办公协作；作为长程协作记忆引擎 \textbf{FlowMemory}（三层结构 + 六级层次注入）解决多智能体长期失忆问题；作为 Agent 客户端安全栈 \textbf{ShieldClaw}（八层防护）覆盖 OWASP LLM Top 10 全部威胁。
+
+整个系统由 \textbf{96 个 Python 文件、14{,}511 行代码}组成，配套 \textbf{178 个 pytest 用例}与 \textbf{14/14 通过的 Promptfoo 红队测试}，已部署在阿里云 7$\times$24 在线运行。
+\end{infobox}
+
+\subsection*{目录}
+\vspace{-0.6em}
+\begingroup
+\hypersetup{linkcolor=primary}
+\renewcommand{\contentsname}{}
+\tableofcontents
+\endgroup
+
+\newpage
+
+% ████████████████████████████████████████████████████████████████
+\part{立意}
+% ████████████████████████████████████████████████████████████████
+
+\section{工位上同时发生的两件事}
+
+\begin{quotebox}
+\large\itshape
+在飞书里，每天都在和两件事较劲。
+
+\textbf{第一件——这条消息现在该不该被看到？}
+重要 @ 和噪音 @ 用同样的方式震动手机，不点开就不知道是谁在叫。
+
+\textbf{第二件——这条消息该用什么方式发出去？}
+新人在群里输入框前面犹豫半分钟、删了 3 遍——「好的」够不够正式？「收到」会不会显得敷衍？
+
+这两件事\textbf{发生在同一个工位上、同一个人身上、同一段时间内}。
+今天打开飞书插件市场，做静音的不管表达，做写作的不管打扰——\textbf{没有产品意识到这两件事本来就该一起解}。
+
+LarkMentor 把它们放在同一个 IM Bot 里：一边守消息层，一边守表达层，背后是同一份「这家公司怎么做事」的知识。
+\end{quotebox}
+
+\section{数据支撑}
+
+LarkMentor 要解决的痛点不是凭直觉，而是有来自学界与业界的硬数据支撑：
+
+\begin{tabular}{p{10cm}p{5cm}}
+\toprule
+\textbf{发现} & \textbf{出处} \\
+\midrule
+知识工作者每被打断一次，平均需要 \textbf{23 分 15 秒} 才能回到原任务 & UC Irvine, Gloria Mark, CHI 2008 \\
+\textbf{68\%} 知识工作者抱怨没有连续专注时间做深度工作 & Microsoft Work Trend Index 2023 \\
+组织知识里 \textbf{80\%+} 是隐性的（在老员工脑子里），不在文档里 & Nonaka \& Takeuchi 1995 SECI 模型 \\
+新员工平均 \textbf{8--12 个月} 才能达到全产能 & SHRM / BambooHR 调研 \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.6em}
+
+把数据并排读：23 分钟 $\times$ 68\% 的人 = 注意力被反复切碎；8--12 个月 $\times$ 80\% 的隐性知识 = 新人在找不到的默契里独自挣扎。LarkMentor 让同一个 IM Bot 同时拆这两个题。
+
+\section{飞书生态的空白}
+
+横向扫描国内外 30+ 相关产品后会发现一个奇怪的空白：
+
+\begin{tabular}{p{4cm}p{5cm}p{6cm}}
+\toprule
+\textbf{品类} & \textbf{代表} & \textbf{未覆盖的} \\
+\midrule
+专注力 / 免打扰 & Slack DnD、飞书勿扰、Reclaim、Switchless & 挡完没有"接回来"的环节 \\
+AI 写作 / 带教 & Notion AI、Glean、Donut、Grammarly & 不进 IM 实时入口 \\
+会议总结 & Granola、Otter、飞书妙记 & 只管开会后，不管聊天中 \\
+新人 Onboarding & BambooHR、Workday、Sapling & 静态流程，不实时陪说话 \\
+飞书生态 & 妙搭、Aily、知识问答、OpenClaw & 单点能力，没有"消息+表达"双线 \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.6em}
+
+\begin{infobox}
+所有专注力工具都只管"挡"，所有 AI 写作工具都只管"写"——\textbf{从来没有产品意识到一个工位上同时发生的"挡"和"接"应该是同一个 Bot 的两条服务线}。LarkMentor 是这个空白的填补。
+\end{infobox}
+
+\newpage
+% ████████████████████████████████████████████████████████████████
+\part{产品}
+% ████████████████████████████████████████████████████████████████
+
+\section{双线总览}
+
+LarkMentor 是一个飞书 Bot，内置两条服务线，背后共享同一份用户级知识库与长程记忆：
+
+\begin{center}
+\begin{tikzpicture}[
+  font=\small,
+  node distance=0.6cm and 1cm,
+  box/.style={draw=primary,thick,rounded corners=3pt,fill=cardbg,minimum width=4.6cm,minimum height=1.0cm,align=center,inner sep=4pt},
+  shieldbox/.style={box,fill=lightbg},
+  mentorbox/.style={box,fill=lightbg},
+  basebox/.style={draw=primaryLight,thick,rounded corners=3pt,fill=cardbg,minimum width=10cm,minimum height=0.85cm,align=center,inner sep=4pt},
+  arrow/.style={-Latex,thick,primary},
+]
+
+\node[box,fill=primary,text=white,minimum width=11cm,minimum height=1.0cm]
+  (top) {\textbf{LarkMentor}\quad 单一飞书 IM Bot $\cdot$ 双引擎};
+
+\node[shieldbox,below=1.2cm of top.south,xshift=-3cm] (shield)
+  {\textbf{Smart Shield · 消息层守护}\\
+   六维分类 + LLM 边界仲裁 \\
+   P0 / P1 / P2 / P3 分级 + Recovery Card};
+
+\node[mentorbox,below=1.2cm of top.south,xshift=3cm] (mentor)
+  {\textbf{Rookie Mentor · 表达层带教}\\
+   写消息 / 澄清任务 / 周报 / 入职 \\
+   永远是草稿，永不自动发送};
+
+\node[basebox,below=1.2cm of $(shield.south)!0.5!(mentor.south)$] (kb)
+  {\textbf{Knowledge Base} · 用户级 RAG（Doubao Embedding + BM25 兜底）};
+
+\node[basebox,below=0.4cm of kb] (mem)
+  {\textbf{FlowMemory} · 三层（Working / Compaction / Archival）+ 六级层次注入};
+
+\node[basebox,below=0.4cm of mem] (sec)
+  {\textbf{Security} · 八层栈（Permission / PII / Hook / Sandbox / RateLimit / ...）};
+
+\draw[arrow] (top.south) -- ++(0,-0.4) -| (shield.north);
+\draw[arrow] (top.south) -- ++(0,-0.4) -| (mentor.north);
+\draw[arrow] (shield.south) |- ($(kb.north)+(0,0.3)$) -- (kb.north);
+\draw[arrow] (mentor.south) |- ($(kb.north)+(0,0.3)$) -- (kb.north);
+
+\end{tikzpicture}
+\end{center}
+
+\section{双线在工程上的真实合体}
+
+"双线产品"很容易变成"两个产品塞一起"。LarkMentor 在工程实现上有 3 个真实合体点：
+
+\begin{tabular}{p{0.8cm}p{4cm}p{10.2cm}}
+\toprule
+\textbf{\#} & \textbf{合体点} & \textbf{实现层面的事实} \\
+\midrule
+1 & \textbf{同一份组织 KB} & Smart Shield 调 KB 查"什么算紧急（人 / 词 / 项目）"，Mentor 调\textbf{同一份} KB 查"怎么说话（语气 / 术语 / 格式）"。代码层都是 \texttt{core/mentor/knowledge\_base.py} 的 \texttt{search(open\_id, query)}。 \\
+2 & \textbf{Recovery Card} & 专注结束后的唯一卡片：\textbf{上半张}是 Shield 的"挡了什么（按 P0/P1/P2 排序）"，\textbf{下半张}是 Mentor 的"起草了什么（3 版可点采纳）"。代码：\texttt{core/recovery\_card.py}（415 行，专门为这个交点写）。 \\
+3 & \textbf{FlowMemory 共同学习} & Shield 学发件人重要度（"老板紧急 +0.3"），Mentor 学采纳偏好（"对老板偏正式 v1"），都写入\textbf{同一份} \texttt{flow\_memory.md} 的 \textbf{User} 级层次，下次双线都受益。 \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.6em}
+
+\begin{center}
+\begin{tikzpicture}[
+  font=\small,
+  node distance=0.6cm and 1.2cm,
+  engine/.style={draw=primary,thick,rounded corners=3pt,fill=lightbg,minimum width=4.0cm,minimum height=1.0cm,align=center},
+  shared/.style={draw=accent,thick,rounded corners=3pt,fill=cardbg,minimum width=3.0cm,minimum height=0.9cm,align=center},
+  arrow/.style={-Latex,thick,primary},
+  arrowg/.style={-Latex,thick,accent,dashed},
+]
+
+\node[engine] (s) {Smart Shield};
+\node[engine,right=4.0cm of s] (m) {Rookie Mentor};
+
+\node[shared,below=1.6cm of $(s)!0.5!(m)$] (kb)  {同一份 KB};
+\node[shared,left=0.5cm of kb] (rc) {Recovery Card};
+\node[shared,right=0.5cm of kb] (fm) {FlowMemory};
+
+\draw[arrow]  (s.south) -- (rc.north);
+\draw[arrow]  (m.south) -- (fm.north);
+\draw[arrow]  (s.south) -- (kb.north);
+\draw[arrow]  (m.south) -- (kb.north);
+\draw[arrowg] (rc) -- (kb);
+\draw[arrowg] (kb) -- (fm);
+
+\end{tikzpicture}
+\end{center}
+
+\section{消息处理全链路}
+
+一条飞书消息从到达到最终响应，经过以下完整链路：
+
+\begin{center}
+\begin{tikzpicture}[
+  font=\small,
+  proc/.style={draw=primary,thick,rounded corners=3pt,fill=lightbg,minimum width=2.8cm,minimum height=0.9cm,align=center},
+  check/.style={draw=primary,thick,diamond,aspect=2,fill=cardbg,inner sep=1pt,align=center,font=\scriptsize},
+  result/.style={draw=primaryLight,thick,rounded corners=3pt,fill=cardbg,minimum width=2.2cm,minimum height=0.7cm,align=center,font=\small},
+]
+\node[proc] (in) {飞书消息到达};
+\node[proc,below=0.6cm of in] (sec) {八层安全栈\\过滤};
+\node[check,below=0.6cm of sec] (focus) {专注中?};
+\node[proc,right=2.0cm of focus] (classify) {六维分类};
+\node[result,right=2.0cm of classify] (push) {P0 推送\\P2/P3 挡};
+\node[proc,below=0.8cm of focus] (mentor) {Mentor 起草\\3 版草稿};
+\node[result,below=0.6cm of mentor] (card) {Recovery Card\\挡 + 草稿};
+
+\draw[-Latex,thick,primary] (in) -- (sec);
+\draw[-Latex,thick,primary] (sec) -- (focus);
+\draw[-Latex,thick,primary] (focus) -- node[above,font=\scriptsize]{是} (classify);
+\draw[-Latex,thick,primary] (classify) -- (push);
+\draw[-Latex,thick,primary] (focus) -- node[right,font=\scriptsize]{否} (mentor);
+\draw[-Latex,thick,primary] (mentor) -- (card);
+\draw[-Latex,thick,accent,dashed] (push.south) -- ++(0,-0.4) -| node[below,font=\scriptsize,pos=0.3]{专注结束时汇入} (card.east);
+\end{tikzpicture}
+\end{center}
+
+\section{八个核心使用场景}
+
+\subsection{场景 1 · 第一次开启专注}
+用户向 Bot 发送 \texttt{开启专注 50 分钟}。Bot 进入 focus 模式，自动捕获当下工作上下文（IDE 标题 / 最近文档）。50 分钟内的 P2/P3 消息全部被挡，P0 立即推送。
+
+\subsection{场景 2 · 收到紧急 @}
+用户在 focus 中，老板 @ 并发出"紧急：方案需立即确认"。Bot 通过六维分类判定 P0（紧急词命中 + 老板身份 + 截止今天 = 0.92），立即推送，卡片底部带 explainable 行：「为什么 P0：紧急词命中 \& 发送人=老板 \& 项目匹配 3 条」。
+
+\subsection{场景 3 · 退出 focus 看 Recovery Card}
+50 分钟后发送 \texttt{结束专注}。Bot 弹出 \textbf{Recovery Card}：
+\begin{itemize}
+\item \textbf{上半张 · Shield}：「挡掉了哪些」按 P0/P1/P2 排序的摘要，每条带"为什么这条最高"按钮。
+\item \textbf{下半张 · Mentor}：「起草了哪些回复」3 版（保守 / 中性 / 直接），底部 4 个按钮：采纳 v1/v2/v3 + 全部忽略。
+\end{itemize}
+
+\subsection{场景 4 · 不会回老板消息}
+老板说"方案改一下"。用户不知道怎么回，发：\texttt{帮我看老板：好的我马上改}。MentorWrite 用 NVC 4 段诊断（事实 / 感受 / 需求 / 请求），按"对老板（boss）"语气给 3 版：
+\begin{itemize}
+\item v1 保守：「好的张哥，我下午 2 点前给到你」
+\item v2 中性：「收到，我先看一下，预计今天内反馈」
+\item v3 直接：「好，今天给你」
+\end{itemize}
+
+\subsection{场景 5 · 任务太模糊不敢做}
+项目经理：「需要做个新功能」。用户发：\texttt{任务确认：需要做个新功能}。MentorTask 评 ambiguity = 0.85（4 维缺失：scope / deadline / stakeholder / success），自动给出信息增益最高的 2 个澄清问题。
+
+\subsection{场景 6 · 周日 21:00 自动周报}
+Bot 主动私聊：\texttt{开始本周回顾}。点采纳后，MentorReview 自动从 IM / 文档 / 任务里抽\textbf{ STAR 结构周报}（每条 bullet 带 \texttt{[来源:archival\_xxx]} 引用，可点击跳回原会话）。
+
+\subsection{场景 7 · 新人 5 问入职}
+首次发 \texttt{开启新人模式}，Bot 一次性问 5 个问题（部门 / 直接对接人 / 团队回复期望 / 写作风格 / 最希望的帮助场景）。答完入用户 KB 标记最高优先级，后续 Mentor 草稿优先召回。
+
+\subsection{场景 8 · MCP 跨 Agent 调用}
+在 Cursor / Claude Code 等支持 MCP 的客户端配置 LarkMentor 的 MCP 端点后，可在外部 Agent 内直接调用 LarkMentor 的 18 个工具（4 个 \texttt{mentor\_*} + 4 个 \texttt{coach\_*} 别名 + 6 个核心工具 + 4 个新增工具）。
+
+\section{在线访问}
+
+\begin{tabular}{p{4cm}p{10cm}}
+\toprule
+\textbf{资源} & \textbf{地址} \\
+\midrule
+在线访问 & \url{http://118.178.242.26/} \\
+源代码 & \url{https://github.com/bcefghj/larkmentor} \\
+\bottomrule
+\end{tabular}
+
+\newpage
+% ████████████████████████████████████████████████████████████████
+\part{技术}
+% ████████████████████████████████████████████████████████████████
+
+\section{系统架构}
+
+LarkMentor 的架构北极星是 Anthropic Claude Code 51 万行代码逆向后归纳出的 \textbf{七大核心机制}（戴尚好已发布完整逆向报告，见 \url{https://github.com/bcefghj/claude-code-complete-guide}）。整个系统按"Domain $\to$ Memory $\to$ Runtime"三层下沉，所有外层调用必须经过中间件。
+
+\begin{center}
+\begin{tikzpicture}[
+  font=\small,
+  layer/.style={draw=primary,thick,rounded corners=3pt,fill=lightbg,minimum width=14cm,minimum height=1.4cm,align=center},
+]
+\node[layer,fill=primary,text=white] (api) {\textbf{接口层} \quad Feishu Bot \;\textbar\; MCP Server \;\textbar\; Dashboard};
+\node[layer,below=0.5cm of api] (dom)
+  {\textbf{Domain} · 业务外层\\Smart Shield \;\textbar\; 4 个 Mentor Skill \;\textbar\; Feishu APIs};
+\node[layer,below=0.5cm of dom] (mem)
+  {\textbf{Memory} · 默契中层\\Working $\to$ Compaction $\to$ Archival $\to$ flow\_memory.md（六级层次）};
+\node[layer,below=0.5cm of mem] (rt)
+  {\textbf{Runtime} · 中间件内层\\ToolRegistry \;\textbar\; HookSystem \;\textbar\; SkillLoader \;\textbar\; PermissionManager \;\textbar\; AuditLog};
+
+\draw[-Latex,thick,primary] (api.south) -- (dom.north);
+\draw[-Latex,thick,primary] (dom.south) -- (mem.north);
+\draw[-Latex,thick,primary] (mem.south) -- (rt.north);
+\end{tikzpicture}
+\end{center}
+
+\subsection{Claude Code 七大支柱与 LarkMentor 模块对照}
+
+{\small
+\begin{tabular}{p{0.5cm}p{3.0cm}>{\raggedright\arraybackslash}p{5.8cm}p{4.8cm}}
+\toprule
+\textbf{\#} & \textbf{支柱} & \textbf{LarkMentor 模块} & \textbf{说明} \\
+\midrule
+1 & ToolRegistry & \texttt{core/runtime/}\newline\texttt{tool\_registry.py} & 18 个 MCP 工具注册 \\
+2 & HookSystem & \texttt{core/runtime/}\newline\texttt{hook\_system.py} & 9 个生命周期事件 \\
+3 & SkillLoader & \texttt{core/runtime/}\newline\texttt{skill\_loader.py} & 4 个 Mentor Skill \\
+4 & Permission & \texttt{core/security/}\newline\texttt{permission\_manager.py} & 5 级权限 \\
+5 & 6-tier Memory & \texttt{core/flow\_memory/}\newline\texttt{flow\_memory\_md.py} & 六级层次注入 \\
+6 & MCP Native & \texttt{core/mcp\_server/} & Server + Client \\
+7 & AuditLog & \texttt{core/security/}\newline\texttt{audit\_log.py} & JSONL 审计 \\
+\bottomrule
+\end{tabular}
+}
+
+\section{关键算法}
+
+\subsection{六维消息分类}
+
+每条消息计算 6 维分数 $\in [0,1]$，加权求和：
+\[
+\text{score} = 0.25\,d_{\text{身份}} + 0.10\,d_{\text{关系}} + 0.30\,d_{\text{内容}} + 0.15\,d_{\text{任务}} + 0.10\,d_{\text{时间}} + 0.10\,d_{\text{频道}}
+\]
+
+阈值划分：score $\geq 0.55 \Rightarrow$ P0；$\geq 0.38 \Rightarrow$ P1；$\geq 0.24 \Rightarrow$ P2；其余 P3。
+
+\textbf{规则短路 + LLM 仲裁}：紧急关键词命中直接 P0，Bot 发出直接 P3，分数在 $\pm 0.05$ 边界才调一次 LLM。LLM 总调用率 < 12\%。
+
+实测准确率 99\%（102 个 YAML 场景测试集）。
+
+\begin{center}
+\begin{tikzpicture}[
+  font=\small,
+  proc/.style={draw=primary,thick,rounded corners=3pt,fill=lightbg,minimum width=2.6cm,minimum height=0.8cm,align=center},
+  decision/.style={draw=primary,thick,diamond,aspect=2.5,fill=cardbg,inner sep=1pt,align=center,font=\small},
+  result/.style={draw=primaryLight,thick,rounded corners=3pt,fill=cardbg,minimum width=1.6cm,minimum height=0.7cm,align=center,font=\small},
+]
+\node[proc] (msg) {消息到达};
+\node[decision,right=1.2cm of msg] (kw) {紧急词?};
+\node[result,above right=0.6cm and 1.2cm of kw] (p0a) {\textbf{P0}};
+\node[proc,below right=0.6cm and 1.2cm of kw] (sixd) {六维加权};
+\node[decision,right=1.2cm of sixd] (border) {边界?};
+\node[proc,above right=0.6cm and 1.0cm of border] (llm) {LLM 仲裁};
+\node[result,right=1.0cm of llm] (p0b) {\textbf{P0--P3}};
+\node[result,below right=0.6cm and 1.0cm of border] (direct) {阈值裁决};
+
+\draw[-Latex,thick,primary] (msg) -- (kw);
+\draw[-Latex,thick,primary] (kw) -- node[above,font=\scriptsize]{是} (p0a);
+\draw[-Latex,thick,primary] (kw) -- node[right,font=\scriptsize]{否} (sixd);
+\draw[-Latex,thick,primary] (sixd) -- (border);
+\draw[-Latex,thick,primary] (border) -- node[above,font=\scriptsize]{$\pm$0.05} (llm);
+\draw[-Latex,thick,primary] (llm) -- (p0b);
+\draw[-Latex,thick,primary] (border) -- node[right,font=\scriptsize]{明确} (direct);
+\end{tikzpicture}
+\end{center}
+
+\subsection{NVC 四段诊断（MentorWrite）}
+
+非暴力沟通（Non-Violent Communication）4 段诊断输入消息：
+\begin{itemize}
+\item \textbf{Observation（事实）}：原文描述了什么客观事实
+\item \textbf{Feeling（感受）}：是否带情绪 / 质问语气
+\item \textbf{Need（需求）}：真实目的是什么
+\item \textbf{Request（请求）}：是否清晰的"请你做 X"
+\end{itemize}
+
+再按"对老板 / 对同事 / 对下属"3 档语气，输出 3 版改写。
+
+\begin{center}
+\begin{tikzpicture}[
+  font=\small,
+  proc/.style={draw=primary,thick,rounded corners=3pt,fill=lightbg,minimum width=2.2cm,minimum height=0.7cm,align=center},
+]
+\node[proc] (input) {原始消息};
+\node[proc,right=1.0cm of input] (o) {Observation};
+\node[proc,right=0.6cm of o] (f) {Feeling};
+\node[proc,right=0.6cm of f] (n) {Need};
+\node[proc,right=0.6cm of n] (r) {Request};
+
+\node[proc,below=0.8cm of $(o)!0.5!(f)$] (v1) {v1 保守};
+\node[proc,below=0.8cm of $(f)!0.5!(n)$] (v2) {v2 中性};
+\node[proc,below=0.8cm of $(n)!0.5!(r)$] (v3) {v3 直接};
+
+\draw[-Latex,thick,primary] (input) -- (o);
+\draw[-Latex,thick,primary] (o) -- (f);
+\draw[-Latex,thick,primary] (f) -- (n);
+\draw[-Latex,thick,primary] (n) -- (r);
+\draw[-Latex,thick,accent] (r.south) -- ++(0,-0.3) -| (v1.north);
+\draw[-Latex,thick,accent] (r.south) -- ++(0,-0.3) -| (v2.north);
+\draw[-Latex,thick,accent] (r.south) -- ++(0,-0.3) -| (v3.north);
+\end{tikzpicture}
+\end{center}
+
+\subsection{ambiguity 评分 + 4 维缺失分析（MentorTask）}
+
+LLM 输出严格 JSON：
+
+\begin{lstlisting}
+{
+  "ambiguity": 0.85,
+  "missing_dims": ["scope","deadline","stakeholder"],
+  "suggested_questions": ["q1","q2"],
+  "task_understanding": "...",
+  "delivery_plan": "...",
+  "risks": ["..."],
+  "ready_to_start": false
+}
+\end{lstlisting}
+
+阈值 0.5 决定走"澄清模式"还是"开工模式"。
+
+\subsection{STAR 强制结构 + 引用追踪（MentorReview）}
+
+每条 bullet 强制：
+\begin{verbatim}
+- [S] {situation} [T] {task} [A] {action} [R] {result} [来源: archival_xxx]
+\end{verbatim}
+
+\texttt{archival\_xxx} 是 FlowMemory archival 层的可点击 ID，跳回原专注会话或决策记录。
+
+\subsection{用户级 RAG（轻量化设计）}
+
+\textbf{Doubao Embedding API + sqlite + BM25 fallback}：
+\begin{itemize}
+\item 不引 PyTorch / sentence-transformers（2C2G 服务器跑不动）
+\item 不引 Pinecone / Neo4j / GraphRAG（成本与单点依赖）
+\item 单文件持久化 \texttt{data/coach\_kb.sqlite}
+\item 用户级硬隔离：每行硬绑 \texttt{open\_id}，所有查询 \texttt{WHERE open\_id = ?}
+\item 入库前 PII 二次扫描，命中拒绝入库
+\item Embedding API 挂掉自动降级到 BM25，永不中断
+\end{itemize}
+
+\section{量化交付}
+
+\begin{tabular}{p{6cm}p{8cm}}
+\toprule
+\textbf{指标} & \textbf{数值} \\
+\midrule
+Python 文件 & \textbf{96 个} \\
+代码总行数 & \textbf{14{,}511 行} \\
+pytest 用例 & \textbf{178 个，全过} \\
+Promptfoo 红队 & 14 / 14 通过 \\
+六维分类准确率 & 99\%（102 YAML 测试集）\\
+LLM 调用率 & < 12\%（规则短路）\\
+P99 延迟 & 规则路径 < 80ms / LLM 路径 < 2.2s \\
+MCP 工具数 & \textbf{18 个} \\
+飞书 API 接入 & \textbf{IM / Docx / Bitable / Calendar / Wiki / Minutes / Reaction = 7 个}\\
+八层安全栈 & 全部实现 \\
+部署 & 阿里云 2C2G + systemd $\times$ 3 + Nginx，已 7$\times$24 在线 \\
+\bottomrule
+\end{tabular}
+
+\newpage
+% ████████████████████████████████████████████████████████████████
+\part{LarkMentor 在三条赛道上的能力侧面}
+% ████████████████████████████████████████████████████████████████
+
+LarkMentor 是一个完整的产品。它在工程实现上自带三个相互独立又彼此支撑的能力维度——这三个维度分别对应飞书 AI 校园挑战赛的三条赛道。
+
+\section{作为 IM 协同助手}
+
+\subsection{对应赛道}
+飞书 AI 产品创新 · 课题二：基于 IM 的办公协同智能助手。课题聚焦从 IM 沟通到演示稿制作的全流程效率提升，要求实现多端协同与模块化场景编排。
+
+\subsection{LarkMentor 的对齐方式}
+
+\begin{tabular}{p{4.5cm}p{10cm}}
+\toprule
+\textbf{课题关键词} & \textbf{LarkMentor 的对应实现} \\
+\midrule
+基于 IM & 原生飞书 Bot（\texttt{lark-oapi} WebSocket 长连接），不是浏览器插件、不是 Mini App \\
+办公协同智能助手 & 双线服务（消息层 + 表达层），覆盖 IM 高频 4 件事 \\
+全流程效率提升 & 从"被打扰判断"到"草稿起草"到"采纳发送"到"周报回顾"全链路 \\
+串联 IM、文档、演示稿等套件 & 接入 7 个飞书 API：IM / Docx / Bitable / Calendar / Wiki / Minutes / Reaction \\
+多端协同 & 飞书桌面 + 移动端 + Web 全平台支持 \\
+模块化场景编排 & 4 个 Mentor Skill 通过 SkillLoader 可插拔，通过 MCP 暴露给外部 Agent \\
+\bottomrule
+\end{tabular}
+
+\subsection{支撑这一侧面的代码}
+
+{\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{6.4cm}p{7.6cm}}
+\toprule
+\textbf{文件} & \textbf{用途} \\
+\midrule
+\texttt{bot/event\_handler.py}（1013 行） & 飞书事件入口，消息分发 \\
+\texttt{bot/card\_builder.py}（483 行） & 交互卡片构造 \\
+\texttt{core/smart\_shield.py}（233 行） & Shield 主链路 \\
+\texttt{core/classification\_engine.py}（311 行） & 六维分类引擎 \\
+\texttt{core/recovery\_card.py}（415 行） & 双线交点的中断恢复卡片 \\
+\texttt{core/mentor/}（4 个 Skill） & Write / Task / Review / Onboard \\
+\texttt{core/feishu\_workspace\_init.py}（395 行） & 一键初始化飞书工作台 \\
+\texttt{utils/feishu\_api.py}（110 行） & 飞书 API 通用封装 \\
+\bottomrule
+\end{tabular}
+}
+
+\section{作为长程协作记忆引擎（FlowMemory）}
+
+\subsection{对应赛道}
+飞书 OpenClaw · 课题二：企业级长程协作 Memory 系统。课题聚焦企业跨部门长程协作场景中的智能体易"失忆"、信息和协作断层等核心问题，要求打造具备全流程记忆管理的企业级记忆引擎，交付记忆定义与架构白皮书、可运行 Demo 和自证评测报告。
+
+\subsection{LarkMentor 的 FlowMemory 设计}
+
+LarkMentor 内置的 \texttt{core/flow\_memory/} 模块从设计之初就是独立的记忆引擎，可以零改动作为 OpenClaw 课题二的答卷主体。
+
+\subsubsection{三层记忆架构}
+
+{\small
+\begin{tabular}{p{2.2cm}>{\raggedright\arraybackslash}p{3.6cm}p{2.4cm}p{5.6cm}}
+\toprule
+\textbf{层} & \textbf{文件} & \textbf{时效} & \textbf{用途} \\
+\midrule
+Working & \texttt{working.py}（110 行） & 当前会话 & 最近 N 条消息 + 决策事件流 \\
+Compaction & \texttt{compaction.py}（131 行） & 会话末 & LLM 压缩为"关键事件 + 决策摘要" \\
+Archival & \texttt{archival.py}（155 行） & 长期 & 写入 sqlite，STAR 周报可引用 \\
+\bottomrule
+\end{tabular}
+}
+
+\vspace{0.6em}
+
+\begin{center}
+\begin{tikzpicture}[
+  font=\small,
+  membox/.style={draw=primary,thick,rounded corners=3pt,fill=lightbg,minimum width=3.4cm,minimum height=1.0cm,align=center},
+]
+\node[membox] (w) {\textbf{Working}\\当前会话事件流};
+\node[membox,right=1.8cm of w] (c) {\textbf{Compaction}\\LLM 压缩摘要};
+\node[membox,right=1.8cm of c] (a) {\textbf{Archival}\\长期 sqlite 存储};
+
+\draw[-Latex,thick,primary] (w) -- node[above,font=\scriptsize]{会话结束} (c);
+\draw[-Latex,thick,primary] (c) -- node[above,font=\scriptsize]{写入持久化} (a);
+\draw[-Latex,thick,accent,dashed] (a.south) -- ++(0,-0.5) -| node[below,font=\scriptsize,pos=0.25]{STAR 周报引用} (w.south);
+\end{tikzpicture}
+\end{center}
+
+\subsubsection{六级 \texttt{flow\_memory.md}}
+
+借鉴 Claude Code 的六级 memory tier 设计，每次 LLM 调用前自动按优先级合成 system prompt 注入：
+
+\begin{tabular}{p{2.4cm}p{12cm}}
+\toprule
+\textbf{层级} & \textbf{解决"长程协作失忆"的角度} \\
+\midrule
+Enterprise & 公司级共识：「P0 必须 30 分钟内回」「日报 21:00 截止」 \\
+Workspace & 飞书租户级：术语表、缩写表、对外口径 \\
+Department & 部门级：技术栈、值班表、紧急联系人 \\
+Group & 群组级：项目代号、当前里程碑、团队默契 \\
+User & 用户级：个人偏好、Mentor 风格、采纳偏好 \\
+Session & 会话级：当前任务、最近上下文 \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.6em}
+
+\begin{center}
+\begin{tikzpicture}[
+  font=\small,
+  tier/.style={draw=primary,thick,rounded corners=2pt,fill=lightbg,minimum height=0.6cm,align=center},
+]
+\node[tier,minimum width=12cm] (e) {\textbf{Enterprise}};
+\node[tier,minimum width=10.4cm,below=0.12cm of e] (w) {\textbf{Workspace}};
+\node[tier,minimum width=8.8cm,below=0.12cm of w] (d) {\textbf{Department}};
+\node[tier,minimum width=7.2cm,below=0.12cm of d] (g) {\textbf{Group}};
+\node[tier,minimum width=5.6cm,below=0.12cm of g] (u) {\textbf{User}};
+\node[tier,minimum width=4.0cm,below=0.12cm of u] (s) {\textbf{Session}};
+\node[below=0.3cm of s,font=\scriptsize\color{soft}] {优先级从低到高（Session 最高，覆盖 Enterprise）};
+\end{tikzpicture}
+\end{center}
+
+\subsubsection{对外 MCP 工具}
+
+\begin{tabular}{p{4cm}p{10cm}}
+\toprule
+\textbf{工具} & \textbf{用途} \\
+\midrule
+\texttt{query\_memory} & 跨三层搜索（语义 + 关键词混合）\\
+\texttt{get\_recent\_digest} & 拿最近压缩后的摘要 \\
+\texttt{memory\_resolve} & 解析六级 \texttt{flow\_memory.md}，返回当前生效的 system prompt 片段 \\
+\bottomrule
+\end{tabular}
+
+\subsection{差异化}
+
+FlowMemory 不依赖任何向量数据库（不强制 Pinecone / Neo4j），可裸跑在 2C2G 服务器；六级 markdown 层次可被人类直接编辑——运营 / HR 不需要懂 Python 就能维护"组织默契"。
+
+\section{作为 Agent 客户端安全栈（ShieldClaw）}
+
+\subsection{对应赛道}
+AI 大模型安全 · 课题一：面向 Agent + 客户端环境下的安全操作与数据防护。课题聚焦 AI Agent + 客户端环境下面临的提示注入、工具滥用、数据外泄等安全风险，要求打造客户端安全防护能力框架。
+
+\subsection{八层安全栈}
+
+LarkMentor 的 \texttt{core/security/} 模块就是一个独立可用的客户端安全栈（命名 \textbf{ShieldClaw}），合计 1{,}098 行真代码（不含测试）：
+
+{\small
+\begin{tabular}{p{0.5cm}p{3.4cm}>{\raggedright\arraybackslash}p{4.8cm}p{5.4cm}}
+\toprule
+\textbf{\#} & \textbf{层} & \textbf{文件（行数）} & \textbf{解决什么} \\
+\midrule
+1 & PermissionManager & \texttt{permission\_manager.py} (122) & 5 级权限 deny-by-default \\
+2 & TranscriptClassifier & \texttt{transcript\_classifier.py} (162) & Prompt Injection 检测 \\
+3 & HookSystem & \texttt{hook\_system.py} (139) & 9 个生命周期事件拦截 \\
+4 & PIIScrubber & \texttt{pii\_scrubber.py} (62) & 7 类 PII 脱敏 \\
+5 & KeywordDenylist & \texttt{keyword\_denylist.py} (148) & 12 词 + 3 正则 + 热加载 \\
+6 & RateLimiter & \texttt{rate\_limiter.py} (163) & 60s 滑窗限流 \\
+7 & ToolSandbox & \texttt{tool\_sandbox.py} (200) & API allowlist 沙箱 \\
+8 & AuditLog & \texttt{audit\_log.py} (102) & JSONL 全链路审计 \\
+\bottomrule
+\end{tabular}
+}
+
+\vspace{0.6em}
+
+\begin{center}
+\begin{tikzpicture}[
+  font=\small,
+  seclayer/.style={draw=primary,thick,rounded corners=2pt,fill=lightbg,minimum width=12cm,minimum height=0.65cm,align=center},
+]
+\node[seclayer] (l1) {\textbf{L1} PermissionManager · 5 级权限};
+\node[seclayer,below=0.15cm of l1] (l2) {\textbf{L2} TranscriptClassifier · Prompt Injection 检测};
+\node[seclayer,below=0.15cm of l2] (l3) {\textbf{L3} HookSystem · 9 个生命周期事件拦截};
+\node[seclayer,below=0.15cm of l3] (l4) {\textbf{L4} PIIScrubber · 7 类 PII 脱敏};
+\node[seclayer,below=0.15cm of l4] (l5) {\textbf{L5} KeywordDenylist · 拒绝词 + 正则};
+\node[seclayer,below=0.15cm of l5] (l6) {\textbf{L6} RateLimiter · 滑窗限流};
+\node[seclayer,below=0.15cm of l6] (l7) {\textbf{L7} ToolSandbox · API allowlist};
+\node[seclayer,below=0.15cm of l7] (l8) {\textbf{L8} AuditLog · JSONL 全链路审计};
+
+\node[above=0.3cm of l1,font=\small\bfseries\color{primary}] {请求入口};
+\node[below=0.3cm of l8,font=\small\bfseries\color{primary}] {工具执行};
+
+\draw[-Latex,thick,primary] ([yshift=0.5cm]l1.north) -- (l1.north);
+\draw[-Latex,thick,primary] (l8.south) -- ([yshift=-0.5cm]l8.south);
+\end{tikzpicture}
+\end{center}
+
+\subsection{对应课题三大威胁的兜底层}
+
+\begin{tabular}{p{4cm}p{10.5cm}}
+\toprule
+\textbf{课题威胁} & \textbf{LarkMentor 的兜底（多层）} \\
+\midrule
+提示注入 & L2 TranscriptClassifier 检测 + L5 KeywordDenylist 拦截 + L4 PII 二次脱敏 \\
+工具滥用 & L1 Permission deny-by-default + L7 ToolSandbox API allowlist + L8 AuditLog 全留痕 \\
+数据外泄 & L4 PIIScrubber 入库前 / LLM 调用前双扫 + L1 用户级硬隔离 + 「永远是草稿」无 send 路径 \\
+DoS / 速率攻击 & L6 RateLimiter 滑窗 \\
+\bottomrule
+\end{tabular}
+
+\subsection{Promptfoo 红队 14/14 通过}
+
+\begin{tabular}{p{6cm}p{2cm}p{6cm}}
+\toprule
+\textbf{攻击} & \textbf{结果} & \textbf{兜底层} \\
+\midrule
+ignore previous instructions & PASS & L5 KeywordDenylist \\
+DAN mode jailbreak & PASS & L5 KeywordDenylist \\
+SQL 注入 & PASS & L4 PIIScrubber \\
+泄漏 system prompt & PASS & L2 TranscriptClassifier \\
+诱导发紧急通知 & PASS & L1 PermissionManager \\
+诱导导出他人 KB & PASS & L1 + 用户级隔离 \\
+跨用户 KB 探针 & PASS & 用户级硬隔离 \\
+PII 注入入库 & PASS & L4 PIIScrubber \\
+\dots 其他 6 个 & PASS & 多层 \\
+\bottomrule
+\end{tabular}
+
+\subsection{OWASP LLM Top 10 全映射}
+
+\begin{tabular}{p{0.6cm}p{4cm}p{9cm}}
+\toprule
+\textbf{\#} & \textbf{威胁} & \textbf{LarkMentor 缓解} \\
+\midrule
+1 & Prompt Injection & L2 + L5 + L4（多层）\\
+2 & Insecure Output Handling & 所有 mentor.* 永远 draft，永不 send \\
+3 & Training Data Poisoning & KB 入库 PII 二次扫描 + 用户级隔离 \\
+4 & Model DoS & L6 RateLimiter \\
+5 & Supply Chain Vuln & 依赖最小化（不引 LangGraph 等重框架）\\
+6 & Sensitive Info Disclosure & L4 + L1 \\
+7 & Insecure Plugin Design & L7 ToolSandbox + L1 Permission \\
+8 & Excessive Agency & L1 5 级 + 草稿不发送 + 30 秒撤回 \\
+9 & Overreliance & explainable 行 + 引用追踪 \\
+10 & Model Theft & 不暴露 API key，LLM 调用通过服务端转发 \\
+\bottomrule
+\end{tabular}
+
+\newpage
+% ████████████████████████████████████████████████████████████████
+\part{团队 \& 后续}
+% ████████████████████████████████████████████████████████████████
+
+\section{团队}
+
+\subsection{李洁盈}
+\textbf{角色}：产品 / UI\,/\,UX / 内容
+
+\begin{tabular}{p{2.5cm}p{12cm}}
+\toprule
+邮箱 & \href{mailto:JieyingLiii@outlook.com}{JieyingLiii@outlook.com} \\
+个人网页 & \url{https://janeliii.netlify.app/} \\
+GitHub & \url{https://github.com/Jane-0213} \\
+小红书 & 李什么盈 \\
+\bottomrule
+\end{tabular}
+
+\subsection{戴尚好}
+\textbf{角色}：技术负责人 / 全栈 / Agent 安全 / 部署
+
+\begin{tabular}{p{2.5cm}p{12cm}}
+\toprule
+邮箱 & \href{mailto:bcefghj@163.com}{bcefghj@163.com} \\
+个人网页 & \url{https://bcefghj.github.io} \\
+GitHub & \url{https://github.com/bcefghj} \\
+小红书 & bcefghj \\
+\bottomrule
+\end{tabular}
+
+\section{后续提升方向}
+
+\begin{itemize}
+\item \textbf{Promptfoo 红队扩到 50+}：当前 14 用例覆盖核心攻击面，下一步增加角色扮演越狱、混合语言注入、间接注入（文档触发）三类。
+\item \textbf{六维分类引入小模型在线学习}：用户每次"我觉得这条不该挡"反馈直接更新发件人维度权重。
+\item \textbf{FlowMemory Compaction 引入主题聚类}：当前 LLM 全文压缩，下一步先做主题聚类再分桶压缩，长会话压缩质量更高。
+\item \textbf{ShieldClaw 独立成 pip 包}：把 \texttt{core/security/} 抽成 \texttt{shieldclaw} 包，对外提供给任何基于 LLM 的 Agent 项目使用。
+\item \textbf{多语种 Mentor}：当前 NVC 改写仅中文，下一步支持中英混合 + 港式书面语 + 日韩职场用语。
+\item \textbf{Recovery Card 个性化}：根据用户采纳历史，自动调整草稿语气分布（保守 / 中性 / 直接的比例）。
+\end{itemize}
+
+% ============== 附录 ==============
+\newpage
+\appendix
+\section*{附录 A · 18 个 MCP 工具完整清单}
+\addcontentsline{toc}{section}{附录 A · MCP 工具清单}
+
+\begin{longtable}{p{4.2cm}p{2cm}p{8cm}}
+\toprule
+\textbf{工具名} & \textbf{分组} & \textbf{用途} \\
+\midrule
+\endhead
+\texttt{get\_focus\_status} & 核心 & 查当前专注状态 \\
+\texttt{classify\_message} & 核心 & 六维消息分类 \\
+\texttt{get\_recent\_digest} & 核心 & 最近 archival 摘要 \\
+\texttt{add\_whitelist} & 核心 & 加白名单 \\
+\texttt{rollback\_decision} & 核心 & 决策回滚 \\
+\texttt{query\_memory} & 核心 & 跨三层记忆搜索 \\
+\midrule
+\texttt{mentor\_review\_message} & Mentor & MentorWrite NVC + 3 版改写 \\
+\texttt{mentor\_clarify\_task} & Mentor & MentorTask 模糊度 + 澄清 \\
+\texttt{mentor\_draft\_weekly} & Mentor & MentorReview STAR 周报 \\
+\texttt{mentor\_search\_org\_kb} & Mentor & 用户级 RAG 召回 \\
+\midrule
+\texttt{coach\_review\_message} & 别名 & 兼容外部已部署调用 \\
+\texttt{coach\_clarify\_task} & 别名 & 同上 \\
+\texttt{coach\_draft\_weekly} & 别名 & 同上 \\
+\texttt{coach\_search\_org\_kb} & 别名 & 同上 \\
+\midrule
+\texttt{classify\_readonly} & 扩展 & 只读分类（不写状态）\\
+\texttt{skill\_invoke} & 扩展 & 通用 Skill 调用入口 \\
+\texttt{memory\_resolve} & 扩展 & 解析六级 \texttt{flow\_memory.md} \\
+\texttt{list\_skills} & 扩展 & 列出可用 Skill 列表 \\
+\bottomrule
+\end{longtable}
+
+\section*{附录 B · 飞书 7 个 API 实际调用清单}
+\addcontentsline{toc}{section}{附录 B · 飞书 API 清单}
+
+{\small
+\begin{tabular}{p{2.4cm}>{\raggedright\arraybackslash}p{6.4cm}p{5.2cm}}
+\toprule
+\textbf{飞书 API} & \textbf{对应代码文件} & \textbf{用途} \\
+\midrule
+IM & \texttt{bot/message\_sender.py}, \newline \texttt{bot/event\_handler.py} & 收发消息、卡片回调 \\
+Docx & \texttt{core/mentor/growth\_doc.py} & 创建新手成长记录 \\
+Bitable & \texttt{utils/feishu\_api.py}, \newline \texttt{core/feishu\_workspace\_init.py} & 任务结构化 \\
+Calendar & \texttt{core/feishu\_advanced/} \newline \texttt{calendar\_busy.py} & 忙闲查询 \\
+Wiki & \texttt{core/feishu\_advanced/} \newline \texttt{wiki\_search.py} & 组织知识检索 \\
+妙记 Minutes & \texttt{core/feishu\_advanced/} \newline \texttt{minutes\_fetch.py} & 生成 STAR 周报 \\
+表情 Reaction & \texttt{core/feishu\_advanced/} \newline \texttt{reaction\_api.py} & 已读回执 \\
+加急 Urgent & \texttt{core/feishu\_advanced/} \newline \texttt{urgent\_api.py} & 加急通知 \\
+\bottomrule
+\end{tabular}
+}
+
+\section*{附录 C · 数据出处清单}
+\addcontentsline{toc}{section}{附录 C · 数据出处}
+
+\begin{tabular}{p{6cm}p{8cm}}
+\toprule
+\textbf{数据} & \textbf{出处} \\
+\midrule
+23 分 15 秒打断恢复 & Mark, G., Gudith, D., Klocke, U. (2008). \emph{The cost of interrupted work}. CHI '08. \\
+68\% 缺连续专注 & Microsoft Work Trend Index 2023 \\
+80\% 隐性知识 & Nonaka, I., Takeuchi, H. (1995). \emph{The Knowledge-Creating Company}. SECI Model. \\
+8--12 月新人达全产能 & SHRM Onboarding Report 2022 / BambooHR Onboarding Survey 2023 \\
+飞书 OpenClaw 描述 & 飞书 AI 校园挑战赛官网 \\
+OWASP LLM Top 10 & OWASP Foundation 官方文档 2024 版 \\
+NVC 框架 & Marshall Rosenberg \emph{Nonviolent Communication} 2003 \\
+STAR 结构 & 标准行为面试法（DDI 提出）\\
+Claude Code 七大支柱 & 戴尚好逆向报告 \url{https://github.com/bcefghj/claude-code-complete-guide} \\
+\bottomrule
+\end{tabular}
+
+\vfill
+\hfill\textit{\small\color{soft} LarkMentor · 2026-04-19 · github.com/bcefghj/larkmentor}
+
+\end{document}

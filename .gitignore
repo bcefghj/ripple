@@ -53,6 +53,10 @@ docs/proposal/.fonts-detected
 docs/proposal/main.xdv
 apps/api/.ripple/
 
+# Ripple 3.0 output
+apps/ripple3/output/
+apps/ripple3/.env
+
 # venv
 venv/
 *.egg-info/

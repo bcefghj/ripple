@@ -88,27 +88,74 @@ export default function WelcomeCards({ onSelect }: Props) {
         transition={{ duration: 0.6 }}
         className="text-center mb-10"
       >
-        <div className="inline-flex items-center gap-2.5 mb-4">
+        <div className="inline-flex items-center gap-2.5 mb-4 relative">
+          {/* Animated glow behind logo */}
+          <motion.div
+            className="absolute inset-0 -m-4 rounded-3xl bg-gradient-to-r from-blue-500/10 via-violet-500/10 to-purple-500/10 blur-xl"
+            animate={{ opacity: [0.3, 0.6, 0.3], scale: [0.95, 1.05, 0.95] }}
+            transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+          />
           <motion.div
             animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
             transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut' }}
+            className="relative"
           >
-            <Sparkles className="w-9 h-9 text-violet-500" />
+            <Sparkles className="w-10 h-10 text-violet-500" />
+            <motion.div
+              className="absolute inset-0 rounded-full"
+              animate={{ boxShadow: ['0 0 0px rgba(139,92,246,0)', '0 0 20px rgba(139,92,246,0.4)', '0 0 0px rgba(139,92,246,0)'] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+            />
           </motion.div>
-          <h1 className="text-5xl font-black bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent tracking-tight">
+          <h1 className="text-5xl font-black bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent tracking-tight relative">
             Ripple
           </h1>
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white uppercase tracking-wider">
+          <motion.span
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', delay: 0.3 }}
+            className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white uppercase tracking-wider shadow-lg shadow-violet-500/30"
+          >
             6.0
-          </span>
+          </motion.span>
         </div>
-        <p className="text-slate-500 dark:text-slate-400 text-base leading-relaxed max-w-md mx-auto">
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-slate-500 dark:text-slate-400 text-base leading-relaxed max-w-md mx-auto"
+        >
           KOC 决策智能平台
           <br />
           <span className="text-xs text-slate-400 dark:text-slate-500">
-            9层搜索矩阵 · 多Agent辩论 · CES爆款预测 · 内容DNA分析
+            9层搜索矩阵 · 7位AI专家辩论 · CES爆款预测 · 3D知识图谱
           </span>
-        </p>
+        </motion.p>
+
+        {/* Feature pills */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="flex flex-wrap justify-center gap-2 mt-4"
+        >
+          {[
+            { icon: '🧠', text: '深度搜索', color: 'from-blue-100 to-blue-50 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-200 dark:border-blue-800' },
+            { icon: '🌐', text: '3D知识图谱', color: 'from-violet-100 to-violet-50 dark:from-violet-950/30 dark:to-violet-900/20 border-violet-200 dark:border-violet-800' },
+            { icon: '🤖', text: '多Agent辩论', color: 'from-emerald-100 to-emerald-50 dark:from-emerald-950/30 dark:to-emerald-900/20 border-emerald-200 dark:border-emerald-800' },
+            { icon: '🔥', text: '爆款预测', color: 'from-amber-100 to-amber-50 dark:from-amber-950/30 dark:to-amber-900/20 border-amber-200 dark:border-amber-800' },
+          ].map((feat, i) => (
+            <motion.span
+              key={feat.text}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.7 + i * 0.1, type: 'spring' }}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r border ${feat.color} text-slate-600 dark:text-slate-300`}
+            >
+              <span>{feat.icon}</span> {feat.text}
+            </motion.span>
+          ))}
+        </motion.div>
       </motion.div>
 
       {/* Scenario Cards */}

@@ -29,9 +29,10 @@ _GRAPH_SYSTEM = """你是一个知识图谱构建引擎。从搜索结果中提�
 节点类型说明：
 - person: 博主、KOL、KOC、UP主、达人
 - topic: 话题、选题方向、内容主题、热搜话题
-- platform: 平台（小红书、B站、抖音、视频号、公众号）
-- format: 内容形式（图文、短视频、长视频、直播、清单）
+- platform: 平台（小红书、B站、抖音、视频号、公众号、微信搜一搜）
+- format: 内容形式（图文、短视频、长视频、直播、清单、微信图文）
 - audience: 受众群体（大学生、宝妈、职场人、Z世代）
+- strategy: 运营策略（私域引流、社交裂变、SEO优化、广告投放）
 
 关系类型：
 - "创作于": person → platform
@@ -43,6 +44,9 @@ _GRAPH_SYSTEM = """你是一个知识图谱构建引擎。从搜索结果中提�
 - "竞争": person → person
 - "合作": person → person
 - "衍生": topic → topic
+- "引流至": platform → platform
+- "适用策略": topic → strategy
+- "裂变通过": strategy → platform
 
 要求：
 1. 尽可能多地提取节点（50-100个），确保类型多样
@@ -105,11 +109,13 @@ def _format_search_for_graph(data: dict) -> str:
 
 
 _TYPE_COLORS = {
-    "person": "#6366f1",
-    "topic": "#f59e0b",
-    "platform": "#10b981",
-    "format": "#ec4899",
-    "audience": "#06b6d4",
+    "person": "#818cf8",
+    "topic": "#fbbf24",
+    "platform": "#34d399",
+    "format": "#f472b6",
+    "audience": "#22d3ee",
+    "trend": "#a78bfa",
+    "strategy": "#fb923c",
 }
 
 

@@ -118,13 +118,15 @@ def _fallback_classify(message: str) -> dict:
     domain_keywords = [
         "美食", "数码", "科技", "职场", "穿搭", "健身", "育儿",
         "旅行", "家居", "护肤", "化妆", "读书", "投资", "宠物",
+        "美妆", "探店", "vlog", "母婴", "时尚", "教育", "音乐",
+        "游戏", "摄影", "手机", "电脑", "汽车", "一人食",
     ]
     for kw in domain_keywords:
         if kw in msg:
             domain = kw
             break
 
-    if any(w in msg for w in ["领域", "行业", "同行", "博主", "达人", "生态", "想做"]):
+    if any(w in msg for w in ["领域", "行业", "同行", "博主", "达人", "生态", "想做", "分析", "内容", "赛道"]):
         return {"intent": "radar", "domain": domain}
     if any(w in msg for w in ["选题", "灵感", "话题", "点子", "想写什么"]):
         return {"intent": "idea", "domain": domain}

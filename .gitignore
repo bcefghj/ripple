@@ -43,3 +43,31 @@ output/
 # Temp
 tmp/
 temp/
+
+# === Archive & non-production directories ===
+.archive/
+_handover/
+ai_handover_materials_*/
+handover_materials_*/
+ripple_complete_handover_materials/
+
+# Legacy/duplicate code (kept locally, excluded from GitHub)
+apps/
+ripple/
+deploy/
+docs/
+infra/
+ops/
+packages/
+latex-pdf-workflow/
+website_build_doc/
+
+# Non-code files that shouldn't be in repo
+minimax.md
+start.sh
+install.sh
+run_demo.sh
+腾讯PCG校园AI产品创意大赛_*.md
+讨论记录_*.md
+赛题5_原文摘录.md
+SUBMISSION.md

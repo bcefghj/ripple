@@ -1,8 +1,8 @@
 """Knowledge graph extraction engine — builds structured graph data from search results.
 
 Uses a **two-pass** LLM pipeline:
-  Pass 1: Aggressive entity extraction (50-80 nodes across 8+ types).
-  Pass 2: Relationship enrichment between all extracted entities.
+  Pass 1: Aggressive entity extraction (150-300 nodes across 14 types).
+  Pass 2: Relationship enrichment between all extracted entities (2-4 edges per node).
 
 Outputs force-graph-compatible JSON consumed by the frontend.
 """
@@ -26,20 +26,25 @@ log = logging.getLogger(__name__)
 _ENTITY_TYPES = [
     "person", "topic", "platform", "format",
     "audience", "trend", "strategy", "brand",
-    "event", "metric",
+    "event", "metric", "keyword", "content",
+    "competitor", "channel",
 ]
 
 _TYPE_COLORS = {
-    "person":   "#818cf8",
-    "topic":    "#fbbf24",
-    "platform": "#34d399",
-    "format":   "#f472b6",
-    "audience": "#22d3ee",
-    "trend":    "#a78bfa",
-    "strategy": "#fb923c",
-    "brand":    "#f87171",
-    "event":    "#38bdf8",
-    "metric":   "#4ade80",
+    "person":     "#818cf8",
+    "topic":      "#fbbf24",
+    "platform":   "#34d399",
+    "format":     "#f472b6",
+    "audience":   "#22d3ee",
+    "trend":      "#a78bfa",
+    "strategy":   "#fb923c",
+    "brand":      "#f87171",
+    "event":      "#38bdf8",
+    "metric":     "#4ade80",
+    "keyword":    "#06b6d4",
+    "content":    "#14b8a6",
+    "competitor": "#f59e0b",
+    "channel":    "#8b5cf6",
 }
 
 # ---------------------------------------------------------------------------
@@ -55,7 +60,7 @@ _PASS1_SYSTEM = """\
     {
       "id": "唯一英文/拼音ID（不含空格）",
       "name": "中文显示名称",
-      "type": "person|topic|platform|format|audience|trend|strategy|brand|event|metric",
+      "type": "person|topic|platform|format|audience|trend|strategy|brand|event|metric|keyword|content|competitor|channel",
       "val": 10,
       "desc": "20-50字的实质性描述，说明该实体是什么、为什么重要"
     }
@@ -64,54 +69,82 @@ _PASS1_SYSTEM = """\
 
 ## 实体类型详细说明
 
-### person（目标: 10-15个）
+### person（目标: 15-25个）
 博主、KOL、KOC、UP主、达人、行业专家、意见领袖。
 - 从搜索结果中提取所有提到的人名、账号名、频道名
 - 即使只出现一次也要提取
 
-### topic（目标: 10-15个）
+### topic（目标: 20-30个）
 话题、选题方向、内容主题、热搜话题、讨论焦点、细分领域。
 - 提取所有核心话题和子话题
 - 拆解大话题为具体子话题（如"手机测评"→"手机拍照对比"、"续航测试"、"性价比推荐"）
 
-### platform（目标: 5-8个）
+### platform（目标: 8-12个）
 小红书、B站、抖音、视频号、公众号、微博、快手、知乎、YouTube、TikTok、微信搜一搜、今日头条等。
 - 搜索数据中提到或暗示的所有平台
 
-### format（目标: 5-8个）
+### format（目标: 8-12个）
 图文、短视频、长视频、直播、清单、微信图文、Vlog、教程、评测视频、合集、问答、信息图等。
 - 提取所有内容形式，包括细分格式
 
-### audience（目标: 5-8个）
+### audience（目标: 10-15个）
 大学生、宝妈、职场人、Z世代、银发族、新中产、数码发烧友、美妆爱好者等。
 - 基于内容推断目标受众群体
 - 尽量细分，不要只用"年轻人"这样笼统的分类
 
-### trend（目标: 5-8个）
+### trend（目标: 8-12个）
 流行趋势、热门现象、行业动向、新兴概念。
 - 提取内容中体现的趋势信号
 
-### strategy（目标: 5-8个）
+### strategy（目标: 8-12个）
 运营策略、变现模式、增长方法。
 - 私域引流、社交裂变、SEO优化、广告投放、直播带货、知识付费、品牌联名等
 
-### brand（目标: 3-5个）
+### brand（目标: 8-12个）
 品牌、公司、产品名、App名、工具名。
 - 搜索结果中出现的品牌和产品
 
-### event（目标: 2-5个）
+### event（目标: 5-8个）
 活动、事件、节日营销、行业会议、热点事件。
 
-### metric（目标: 2-5个）
+### metric（目标: 5-8个）
 关键指标、数据指标。
 - 如: 播放量、粉丝数、转化率、ROI、互动率等
 
+### keyword（目标: 15-25个）
+搜索关键词、SEO词、长尾词、热搜词、标签。
+- 从搜索数据中提取高频关键词和长尾搜索词
+- 包括用户常搜的问题词、对比词、推荐词
+
+### content（目标: 10-15个）
+具体内容作品、爆款视频、热门文章、代表性笔记。
+- 搜索数据中出现的具体内容标题或类型
+- 分析其爆款特征
+
+### competitor（目标: 8-12个）
+竞品内容、竞争对手、同类产品、同赛道账号。
+- 识别同领域的竞争内容和账号
+- 标注其差异化特点
+
+### channel（目标: 5-8个）
+分发渠道、流量入口、获客通道、搜索入口。
+- 内容触达用户的具体渠道路径
+- 包括搜索、推荐、社交分享等
+
+## 层次化结构提取
+请按照以下层级关系组织提取：**行业 → 赛道 → 话题 → 关键词 → 竞品内容**
+- 每个行业下应有多个赛道（topic）
+- 每个赛道下应有相关话题和关键词（keyword）
+- 每个话题下应关联具体的竞品内容（competitor/content）
+- 确保层级间有清晰的父子归属关系
+
 ## 关键规则
-1. **数量要求: 必须提取 50-80 个节点**，宁多勿少
-2. val 值（1-30）代表该实体在搜索数据中的重要性和出现频次：
-   - 出现/暗示 ≥3次 → val 20-30
-   - 出现 2次 → val 10-19
-   - 出现 1次 → val 5-9
+1. **数量要求: 必须提取 150-300 个节点**，宁多勿少
+2. val 值（5-50）代表该实体的估计热度/重要性权重：
+   - 行业核心/顶流 → val 35-50
+   - 高频出现/重要实体 → val 20-34
+   - 中等重要性 → val 12-19
+   - 一般实体 → val 5-11
 3. 每个 desc 必须有实质内容（20-50字），用户点击节点时会看到
 4. 基于实际搜索数据提取，但可以做合理推断（如某话题必然涉及某平台）
 5. ID 使用英文或拼音，确保唯一"""
@@ -137,6 +170,12 @@ _PASS2_SYSTEM = """\
 
 ## 关系类型库（必须从中选择）
 
+### 层级关系（hierarchy）— 优先提取
+- "包含": 父节点 → 子节点（行业包含赛道、赛道包含话题、话题包含关键词）
+- "属于": 子节点 → 父节点（反向归属关系）
+- "细分为": topic → topic（话题细分为子话题）
+- "上级": keyword → topic（关键词归属于话题）
+
 ### 人物相关
 - "创作于": person → platform（某人在某平台创作）
 - "擅长": person → topic（某人擅长某话题）
@@ -145,6 +184,8 @@ _PASS2_SYSTEM = """\
 - "合作": person ↔ person（合作关系）
 - "代言": person → brand（代言/推广品牌）
 - "面向": person → audience（某人的目标受众）
+- "产出": person → content（某人产出了某内容）
+- "使用渠道": person → channel（某人使用的分发渠道）
 
 ### 话题相关
 - "适合": topic → format（话题适合某种内容形式）
@@ -157,6 +198,8 @@ _PASS2_SYSTEM = """\
 - "体现趋势": topic → trend（话题体现了某趋势）
 - "涉及品牌": topic → brand（话题涉及某品牌）
 - "关注指标": topic → metric（话题关注的核心指标）
+- "关联关键词": topic → keyword（话题关联的搜索关键词）
+- "对标竞品": topic → competitor（话题下的竞品内容）
 
 ### 平台相关
 - "竞争": platform ↔ platform（平台竞争）
@@ -165,12 +208,21 @@ _PASS2_SYSTEM = """\
 - "平台独有": format → platform（某形式为平台独有/特色）
 - "受众重叠": platform ↔ platform（受众重叠）
 - "主要受众": platform → audience（平台主要用户群）
+- "分发通过": content → channel（内容通过某渠道分发）
 
 ### 策略相关
 - "适用策略": topic → strategy（话题适用的运营策略）
 - "裂变通过": strategy → platform（策略通过某平台实现）
 - "提升": strategy → metric（策略能提升某指标）
 - "影响": trend → strategy（趋势影响策略选择）
+
+### 竞品与内容相关
+- "竞品对标": competitor → competitor（竞品之间的对标关系）
+- "模仿": content → content（内容之间的模仿/借鉴关系）
+- "优于": competitor → competitor（竞品优劣对比）
+- "同类": content → content（同类内容）
+- "分发于": content → platform（内容发布在某平台）
+- "使用关键词": content → keyword（内容使用的关键词）
 
 ### 趋势与事件
 - "影响": event → topic（事件影响话题热度）
@@ -179,15 +231,16 @@ _PASS2_SYSTEM = """\
 - "推动": brand → trend（品牌推动趋势）
 
 ## 关键规则
-1. **数量要求: 必须提取 100-200 条关系**，宁多勿少
-2. 每对重要节点之间应有至少一条关系
-3. strength 值（0.1-1.0）代表关系强度：
+1. **数量要求: 每个节点平均 2-4 条关系**，总计应有 300-600 条关系
+2. **优先提取层级关系（hierarchy）**：确保"行业→赛道→话题→关键词→竞品内容"的层次结构清晰
+3. 每对重要节点之间应有至少一条关系
+4. strength 值（0.1-1.0）代表关系强度：
    - 直接明确关系 → 0.7-1.0
    - 间接推断关系 → 0.4-0.6
    - 弱关联 → 0.1-0.3
-4. 确保图谱高度连通，避免孤立节点
-5. source 和 target 必须是已提供的节点 ID
-6. 同一对节点可以有多条不同 label 的关系"""
+5. 确保图谱高度连通，避免孤立节点
+6. source 和 target 必须是已提供的节点 ID
+7. 同一对节点可以有多条不同 label 的关系"""
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -198,7 +251,7 @@ async def build_knowledge_graph(
     domain: str,
     search_data: dict,
     *,
-    max_nodes: int = 80,
+    max_nodes: int = 300,
 ) -> dict:
     """Extract knowledge graph from search results using two-pass LLM pipeline.
 
@@ -248,16 +301,18 @@ async def _extract_entities(
                 f"## 领域\n{domain}\n\n"
                 f"## 搜索数据\n{search_summary}\n\n"
                 f"## 任务\n"
-                f"请从以上搜索数据中提取 **50-{max_nodes}** 个实体节点。\n"
-                f"覆盖所有 10 种类型（person, topic, platform, format, audience, "
-                f"trend, strategy, brand, event, metric），每种类型至少提取 2 个。\n"
+                f"请从以上搜索数据中提取 **150-{max_nodes}** 个实体节点。\n"
+                f"覆盖所有 14 种类型（person, topic, platform, format, audience, "
+                f"trend, strategy, brand, event, metric, keyword, content, "
+                f"competitor, channel），每种类型至少提取 3 个。\n"
+                f"注意构建层级关系：行业 → 赛道 → 话题 → 关键词 → 竞品内容。\n"
                 f"返回严格 JSON，只包含 nodes 数组。"
             ),
         },
     ]
 
     try:
-        result = await chat_deep_json(messages, temperature=0.3, max_tokens=8192)
+        result = await chat_deep_json(messages, temperature=0.3, max_tokens=16384)
         raw_nodes = result if isinstance(result, list) else result.get("nodes", [])
         return [n for n in raw_nodes if isinstance(n, dict) and "id" in n]
     except Exception as exc:
@@ -288,15 +343,16 @@ async def _enrich_relationships(
                 f"## 搜索数据摘要\n{search_summary[:3000]}\n\n"
                 f"## 已提取的实体节点\n{node_summary}\n\n"
                 f"## 任务\n"
-                f"请在以上 {len(nodes)} 个节点之间挖掘 **100-200** 条关系。\n"
-                f"确保每个节点至少有 1 条关系连接，图谱高度连通。\n"
+                f"请在以上 {len(nodes)} 个节点之间挖掘 **每个节点 2-4 条关系**（总计 {len(nodes)*2}-{len(nodes)*4} 条）。\n"
+                f"优先提取层级关系（包含/属于/细分为），构建清晰的树状层次。\n"
+                f"确保每个节点至少有 2 条关系连接，图谱高度连通。\n"
                 f"返回严格 JSON，只包含 links 数组。"
             ),
         },
     ]
 
     try:
-        result = await chat_deep_json(messages, temperature=0.3, max_tokens=8192)
+        result = await chat_deep_json(messages, temperature=0.3, max_tokens=16384)
         raw_links = result if isinstance(result, list) else result.get("links", [])
         return [lk for lk in raw_links if isinstance(lk, dict)]
     except Exception as exc:
@@ -419,8 +475,8 @@ def _validate_graph(data: dict | list, domain: str) -> dict:
         if ntype not in _TYPE_COLORS:
             ntype = "topic"
         n["type"] = ntype
-        n.setdefault("val", 5)
-        n["val"] = max(1, min(30, int(n["val"])))
+        n.setdefault("val", 10)
+        n["val"] = max(5, min(50, int(n["val"])))
         n.setdefault("desc", "")
         n["color"] = _TYPE_COLORS[ntype]
         valid_nodes.append(n)

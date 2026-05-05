@@ -1,107 +1,123 @@
-# Ripple 6.0 — AI 原生 KOC 内容增长智能平台
+# Ripple — AI 深度研究引擎 for KOC 增长
 
 > 腾讯 PCG 校园 AI 产品创意大赛 · 赛题5：AI + 社媒流量增长，连接 KOC 成长
 
-## 项目简介
+<p align="center">
+  <img src="https://img.shields.io/badge/React-19-blue?logo=react" />
+  <img src="https://img.shields.io/badge/Three.js-3D-black?logo=three.js" />
+  <img src="https://img.shields.io/badge/FastAPI-async-green?logo=fastapi" />
+  <img src="https://img.shields.io/badge/腾讯混元-Powered-blue" />
+  <img src="https://img.shields.io/badge/搜索引擎-15+-orange" />
+</p>
 
-Ripple 是一个面向新手内容创作者 (KOC) 的 AI 智能内容助手，通过 **9 层搜索矩阵**、**3D 知识图谱**、**多 Agent 辩论引擎** 和 **微信生态策略** 帮助创作者完成从选题到创作的全链路增长。
+## 产品定位
 
-## 核心亮点
+**一句话**：告诉 Ripple 你想做什么内容，它帮你深度分析全网数据、构建知识图谱、预测爆款潜力，输出可直接使用的内容方案。
 
-- **9 层并行搜索矩阵** — 15+ 引擎同时搜索，单次分析 500-1000+ 数据点
-- **3D 全息知识图谱** — 50-100 节点实时可视化，粒子流、Bloom 后处理、全息节点
-- **7 位 AI Agent 辩论** — 数据分析师、内容策划师、用户心理学家等多角色讨论
-- **微信生态策略面板** — 视频号/公众号/搜一搜/私域四维度具体策略
-- **KOC 30 天成长仪表盘** — 可视化成长路径 + 内容日历
-- **实时 AI 思考可视化** — 全程展示搜索、分析、推理的透明过程
+**目标用户**：新手 KOC（关键意见消费者），在小红书/视频号/公众号刚起步，不知道做什么内容、怎么涨粉。
 
-## 架构
+## 核心创新
+
+| 创新点 | 说明 |
+|--------|------|
+| **深度研究引擎** | 不是简单问答，而是 AI 深度研究——自动规划搜索策略、迭代检索、交叉验证 |
+| **实时思维链可视化** | React Flow 节点图实时展示 AI 的每一步思考和决策过程 |
+| **3D 知识图谱** | 200+ 节点的 WebGL 力导向图谱，可交互探索内容生态 |
+| **7 位 AI 专家圆桌** | 数据分析师、内容策划师、心理学家等多角色辩论，量化评分 |
+| **微信生态深度策略** | 基于搜一搜 Peoplerank 算法和视频号推荐机制的具体可执行建议 |
+| **腾讯技术栈** | 混元大模型 + 腾讯联网搜索 API + MCP 趋势聚合 |
+
+## 技术架构
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                    Frontend (React 19 + Three.js)               │
-│  ┌────────────┐  ┌──────────────┐  ┌──────────────────────┐   │
-│  │ 3D 知识图谱 │  │ 数据宇宙粒子 │  │ 微信生态 + KOC 仪表盘 │   │
-│  └────────────┘  └──────────────┘  └──────────────────────┘   │
-├────────────────────────────────────────────────────────────────┤
-│                        SSE Streaming API                        │
-├────────────────────────────────────────────────────────────────┤
-│                    Backend (FastAPI + Async)                    │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │              9 Layer Search Matrix                        │   │
-│  │  L0: MiniMax  L1: Hunyuan/Qwen  L2: Serper/Tavily/Exa  │   │
-│  │  L3: Baidu/Google/DuckDuckGo  L4: Platform APIs         │   │
-│  │  L5: DailyHot  L6: SearXNG  L7: Jina AI                │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│  ┌─────────────────────────┐  ┌─────────────────────────────┐ │
-│  │  Topic Decomposer       │  │  Multi-Agent Debate Engine   │ │
-│  │  (智能查询分类+分解)      │  │  (7 Agent 多轮讨论)          │ │
-│  └─────────────────────────┘  └─────────────────────────────┘ │
-│  ┌─────────────────────────┐  ┌─────────────────────────────┐ │
-│  │  Knowledge Graph Builder │  │  Content DNA Analyzer        │ │
-│  │  (2-pass 实体+关系提取)   │  │  (爆款基因图谱)              │ │
-│  └─────────────────────────┘  └─────────────────────────────┘ │
-└────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                   Frontend (React 19 + Three.js)                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐  │
+│  │ Galaxy 粒子背景│  │React Flow 思维│  │ 3D 知识图谱 + Bloom   │  │
+│  │  (R3F Shader) │  │  链节点图     │  │  后处理 + 交互探索    │  │
+│  └──────────────┘  └──────────────┘  └───────────────────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│                       SSE Streaming API                           │
+├─────────────────────────────────────────────────────────────────┤
+│                   Backend (FastAPI + Async)                       │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │            9 Layer Deep Search Matrix                      │   │
+│  │  L0: MiniMax  L1: 腾讯混元/千问  L2: 腾讯联网搜索API     │   │
+│  │  L3: Serper/Tavily/Exa  L4: Platform APIs  L5: DailyHot  │   │
+│  │  L6: MCP趋势聚合(20+源)  L7: SearXNG  L8: Jina AI       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│  ┌────────────────────┐  ┌────────────────────────────────────┐ │
+│  │ Knowledge Graph     │  │  Multi-Agent Debate Engine         │ │
+│  │ Builder (2-pass,    │  │  (7 Experts + Arbiter +            │ │
+│  │  200-500 nodes)     │  │   Quantified Scoring)              │ │
+│  └────────────────────┘  └────────────────────────────────────┘ │
+│  ┌────────────────────┐  ┌────────────────────────────────────┐ │
+│  │ WeChat Strategy     │  │  Content DNA + Viral Predictor     │ │
+│  │ Engine (Peoplerank  │  │  (A/B Title Test + Hook Gen +      │ │
+│  │  + 视频号推荐算法)   │  │   CES Score)                      │ │
+│  └────────────────────┘  └────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
 ```
-
-## 技术栈
-
-| 层级 | 技术 |
-|------|------|
-| 前端 | React 19, TypeScript, Three.js, react-force-graph-3d, Framer Motion, GSAP, Recharts, Tailwind CSS 4 |
-| 后端 | Python 3.10+, FastAPI, Uvicorn, asyncio |
-| AI/LLM | MiniMax, 腾讯混元, 阿里通义千问, DeepSeek, 豆包 |
-| 搜索 | Serper, Tavily, Exa, You.com, Brave, Baidu, Google, DuckDuckGo, SearXNG, Jina AI |
 
 ## 快速启动
 
 ```bash
-# 1. 进入项目目录
+# 后端
 cd ripple3
-
-# 2. 配置环境变量
-cp .env.example .env
-# 编辑 .env 填入 API Keys
-
-# 3. 启动后端
+cp .env.example .env    # 填入 API Keys
 pip install -r requirements.txt
-python -m uvicorn api.main:app --reload --port 8000
+python -m uvicorn api.main:app --reload --port 8001
 
-# 4. 启动前端
-cd web
+# 前端
+cd ripple3/web
 npm install
 npm run dev
 ```
 
-访问 http://localhost:5173 开始使用。
+访问 http://localhost:5173
+
+## 项目结构
+
+```
+ripple3/
+├── api/                    # FastAPI 路由 + SSE 流式接口
+├── adapters/               # 搜索引擎适配器 (18 个)
+│   ├── search.py           # 并行搜索协调器
+│   ├── hunyuan_websearch.py # 腾讯联网搜索 API
+│   ├── trend_aggregator.py # MCP 中文趋势聚合
+│   ├── minimax_search.py   # MiniMax 联网搜索
+│   └── ...                 # Serper/Tavily/Exa/DDG/百度/Google 等
+├── engines/                # AI 引擎
+│   ├── graph_builder.py    # 知识图谱构建 (2-pass, 200+ nodes)
+│   ├── multi_agent.py      # 7 Agent 辩论引擎
+│   ├── viral_scorer.py     # CES 爆款评分
+│   ├── content_dna.py      # 内容基因分析
+│   └── title_ab_test.py    # 标题 A/B 测试
+├── core/                   # LLM 封装 + 意图识别 + 配置
+├── web/                    # React 前端
+│   └── src/
+│       ├── components/     # 30+ 组件
+│       │   ├── GalaxyBackground.tsx    # R3F Galaxy 粒子背景
+│       │   ├── DeepResearchFlow.tsx    # React Flow 思维链
+│       │   ├── AgentRoundtable.tsx     # Agent 圆桌动画
+│       │   ├── KnowledgeGraph3D.tsx    # 3D 力导向图谱
+│       │   └── HeroWelcome.tsx         # 首屏 Hero
+│       ├── hooks/          # useChat (SSE) + useDarkMode
+│       └── lib/            # API 客户端
+└── .env.example            # 环境变量模板
+```
 
 ## 赛题对齐
 
 | 评分维度 | Ripple 的解决方案 |
 |---------|-----------------|
-| **赛道适配性** | 专注 KOC 成长路径，深度集成微信视频号/公众号/搜一搜/私域策略 |
-| **完整性** | 覆盖"选题-分析-创作-预测-发布"全链路闭环 |
-| **创新性** | 9 层搜索矩阵 + 7 Agent 辩论 + 3D 知识图谱 + 内容 DNA 分析 |
-| **用户洞察** | 以新手 KOC 视角设计全部交互，30 天成长计划具体可执行 |
-| **AI 原生性** | 全程 AI 驱动（LLM 分解→搜索→过滤→Agent 讨论→生成），透明展示 AI 思考过程 |
+| **赛道适配性** | 专注 KOC 涨粉，深度集成微信视频号/公众号/搜一搜策略，输出基于 Peoplerank 算法的优化建议 |
+| **完整性** | 覆盖"选题→分析→创作→预测→发布策略"全链路，Demo 可完整体验 |
+| **创新性** | 深度研究引擎 + React Flow 思维链 + 3D 图谱 + 7 Agent 辩论 + 量化评分 |
+| **用户洞察** | 以"不知道做什么内容"的新手 KOC 为核心，对话即可获得完整方案 |
+| **AI 原生性** | 全程 AI 驱动，透明展示搜索→推理→讨论→生成全过程，腾讯混元 + 联网搜索 |
+| **落地可行性** | 可部署到腾讯元器/微信小程序，低 API 成本，MiniMax 免费额度充足 |
 
-## 项目结构
+## License
 
-```
-ripple3/                    # ← 主项目目录（唯一活跃代码）
-├── api/                    # FastAPI 路由和 SSE 事件
-├── adapters/               # 搜索引擎适配器（15+ 引擎）
-├── engines/                # 核心引擎（话题分解、图谱构建、多Agent）
-├── core/                   # LLM 封装、意图识别
-├── web/                    # React 前端
-│   └── src/
-│       ├── components/     # UI 组件（25+ 组件）
-│       ├── hooks/          # 自定义 Hooks
-│       └── lib/            # API 客户端和动画工具
-├── .env.example            # 环境变量模板
-└── requirements.txt        # Python 依赖
-```
-
-## 许可证
-
-本项目为参赛作品，仅用于腾讯 PCG 校园 AI 产品创意大赛。
+本项目为腾讯 PCG 校园 AI 产品创意大赛参赛作品。

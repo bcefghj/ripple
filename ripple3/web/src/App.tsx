@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { Moon, Sun, BarChart3 } from 'lucide-react'
+import { BarChart3 } from 'lucide-react'
 import { AnimatePresence } from 'framer-motion'
 import { useChat } from './hooks/useChat'
-import { useDarkMode } from './hooks/useDarkMode'
 import Sidebar from './components/Sidebar'
-import WelcomeCards from './components/WelcomeCards'
+import HeroWelcome from './components/HeroWelcome'
 import ChatMessage from './components/ChatMessage'
 import ChatInput from './components/ChatInput'
-import RippleBackground from './components/RippleBackground'
+import GalaxyBackground from './components/GalaxyBackground'
 import AgentStatusPanel from './components/AgentStatus'
 import TrendDashboard from './components/TrendDashboard'
 
@@ -18,7 +17,6 @@ export default function App() {
   } = useChat()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
-  const [dark, setDark] = useDarkMode()
   const scrollRef = useRef<HTMLDivElement>(null)
   const hasMessages = messages.length > 0
 
@@ -42,8 +40,8 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 relative overflow-hidden">
-      <RippleBackground />
+    <div className="h-screen flex bg-slate-950 text-slate-100 relative overflow-hidden">
+      <GalaxyBackground />
 
       <Sidebar
         isOpen={sidebarOpen}
@@ -60,23 +58,16 @@ export default function App() {
         <div className="flex justify-end items-center gap-1 px-4 pt-3 pb-1">
           <button
             onClick={() => setShowDashboard(true)}
-            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-lg text-slate-500 hover:bg-slate-800 transition-colors"
             aria-label="热搜仪表盘"
             title="热搜趋势仪表盘"
           >
             <BarChart3 className="w-4 h-4" />
           </button>
-          <button
-            onClick={() => setDark(!dark)}
-            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            aria-label="切换深色模式"
-          >
-            {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
         </div>
 
         {currentAgents.length > 0 && (
-          <div className="border-b border-slate-100 dark:border-slate-800">
+          <div className="border-b border-slate-800">
             <div className="max-w-3xl mx-auto">
               <AgentStatusPanel agents={currentAgents} />
             </div>
@@ -88,9 +79,7 @@ export default function App() {
           className="flex-1 overflow-y-auto"
         >
           {!hasMessages ? (
-            <div className="flex flex-col items-center justify-center min-h-full py-12">
-              <WelcomeCards onSelect={handleSend} />
-            </div>
+            <HeroWelcome onSelect={handleSend} />
           ) : (
             <div className="max-w-3xl mx-auto px-4 py-6">
               {messages.map((msg, i) => (
@@ -111,7 +100,7 @@ export default function App() {
               <button
                 key={chip.label}
                 onClick={() => handleSend(chip.prompt)}
-                className="text-xs px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-blue-300 hover:text-blue-600 dark:hover:border-blue-600 dark:hover:text-blue-400 transition-colors"
+                className="text-xs px-3 py-1.5 rounded-full border border-slate-700 bg-slate-800 text-slate-400 hover:border-violet-500/50 hover:text-violet-300 transition-colors"
               >
                 {chip.label}
               </button>

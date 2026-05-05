@@ -6,7 +6,7 @@ import MarkdownRenderer from './MarkdownRenderer'
 import ThinkingPanel from './ThinkingPanel'
 import KnowledgeGraph3D from './KnowledgeGraph3D'
 import GraphDetailPanel from './GraphDetailPanel'
-import MultiAgentPanel from './MultiAgentPanel'
+import AgentRoundtable from './AgentRoundtable'
 import ScoreAnimation from './ScoreAnimation'
 import TokenUsagePanel from './TokenUsagePanel'
 import ViralScorePanel from './ViralScorePanel'
@@ -16,7 +16,8 @@ import { expandGraphNode } from '../lib/api'
 const WeChatEcosystemPanel = lazy(() => import('./WeChatEcosystemPanel'))
 const KOCGrowthDashboard = lazy(() => import('./KOCGrowthDashboard'))
 const DataUniverseParticles = lazy(() => import('./DataUniverseParticles'))
-const AIThinkingFlow = lazy(() => import('./AIThinkingFlow'))
+const DeepResearchFlow = lazy(() => import('./DeepResearchFlow'))
+const ResultDashboard = lazy(() => import('./ResultDashboard'))
 
 interface Props {
   message: ChatMsg
@@ -108,7 +109,20 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
       </div>
 
       <div className="flex-1 min-w-0">
-        {hasThinking && <ThinkingPanel steps={message.thinking!} />}
+        {hasThinking && (
+          <Suspense fallback={<div className="h-40 animate-pulse bg-slate-800/30 rounded-2xl mb-3" />}>
+            <DeepResearchFlow
+              steps={message.thinking!.map((s, i) => ({
+                id: `step-${i}`,
+                label: s.label || s.text || `Step ${i + 1}`,
+                type: (s.type as any) || 'analyze',
+                status: s.status || 'done',
+                detail: s.detail,
+              }))}
+              compact={!message.isStreaming}
+            />
+          </Suspense>
+        )}
 
         {/* Search Radar - shows during active search */}
         {hasThinking && (
@@ -149,7 +163,7 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
         )}
 
         {hasAgentMessages && (
-          <MultiAgentPanel
+          <AgentRoundtable
             messages={message.agentMessages!}
             arbiterThinking={message.arbiterThinking}
           />
@@ -206,12 +220,22 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
           </Suspense>
         )}
 
+        {(message.titleAbTest || message.hooks) && (
+          <Suspense fallback={<div className="h-40 animate-pulse bg-slate-800/50 rounded-2xl mb-3" />}>
+            <ResultDashboard
+              summary=""
+              titleVariants={message.titleAbTest?.titles}
+              hooks={message.hooks?.hooks}
+            />
+          </Suspense>
+        )}
+
         {message.content ? (
-          <div className="rounded-2xl rounded-tl-sm bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 px-4 py-3 shadow-sm">
+          <div className="rounded-2xl rounded-tl-sm bg-slate-800/80 border border-slate-700/50 px-4 py-3 shadow-sm backdrop-blur-sm">
             <MarkdownRenderer content={message.content} isStreaming={message.isStreaming} />
           </div>
         ) : message.isStreaming && !hasAgentMessages && !hasScore ? (
-          <div className="rounded-2xl rounded-tl-sm bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 px-4 py-3 shadow-sm">
+          <div className="rounded-2xl rounded-tl-sm bg-slate-800/80 border border-slate-700/50 px-4 py-3 shadow-sm backdrop-blur-sm">
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <span>Ripple 正在思考</span>
               <span className="flex gap-1">

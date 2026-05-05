@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { streamChat, fetchConversations, loadConversation, deleteConversation } from '../lib/api'
 import type { ChatMessage, ThinkingStep, Citation, AgentMessage, GraphData, ScoreData, SearchStats, TokenUsage, ViralScoreData, WeChatStrategy, KOCGrowthData, NextStep, Conversation } from '../lib/api'
+import { DEMO_CASES } from '../data/demoCases'
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -39,6 +40,15 @@ export function useChat() {
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return
+
+    // Check if this matches a demo case for instant loading
+    const demoCase = DEMO_CASES.find(c => c.prompt === text.trim())
+    if (demoCase) {
+      const userMsg: ChatMessage = { role: 'user', content: text.trim() }
+      setMessages(prev => [...prev, userMsg, { ...demoCase.result, isStreaming: false }])
+      setIsLoading(false)
+      return
+    }
 
     const userMsg: ChatMessage = { role: 'user', content: text.trim() }
     const assistantMsg: ChatMessage = {
@@ -261,6 +271,28 @@ export function useChat() {
               const last = updated[updated.length - 1]
               if (last.role === 'assistant') {
                 updated[updated.length - 1] = { ...last, kocGrowth }
+              }
+              return updated
+            })
+            break
+
+          case 'title_ab_test':
+            setMessages(prev => {
+              const updated = [...prev]
+              const last = updated[updated.length - 1]
+              if (last.role === 'assistant') {
+                updated[updated.length - 1] = { ...last, titleAbTest: event.data }
+              }
+              return updated
+            })
+            break
+
+          case 'hooks':
+            setMessages(prev => {
+              const updated = [...prev]
+              const last = updated[updated.length - 1]
+              if (last.role === 'assistant') {
+                updated[updated.length - 1] = { ...last, hooks: event.data }
               }
               return updated
             })

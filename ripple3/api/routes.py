@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from api.sse import (
+    sse_event,
     thinking_event,
     content_event,
     sources_event,
@@ -462,12 +463,29 @@ async def _stream_radar(domain: str, history: list[dict], memory: str) -> AsyncI
         log.warning("WeChat strategy generation failed: %s", exc)
 
     # KOC growth plan
-    yield thinking_event("KOC成长规划", "正在制定30天增长计划...", progress=95)
+    yield thinking_event("KOC成长规划", "正在制定30天增长计划...", progress=92)
     try:
         koc_data = await _generate_koc_growth_plan(domain, data)
         yield koc_growth_event(koc_data)
     except Exception as exc:
         log.warning("KOC growth plan generation failed: %s", exc)
+
+    # Title A/B Testing
+    yield thinking_event("标题A/B测试", "AI正在生成10+标题变体并预测CTR...", progress=95)
+    try:
+        from engines.title_ab_test import generate_title_variants, generate_hooks
+        title_data = await generate_title_variants(domain, platform="小红书", count=10)
+        yield sse_event("title_ab_test", title_data)
+    except Exception as exc:
+        log.warning("Title A/B test failed: %s", exc)
+
+    # Hook generation
+    yield thinking_event("Hook生成", "正在为短视频/图文生成强力开场...", progress=97)
+    try:
+        hook_data = await generate_hooks(domain, platform="小红书")
+        yield sse_event("hooks", hook_data)
+    except Exception as exc:
+        log.warning("Hook generation failed: %s", exc)
 
     if citations.citations:
         yield sources_event(citations.to_list())
@@ -909,33 +927,60 @@ async def _generate_wechat_strategy(domain: str, search_data: dict) -> dict:
     )
 
     messages = [
-        {"role": "system", "content": """你是微信生态运营专家。基于领域分析数据，生成四个维度的微信策略。
+        {"role": "system", "content": """你是微信生态运营专家，深度掌握搜一搜 Peoplerank 算法和视频号推荐机制。
+
+## 你必须掌握的算法知识：
+
+### 搜一搜排序（Peoplerank）权重分布：
+- 账号可信度 25%：认证账号优先、粉丝量、内容垂直度
+- 内容相关性 40%：标题/简介/标签/字幕中关键词的完整匹配优先
+- 用户行为 35%：完播率、点赞/评论/转发/分享
+
+### 视频号推荐三维排名：
+- 内容相关性 40%：关键词完整匹配优先于部分匹配
+- 用户行为 35%：24h内完播率>60%自动提升2-3档位
+- 账号权重 25%：垂直领域+原创率>=90%+每周>=3条更新
+
+### 关键优化规则：
+- 前3行必须嵌入核心关键词+长尾词
+- 结尾设置行动指令引导评论
+- 24h内回复前20条评论提升活跃度
+- 杜绝关键词堆砌，确保封面与内容一致
+- 减少频繁删改已发布内容
+
+基于以上算法知识和领域数据，生成四个维度的具体策略。
 严格返回JSON（无markdown包裹）：
 {
   "videoAccount": {
-    "tips": ["具体建议1", "具体建议2", ...],
-    "algorithm": "视频号推荐算法要点说明",
-    "bestPractices": ["最佳实践1", ...]
+    "tips": ["基于算法的具体建议（含数据依据）", ...],
+    "algorithm": "视频号推荐算法在该领域的具体应用要点",
+    "bestPractices": ["基于Peoplerank的最佳发布实践", ...],
+    "publishTiming": "最佳发布时间建议（精确到小时）",
+    "keywordLayout": ["核心关键词1", "长尾词1", ...],
+    "first24hChecklist": ["发布后24h内的具体行动1", ...]
   },
   "officialAccount": {
-    "seoKeywords": ["SEO关键词1", ...],
-    "format": "适合的图文格式说明",
-    "tips": ["运营建议1", ...]
+    "seoKeywords": ["搜一搜高权重SEO关键词", ...],
+    "format": "基于Peoplerank最优的图文格式",
+    "tips": ["运营建议1", ...],
+    "crossPromotion": "互推策略建议"
   },
   "search": {
-    "keywords": ["搜一搜关键词1", ...],
-    "optimization": ["优化建议1", ...]
+    "keywords": ["搜一搜核心关键词（按权重排序）", ...],
+    "longTailKeywords": ["长尾关键词1", ...],
+    "optimization": ["基于Peoplerank的具体优化步骤", ...]
   },
   "privateDomain": {
-    "funnelSteps": ["引流步骤1", "沉淀步骤2", ...],
-    "tips": ["私域建议1", ...]
+    "funnelSteps": ["公域→私域的引流步骤", ...],
+    "tips": ["私域运营建议", ...],
+    "wechatMoments": "朋友圈传播策略"
   }
 }
-每个维度给出3-5条具体、可操作的建议。"""},
+每个维度给出5-8条具体、可操作的建议，必须包含算法依据。"""},
         {"role": "user", "content": f"领域: {domain}\n该领域热门内容样本:\n{sample_content}"},
     ]
 
-    data = await chat_json(messages, temperature=0.5, max_tokens=2048)
+    data = await chat_json(messages, temperature=0.5, max_tokens=3000)
     return data
 
 

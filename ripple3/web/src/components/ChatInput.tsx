@@ -36,7 +36,7 @@ export default function ChatInput({ onSend, isLoading, placeholder }: Props) {
   return (
     <div className="w-full max-w-3xl mx-auto px-4 pb-4 pt-2">
       <motion.div
-        className="relative flex items-end gap-2 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-black/20 focus-within:border-blue-400 dark:focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-blue-900/30 transition-all"
+        className="relative flex items-end gap-2 rounded-2xl border border-slate-700/50 bg-slate-900/80 shadow-lg shadow-black/20 backdrop-blur-xl focus-within:border-violet-500/50 focus-within:ring-2 focus-within:ring-violet-500/10 transition-all"
         layout
       >
         <textarea
@@ -46,13 +46,13 @@ export default function ChatInput({ onSend, isLoading, placeholder }: Props) {
           onKeyDown={handleKeyDown}
           placeholder={placeholder || '告诉 Ripple 你想做什么内容...'}
           rows={1}
-          className="flex-1 resize-none border-0 bg-transparent py-3.5 pl-4 pr-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-0"
+          className="flex-1 resize-none border-0 bg-transparent py-3.5 pl-4 pr-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-0"
           disabled={isLoading}
         />
         <button
           onClick={handleSubmit}
           disabled={!text.trim() || isLoading}
-          className="mr-2 mb-2 flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-r from-blue-500 to-violet-500 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-blue-500/25 transition-all active:scale-95"
+          className="mr-2 mb-2 flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-500 text-white disabled:opacity-30 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-violet-500/25 transition-all active:scale-95"
         >
           {isLoading ? (
             <Square className="w-4 h-4" />

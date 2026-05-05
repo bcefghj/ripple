@@ -59,7 +59,7 @@ export default function Sidebar({
 
       <button
         onClick={onToggle}
-        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors lg:hidden"
+        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-slate-900 border border-slate-700 shadow-sm hover:bg-slate-800 transition-colors lg:hidden"
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>

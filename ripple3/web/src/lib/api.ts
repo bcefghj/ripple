@@ -155,7 +155,21 @@ export interface ChatMessage {
   kocGrowth?: KOCGrowthData
   deepResearch?: DeepResearchPhase
   nextSteps?: NextStep[]
+  titleAbTest?: TitleAbTestData
+  hooks?: HookData
   isStreaming?: boolean
+}
+
+export interface TitleAbTestData {
+  titles: { text: string; predicted_ctr: number; strategy: string; emoji_variant?: string; reason?: string }[]
+  best_pick: number
+  analysis: string
+}
+
+export interface HookData {
+  hooks: { text: string; type: string; estimated_retention_boost: string; delivery_note?: string; first_frame?: string }[]
+  strategy_note: string
+  avoid?: string[]
 }
 
 export interface Conversation {

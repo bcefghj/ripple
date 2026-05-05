@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { streamChat, fetchConversations, loadConversation, deleteConversation } from '../lib/api'
-import type { ChatMessage, ThinkingStep, Citation, AgentMessage, GraphData, ScoreData, SearchStats, TokenUsage, ViralScoreData, NextStep, Conversation } from '../lib/api'
+import type { ChatMessage, ThinkingStep, Citation, AgentMessage, GraphData, ScoreData, SearchStats, TokenUsage, ViralScoreData, WeChatStrategy, KOCGrowthData, NextStep, Conversation } from '../lib/api'
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -66,6 +66,8 @@ export function useChat() {
     let dataWarning = ''
     let tokenUsage: TokenUsage | undefined
     let viralScore: ViralScoreData | undefined
+    let wechatStrategy: WeChatStrategy | undefined
+    let kocGrowth: KOCGrowthData | undefined
     let nextSteps: NextStep[] | undefined
 
     try {
@@ -240,6 +242,30 @@ export function useChat() {
             })
             break
 
+          case 'wechat_strategy':
+            wechatStrategy = event.data as WeChatStrategy
+            setMessages(prev => {
+              const updated = [...prev]
+              const last = updated[updated.length - 1]
+              if (last.role === 'assistant') {
+                updated[updated.length - 1] = { ...last, wechatStrategy }
+              }
+              return updated
+            })
+            break
+
+          case 'koc_growth':
+            kocGrowth = event.data as KOCGrowthData
+            setMessages(prev => {
+              const updated = [...prev]
+              const last = updated[updated.length - 1]
+              if (last.role === 'assistant') {
+                updated[updated.length - 1] = { ...last, kocGrowth }
+              }
+              return updated
+            })
+            break
+
           case 'error':
             content += `\n\n> ${event.data.message}`
             setMessages(prev => {
@@ -275,6 +301,8 @@ export function useChat() {
           dataWarning,
           tokenUsage,
           viralScore,
+          wechatStrategy,
+          kocGrowth,
           nextSteps,
         }
       }

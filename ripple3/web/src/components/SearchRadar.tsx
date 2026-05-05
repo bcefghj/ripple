@@ -1,7 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect, useRef } from 'react'
-import { Radar, Zap, Globe, Search } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Radar, Zap } from 'lucide-react'
+import gsap from 'gsap'
 import type { SearchStats, ThinkingStep } from '../lib/api'
+import AnimatedCounter from './AnimatedCounter'
 
 interface Props {
   stats?: SearchStats
@@ -19,25 +21,51 @@ const SEARCH_LAYERS = [
   { id: 'hot', name: '热搜聚合', color: '#fb923c', icon: '🔥' },
   { id: 'scrape', name: '深度抓取', color: '#4ade80', icon: '🕷️' },
   { id: 'validate', name: '质量验证', color: '#f87171', icon: '✅' },
-]
+] as const
 
-interface Particle {
-  id: number
-  layer: number
-  angle: number
-  speed: number
+// ---- Canvas particles & ring pulse types ----
+
+interface CanvasParticle {
+  x: number
+  y: number
+  vx: number
+  vy: number
   color: string
-  active: boolean
+  life: number
+  size: number
+}
+
+interface RingPulse {
+  cx: number
+  cy: number
+  radius: number
+  maxRadius: number
+  color: string
+  life: number
+}
+
+interface BurstParticle {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  color: string
+  life: number
+  size: number
 }
 
 export default function SearchRadar({ stats, steps, isActive }: Props) {
-  const [particles, setParticles] = useState<Particle[]>([])
   const [activeLayers, setActiveLayers] = useState<Set<number>>(new Set())
   const [collapsed, setCollapsed] = useState(false)
-  const particleIdRef = useRef(0)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animRef = useRef<number>(0)
+  const sweepRef = useRef({ angle: 0 })
+  const prevActiveRef = useRef<Set<number>>(new Set())
+  const prevStatsRef = useRef<SearchStats | undefined>(undefined)
+  const ringPulsesRef = useRef<RingPulse[]>([])
+  const burstParticlesRef = useRef<BurstParticle[]>([])
 
+  // ---- Determine active layers from steps ----
   useEffect(() => {
     if (!isActive) return
 
@@ -68,9 +96,59 @@ export default function SearchRadar({ stats, steps, isActive }: Props) {
       for (let i = 0; i <= idx; i++) newActive.add(i)
     }
 
+    // Detect newly activated layers → emit ring pulses
+    newActive.forEach(layerIdx => {
+      if (!prevActiveRef.current.has(layerIdx) && canvasRef.current) {
+        const W = 280
+        const centerX = W / 2
+        const centerY = W / 2
+        const maxR = W / 2 - 20
+        const r = (maxR / 9) * (layerIdx + 1)
+        ringPulsesRef.current.push({
+          cx: centerX,
+          cy: centerY,
+          radius: r,
+          maxRadius: r + 30,
+          color: SEARCH_LAYERS[layerIdx].color,
+          life: 1,
+        })
+      }
+    })
+
+    prevActiveRef.current = newActive
     setActiveLayers(newActive)
   }, [steps, isActive])
 
+  // ---- Detect new results arriving → burst particles ----
+  useEffect(() => {
+    if (!stats || !canvasRef.current) return
+    const prevTotal = prevStatsRef.current?.total_raw ?? 0
+    const newTotal = stats.total_raw
+
+    if (newTotal > prevTotal && prevTotal > 0) {
+      const W = 280
+      const cx = W / 2
+      const cy = W / 2
+      const count = Math.min(Math.max((newTotal - prevTotal) * 2, 8), 30)
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 / count) * i + Math.random() * 0.3
+        const speed = 1.5 + Math.random() * 2.5
+        burstParticlesRef.current.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color: SEARCH_LAYERS[i % SEARCH_LAYERS.length].color,
+          life: 1,
+          size: 2 + Math.random() * 2,
+        })
+      }
+    }
+
+    prevStatsRef.current = stats
+  }, [stats])
+
+  // ---- GSAP-powered sweep angle + Canvas rendering ----
   useEffect(() => {
     if (!isActive || !canvasRef.current) return
 
@@ -86,59 +164,113 @@ export default function SearchRadar({ stats, steps, isActive }: Props) {
     const centerY = H / 2
     const maxR = W / 2 - 20
 
+    // GSAP-driven sweep angle for smoother rotation
+    sweepRef.current.angle = 0
+    const sweepTween = gsap.to(sweepRef.current, {
+      angle: Math.PI * 2,
+      duration: 3,
+      repeat: -1,
+      ease: 'none',
+    })
+
     let t = 0
-    const localParticles: { x: number; y: number; vx: number; vy: number; color: string; life: number; size: number }[] = []
+    const trailParticles: CanvasParticle[] = []
 
     const draw = () => {
       t += 0.02
       ctx.clearRect(0, 0, W, H)
 
+      // ---- Dark background with subtle grid ----
+      ctx.fillStyle = 'rgba(10, 14, 23, 0.95)'
+      ctx.fillRect(0, 0, W, H)
+
+      const gridSize = 20
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.04)'
+      ctx.lineWidth = 0.5
+      for (let gx = 0; gx <= W; gx += gridSize) {
+        ctx.beginPath()
+        ctx.moveTo(gx, 0)
+        ctx.lineTo(gx, H)
+        ctx.stroke()
+      }
+      for (let gy = 0; gy <= H; gy += gridSize) {
+        ctx.beginPath()
+        ctx.moveTo(0, gy)
+        ctx.lineTo(W, gy)
+        ctx.stroke()
+      }
+
+      // ---- Concentric layer rings ----
       for (let i = 0; i < 9; i++) {
         const r = (maxR / 9) * (i + 1)
-        const isActive = activeLayers.has(i)
+        const active = activeLayers.has(i)
+
         ctx.beginPath()
         ctx.arc(centerX, centerY, r, 0, Math.PI * 2)
-        ctx.strokeStyle = isActive
-          ? SEARCH_LAYERS[i].color + '60'
-          : 'rgba(148, 163, 184, 0.08)'
-        ctx.lineWidth = isActive ? 1.5 : 0.5
+        ctx.strokeStyle = active
+          ? SEARCH_LAYERS[i].color + '50'
+          : 'rgba(148, 163, 184, 0.06)'
+        ctx.lineWidth = active ? 1.5 : 0.5
         ctx.stroke()
 
-        if (isActive) {
+        if (active) {
           const pulseR = r + Math.sin(t * 2 + i) * 2
           ctx.beginPath()
           ctx.arc(centerX, centerY, pulseR, 0, Math.PI * 2)
-          ctx.strokeStyle = SEARCH_LAYERS[i].color + '20'
+          ctx.strokeStyle = SEARCH_LAYERS[i].color + '18'
           ctx.lineWidth = 3
           ctx.stroke()
         }
       }
 
+      // ---- Cross-hair lines ----
       for (let i = 0; i < 4; i++) {
         const angle = (Math.PI * 2 / 4) * i + t * 0.3
         ctx.beginPath()
         ctx.moveTo(centerX, centerY)
         ctx.lineTo(
           centerX + Math.cos(angle) * maxR,
-          centerY + Math.sin(angle) * maxR
+          centerY + Math.sin(angle) * maxR,
         )
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.06)'
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.05)'
         ctx.lineWidth = 0.5
         ctx.stroke()
       }
 
-      const sweepAngle = t * 1.5 % (Math.PI * 2)
-      const gradient = ctx.createConicalGradient
-        ? null
-        : ctx.createLinearGradient(centerX, centerY, centerX + maxR, centerY)
+      // ---- GSAP-driven sweep wedge ----
+      const sweepAngle = sweepRef.current.angle
+      const sweepArc = 0.4
 
+      const grad = ctx.createConicGradient?.(sweepAngle, centerX, centerY)
+      if (grad) {
+        grad.addColorStop(0, 'rgba(99, 102, 241, 0.15)')
+        grad.addColorStop(sweepArc / (Math.PI * 2), 'rgba(99, 102, 241, 0)')
+        grad.addColorStop(1, 'rgba(99, 102, 241, 0)')
+        ctx.beginPath()
+        ctx.arc(centerX, centerY, maxR, 0, Math.PI * 2)
+        ctx.fillStyle = grad
+        ctx.fill()
+      } else {
+        ctx.beginPath()
+        ctx.moveTo(centerX, centerY)
+        ctx.arc(centerX, centerY, maxR, sweepAngle, sweepAngle + sweepArc)
+        ctx.closePath()
+        ctx.fillStyle = 'rgba(99, 102, 241, 0.1)'
+        ctx.fill()
+      }
+
+      // Bright sweep leading edge
       ctx.beginPath()
       ctx.moveTo(centerX, centerY)
-      ctx.arc(centerX, centerY, maxR, sweepAngle, sweepAngle + 0.3)
-      ctx.closePath()
-      ctx.fillStyle = 'rgba(99, 102, 241, 0.08)'
-      ctx.fill()
+      ctx.lineTo(
+        centerX + Math.cos(sweepAngle) * maxR,
+        centerY + Math.sin(sweepAngle) * maxR,
+      )
+      ctx.strokeStyle = 'rgba(99, 102, 241, 0.35)'
+      ctx.lineWidth = 1.5
+      ctx.stroke()
 
+      // ---- Active layer dots ----
       activeLayers.forEach(layerIdx => {
         const r = (maxR / 9) * (layerIdx + 1)
         const dotAngle = t * (1 + layerIdx * 0.3) + layerIdx * 0.7
@@ -151,54 +283,102 @@ export default function SearchRadar({ stats, steps, isActive }: Props) {
         ctx.fill()
 
         ctx.beginPath()
-        ctx.arc(x, y, 6, 0, Math.PI * 2)
-        ctx.fillStyle = SEARCH_LAYERS[layerIdx].color + '30'
+        ctx.arc(x, y, 7, 0, Math.PI * 2)
+        ctx.fillStyle = SEARCH_LAYERS[layerIdx].color + '25'
         ctx.fill()
 
-        if (Math.random() < 0.03) {
-          localParticles.push({
+        if (Math.random() < 0.04) {
+          trailParticles.push({
             x, y,
-            vx: (centerX - x) * 0.02,
-            vy: (centerY - y) * 0.02,
+            vx: (centerX - x) * 0.018,
+            vy: (centerY - y) * 0.018,
             color: SEARCH_LAYERS[layerIdx].color,
             life: 1,
-            size: 2 + Math.random() * 2,
+            size: 1.5 + Math.random() * 2,
           })
         }
       })
 
-      for (let i = localParticles.length - 1; i >= 0; i--) {
-        const p = localParticles[i]
+      // ---- Trail particles ----
+      for (let i = trailParticles.length - 1; i >= 0; i--) {
+        const p = trailParticles[i]
         p.x += p.vx
         p.y += p.vy
         p.life -= 0.015
         if (p.life <= 0) {
-          localParticles.splice(i, 1)
+          trailParticles.splice(i, 1)
           continue
         }
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2)
-        ctx.fillStyle = p.color + Math.floor(p.life * 200).toString(16).padStart(2, '0')
+        ctx.fillStyle = p.color + alphaHex(p.life * 0.8)
         ctx.fill()
       }
 
+      // ---- Ring pulses (layer activation) ----
+      const rings = ringPulsesRef.current
+      for (let i = rings.length - 1; i >= 0; i--) {
+        const rp = rings[i]
+        rp.life -= 0.02
+        if (rp.life <= 0) {
+          rings.splice(i, 1)
+          continue
+        }
+        const currentR = rp.radius + (rp.maxRadius - rp.radius) * (1 - rp.life)
+        ctx.beginPath()
+        ctx.arc(rp.cx, rp.cy, currentR, 0, Math.PI * 2)
+        ctx.strokeStyle = rp.color + alphaHex(rp.life * 0.5)
+        ctx.lineWidth = 2 * rp.life
+        ctx.stroke()
+      }
+
+      // ---- Burst particles (data incoming) ----
+      const bursts = burstParticlesRef.current
+      for (let i = bursts.length - 1; i >= 0; i--) {
+        const bp = bursts[i]
+        bp.x += bp.vx
+        bp.y += bp.vy
+        bp.vx *= 0.97
+        bp.vy *= 0.97
+        bp.life -= 0.02
+        if (bp.life <= 0) {
+          bursts.splice(i, 1)
+          continue
+        }
+        ctx.beginPath()
+        ctx.arc(bp.x, bp.y, bp.size * bp.life, 0, Math.PI * 2)
+        ctx.fillStyle = bp.color + alphaHex(bp.life * 0.7)
+        ctx.fill()
+      }
+
+      // ---- Center dot ----
       ctx.beginPath()
       ctx.arc(centerX, centerY, 8, 0, Math.PI * 2)
-      ctx.fillStyle = '#6366f1'
+      const centerGlow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 14)
+      centerGlow.addColorStop(0, 'rgba(99, 102, 241, 0.9)')
+      centerGlow.addColorStop(0.5, 'rgba(99, 102, 241, 0.3)')
+      centerGlow.addColorStop(1, 'rgba(99, 102, 241, 0)')
+      ctx.fillStyle = centerGlow
       ctx.fill()
+
       ctx.beginPath()
-      ctx.arc(centerX, centerY, 12, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(99, 102, 241, 0.3)'
+      ctx.arc(centerX, centerY, 5, 0, Math.PI * 2)
+      ctx.fillStyle = '#818cf8'
       ctx.fill()
 
       animRef.current = requestAnimationFrame(draw)
     }
 
     draw()
-    return () => cancelAnimationFrame(animRef.current)
+    return () => {
+      cancelAnimationFrame(animRef.current)
+      sweepTween.kill()
+    }
   }, [isActive, activeLayers])
 
   if (!isActive && !stats) return null
+
+  const engineCount = stats ? Object.keys(stats.engines).length : 0
 
   return (
     <motion.div
@@ -222,8 +402,9 @@ export default function SearchRadar({ stats, steps, isActive }: Props) {
             9层搜索矩阵
           </span>
           {stats && (
-            <span className="text-xs text-slate-400">
-              {stats.total_deduped} 条结果 · {Object.keys(stats.engines).length} 引擎
+            <span className="text-xs text-slate-400 tabular-nums">
+              <AnimatedCounter value={stats.total_deduped} size="sm" className="!text-xs !font-normal text-slate-400" /> 条结果 ·{' '}
+              <AnimatedCounter value={engineCount} size="sm" className="!text-xs !font-normal text-slate-400" /> 引擎
             </span>
           )}
           {isActive && (
@@ -248,7 +429,7 @@ export default function SearchRadar({ stats, steps, isActive }: Props) {
           >
             <div className="flex flex-col md:flex-row items-center gap-4 px-4 pb-4">
               {/* Radar canvas */}
-              <div className="relative flex-shrink-0">
+              <div className="relative flex-shrink-0 rounded-xl overflow-hidden">
                 <canvas
                   ref={canvasRef}
                   className="w-[280px] h-[280px]"
@@ -260,16 +441,25 @@ export default function SearchRadar({ stats, steps, isActive }: Props) {
               <div className="flex-1 space-y-1.5 min-w-0">
                 {SEARCH_LAYERS.map((layer, i) => {
                   const isLayerActive = activeLayers.has(i)
-                  const engineCount = stats?.engines
-                    ? Object.entries(stats.engines).filter(([k]) =>
-                        k.toLowerCase().includes(layer.id) || layer.name.includes(k)
-                      ).reduce((sum, [, v]) => sum + v, 0)
+                  const layerCount = stats?.engines
+                    ? Object.entries(stats.engines)
+                        .filter(([k]) =>
+                          k.toLowerCase().includes(layer.id) || layer.name.includes(k),
+                        )
+                        .reduce((sum, [, v]) => sum + v, 0)
                     : 0
+
                   return (
                     <motion.div
                       key={layer.id}
                       initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
+                      animate={{
+                        opacity: 1,
+                        x: 0,
+                        boxShadow: isLayerActive
+                          ? `0 0 12px ${layer.color}20`
+                          : '0 0 0px transparent',
+                      }}
                       transition={{ delay: i * 0.05 }}
                       className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all ${
                         isLayerActive
@@ -279,22 +469,32 @@ export default function SearchRadar({ stats, steps, isActive }: Props) {
                     >
                       <span className="text-base">{layer.icon}</span>
                       <span
-                        className="w-2 h-2 rounded-full"
+                        className="w-2 h-2 rounded-full transition-shadow duration-500"
                         style={{
                           backgroundColor: layer.color,
                           boxShadow: isLayerActive ? `0 0 8px ${layer.color}` : 'none',
                         }}
                       />
-                      <span className={`flex-1 ${isLayerActive ? 'text-slate-700 dark:text-slate-200 font-medium' : 'text-slate-400'}`}>
+                      <span
+                        className={`flex-1 ${
+                          isLayerActive
+                            ? 'text-slate-700 dark:text-slate-200 font-medium'
+                            : 'text-slate-400'
+                        }`}
+                      >
                         第{i + 1}层: {layer.name}
                       </span>
                       {isLayerActive && (
                         <motion.span
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          className="text-emerald-600 dark:text-emerald-400 font-semibold"
+                          className="text-emerald-600 dark:text-emerald-400 font-semibold tabular-nums"
                         >
-                          {engineCount > 0 ? `${engineCount}条` : '●'}
+                          {layerCount > 0 ? (
+                            <AnimatedCounter value={layerCount} suffix="条" size="sm" className="!text-xs" />
+                          ) : (
+                            '●'
+                          )}
                         </motion.span>
                       )}
                     </motion.div>
@@ -303,20 +503,32 @@ export default function SearchRadar({ stats, steps, isActive }: Props) {
               </div>
             </div>
 
-            {/* Stats summary */}
+            {/* Stats summary with animated counters */}
             {stats && (
               <div className="px-4 pb-3 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div>
-                    <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{stats.total_raw}</div>
+                    <AnimatedCounter
+                      value={stats.total_raw}
+                      size="lg"
+                      className="text-indigo-600 dark:text-indigo-400"
+                    />
                     <div className="text-[10px] text-slate-500">原始结果</div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stats.total_deduped}</div>
+                    <AnimatedCounter
+                      value={stats.total_deduped}
+                      size="lg"
+                      className="text-emerald-600 dark:text-emerald-400"
+                    />
                     <div className="text-[10px] text-slate-500">去重后</div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-violet-600 dark:text-violet-400">{Object.keys(stats.engines).length}</div>
+                    <AnimatedCounter
+                      value={engineCount}
+                      size="lg"
+                      className="text-violet-600 dark:text-violet-400"
+                    />
                     <div className="text-[10px] text-slate-500">搜索引擎</div>
                   </div>
                 </div>
@@ -327,4 +539,10 @@ export default function SearchRadar({ stats, steps, isActive }: Props) {
       </AnimatePresence>
     </motion.div>
   )
+}
+
+function alphaHex(alpha: number): string {
+  return Math.round(Math.min(1, Math.max(0, alpha)) * 255)
+    .toString(16)
+    .padStart(2, '0')
 }

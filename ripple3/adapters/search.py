@@ -508,9 +508,10 @@ def search_topic(topic: str, *, max_results: int = 10) -> list[SearchResult]:
 async def search_parallel_radar(domain: str) -> dict:
     """Run all radar-related searches across all engines in parallel.
 
-    Ripple 6.0: Uses Topic Decomposition for targeted queries,
-    relevance filtering, and search quality validation with retry.
-    Target: 1000+ relevant results.
+    Ripple 6.1: Smart query routing — specific events get direct focused searches,
+    broad domains get topic decomposition. Always includes the original query
+    as a priority search term.
+    Target: 500-1000+ relevant results.
     """
     cache_key = f"radar:{domain}"
     cached = _cache_get(cache_key)
@@ -518,13 +519,25 @@ async def search_parallel_radar(domain: str) -> dict:
         return cached
 
     try:
-        from engines.topic_decomposer import decompose_domain
+        from engines.topic_decomposer import decompose_domain, classify_query_type
         from adapters.query_builder import build_radar_queries
         from engines.relevance_filter import filter_by_relevance
         from engines.search_validator import validate_search_quality, generate_retry_queries
 
+        query_type = classify_query_type(domain)
         tree = await decompose_domain(domain)
-        query_sets = build_radar_queries(tree)
+
+        if query_type == "specific_event":
+            focused_queries = tree.search_queries
+            query_sets = {
+                "peers": focused_queries[:12],
+                "bloggers": [q for q in focused_queries if "博主" in q or "KOC" in q or "达人" in q] or focused_queries[12:17],
+                "news": [q for q in focused_queries if "最新" in q or "热搜" in q or "热点" in q] or focused_queries[5:10],
+                "trending": [q for q in focused_queries if "热议" in q or "讨论" in q] or focused_queries[17:22],
+            }
+            log.info("Specific event search: '%s' → %d focused queries", domain, len(focused_queries))
+        else:
+            query_sets = build_radar_queries(tree)
     except Exception as exc:
         log.warning("Topic decomposition failed, using legacy queries: %s", exc)
         query_sets = {
@@ -533,6 +546,11 @@ async def search_parallel_radar(domain: str) -> dict:
             "news": _generate_news_queries(domain),
             "trending": _generate_trending_queries(),
         }
+
+    # Always inject the original query as-is into every category for direct matching
+    for key in query_sets:
+        if domain not in query_sets[key]:
+            query_sets[key].insert(0, domain)
 
     max_per = 25
 
@@ -563,11 +581,14 @@ async def search_parallel_radar(domain: str) -> dict:
     except Exception as exc:
         log.warning("Search validation failed: %s", exc)
 
-    # Relevance filtering on peers (the main content category)
+    # Relevance filtering — use original query as the anchor
     try:
         if result.get("peers"):
-            filtered = await filter_by_relevance(domain, result["peers"])
-            result["peers"] = filtered.relevant if filtered.relevant else result["peers"]
+            filtered = await filter_by_relevance(domain, result["peers"], threshold=0.5)
+            if filtered.relevant and filtered.relevance_rate > 0.2:
+                result["peers"] = filtered.relevant
+            else:
+                log.warning("Relevance filter too aggressive (rate=%.1f%%), keeping all", filtered.relevance_rate * 100)
     except Exception as exc:
         log.warning("Relevance filter failed: %s", exc)
 

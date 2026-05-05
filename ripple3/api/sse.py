@@ -100,3 +100,20 @@ def reflection_event(iteration: int, score: float, action: str) -> str:
         "score": score,
         "action": action,
     })
+
+
+def deep_research_event(phase: int, total_phases: int, description: str, results_so_far: int = 0) -> str:
+    return sse_event("deep_research", {
+        "phase": phase,
+        "total_phases": total_phases,
+        "description": description,
+        "results_so_far": results_so_far,
+    })
+
+
+def wechat_strategy_event(strategy: dict) -> str:
+    return sse_event("wechat_strategy", strategy)
+
+
+def koc_growth_event(growth_data: dict) -> str:
+    return sse_event("koc_growth", growth_data)

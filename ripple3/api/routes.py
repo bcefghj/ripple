@@ -27,6 +27,9 @@ from api.sse import (
     token_usage_event,
     viral_score_event,
     reflection_event,
+    deep_research_event,
+    wechat_strategy_event,
+    koc_growth_event,
 )
 from core.intent import classify_intent, _filter_think_tags
 from core.llm import chat_stream, chat_deep_stream
@@ -445,10 +448,26 @@ async def _stream_radar(domain: str, history: list[dict], memory: str) -> AsyncI
 
     if peer_count >= 5:
         yield content_event("\n\n---\n\n")
-        yield thinking_event("内容DNA分析", "正在提取爆款内容的基因图谱...", progress=92)
+        yield thinking_event("内容DNA分析", "正在提取爆款内容的基因图谱...", progress=85)
         samples = [{"title": r.title, "snippet": r.snippet, "url": r.url} for r in data["peers"][:25]]
         async for chunk in stream_content_dna_analysis(samples, domain):
             yield content_event(chunk)
+
+    # WeChat ecosystem strategy generation
+    yield thinking_event("微信生态策略", "正在生成视频号/公众号/搜一搜/私域策略...", progress=90)
+    try:
+        wechat_data = await _generate_wechat_strategy(domain, data)
+        yield wechat_strategy_event(wechat_data)
+    except Exception as exc:
+        log.warning("WeChat strategy generation failed: %s", exc)
+
+    # KOC growth plan
+    yield thinking_event("KOC成长规划", "正在制定30天增长计划...", progress=95)
+    try:
+        koc_data = await _generate_koc_growth_plan(domain, data)
+        yield koc_growth_event(koc_data)
+    except Exception as exc:
+        log.warning("KOC growth plan generation failed: %s", exc)
 
     if citations.citations:
         yield sources_event(citations.to_list())
@@ -877,3 +896,90 @@ async def _update_memory(domain: str, topic: str, intent: str) -> None:
             await store.set_pref("memory_summary", "; ".join(summary_parts))
     except Exception as exc:
         log.warning("Failed to update memory: %s", exc)
+
+
+# ── WeChat ecosystem strategy ─────────────────────────────────────────────────
+
+async def _generate_wechat_strategy(domain: str, search_data: dict) -> dict:
+    """Generate WeChat ecosystem strategies based on domain analysis."""
+    from core.llm import chat_json
+
+    sample_content = "\n".join(
+        f"- {r.title}" for r in search_data.get("peers", [])[:15]
+    )
+
+    messages = [
+        {"role": "system", "content": """你是微信生态运营专家。基于领域分析数据，生成四个维度的微信策略。
+严格返回JSON（无markdown包裹）：
+{
+  "videoAccount": {
+    "tips": ["具体建议1", "具体建议2", ...],
+    "algorithm": "视频号推荐算法要点说明",
+    "bestPractices": ["最佳实践1", ...]
+  },
+  "officialAccount": {
+    "seoKeywords": ["SEO关键词1", ...],
+    "format": "适合的图文格式说明",
+    "tips": ["运营建议1", ...]
+  },
+  "search": {
+    "keywords": ["搜一搜关键词1", ...],
+    "optimization": ["优化建议1", ...]
+  },
+  "privateDomain": {
+    "funnelSteps": ["引流步骤1", "沉淀步骤2", ...],
+    "tips": ["私域建议1", ...]
+  }
+}
+每个维度给出3-5条具体、可操作的建议。"""},
+        {"role": "user", "content": f"领域: {domain}\n该领域热门内容样本:\n{sample_content}"},
+    ]
+
+    data = await chat_json(messages, temperature=0.5, max_tokens=2048)
+    return data
+
+
+# ── KOC growth plan ───────────────────────────────────────────────────────────
+
+async def _generate_koc_growth_plan(domain: str, search_data: dict) -> dict:
+    """Generate a 30-day KOC growth plan based on domain data."""
+    from core.llm import chat_json
+
+    messages = [
+        {"role": "system", "content": """你是KOC增长策略师。为一个0基础新手创作者制定30天成长计划。
+严格返回JSON（无markdown包裹）：
+{
+  "currentFollowers": 0,
+  "targetFollowers": 1000,
+  "daysToTarget": 30,
+  "growthCurve": [
+    {"day": 1, "followers": 0},
+    {"day": 7, "followers": 50},
+    {"day": 14, "followers": 200},
+    {"day": 21, "followers": 500},
+    {"day": 30, "followers": 1000}
+  ],
+  "weeklyPlan": [
+    {"week": 1, "focus": "定位+首发", "posts": 5, "target": "完成账号搭建和首批内容"},
+    {"week": 2, "focus": "数据复盘", "posts": 5, "target": "找到数据最好的内容方向"},
+    {"week": 3, "focus": "爆款冲刺", "posts": 7, "target": "产出1-2条高互动内容"},
+    {"week": 4, "focus": "稳定输出", "posts": 7, "target": "形成稳定更新节奏"}
+  ],
+  "platformBreakdown": [
+    {"platform": "小红书", "percentage": 40, "color": "#FF2442"},
+    {"platform": "视频号", "percentage": 30, "color": "#07C160"},
+    {"platform": "抖音", "percentage": 20, "color": "#000000"},
+    {"platform": "公众号", "percentage": 10, "color": "#576B95"}
+  ],
+  "contentCalendar": [
+    {"day": 1, "type": "图文", "topic": "领域入门科普"},
+    {"day": 2, "type": "短视频", "topic": "个人经验分享"},
+    {"day": 3, "type": "清单", "topic": "XX推荐合集"}
+  ]
+}
+根据具体领域调整策略和内容日历（给出7天的内容日历）。"""},
+        {"role": "user", "content": f"领域: {domain}"},
+    ]
+
+    data = await chat_json(messages, temperature=0.5, max_tokens=2048)
+    return data

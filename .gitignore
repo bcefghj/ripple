@@ -1,73 +1,45 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyc
-*.pyo
-*.egg-info/
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
 dist/
 build/
-.venv/
-venv/
-.env
-*.env.local
+*.egg-info/
 
-# Secrets
+# Environment
+.env
 .env.local
 .env.*.local
-secrets.json
-*_secret*
 
-# Test artifacts
-.pytest_cache/
-htmlcov/
-.coverage
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
 
-# Node
-node_modules/
-.next/
-.nuxt/
-.vite/
-
-# macOS
-.DS_Store
-**/.DS_Store
-
-# IDEs
-.idea/
+# IDE
 .vscode/
-.cursor/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vite
+.vite/
 
 # Logs
 *.log
-logs/
+npm-debug.log*
 
-# SQLite local DB
-*.db
-*.sqlite
-
-# Compiled LaTeX
-*.aux
-*.out
-*.toc
-*.fls
-*.fdb_latexmk
-*.synctex.gz
-
-# Build artifacts
-docs/proposal/.fonts-detected
-docs/proposal/main.xdv
-apps/api/.ripple/
-ripple3/web/dist/
-
-# Output and generated content
-apps/ripple3/output/
-apps/ripple3/.env
-ripple3/output/
+# Output
 output/
+*.sqlite3
 
-# Handover materials (local reference only)
-_handover/
-ripple_complete_handover_materials/
-
-# PDF reports (too large for git)
-*.pdf
+# Temp
+tmp/
+temp/

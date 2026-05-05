@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { Sparkles, ChevronDown, ChevronUp, ExternalLink, AlertTriangle, Database } from 'lucide-react'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, lazy, Suspense } from 'react'
 import type { ChatMessage as ChatMsg, GraphNode, GraphData } from '../lib/api'
 import MarkdownRenderer from './MarkdownRenderer'
 import ThinkingPanel from './ThinkingPanel'
@@ -12,6 +12,11 @@ import TokenUsagePanel from './TokenUsagePanel'
 import ViralScorePanel from './ViralScorePanel'
 import SearchRadar from './SearchRadar'
 import { expandGraphNode } from '../lib/api'
+
+const WeChatEcosystemPanel = lazy(() => import('./WeChatEcosystemPanel'))
+const KOCGrowthDashboard = lazy(() => import('./KOCGrowthDashboard'))
+const DataUniverseParticles = lazy(() => import('./DataUniverseParticles'))
+const AIThinkingFlow = lazy(() => import('./AIThinkingFlow'))
 
 interface Props {
   message: ChatMsg
@@ -126,29 +131,13 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
         )}
 
         {hasSearchStats && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mb-3 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800"
-          >
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-1.5">
-              <Database className="w-3 h-3" />
-              <span className="font-medium">数据来源透明度</span>
-              <span className="ml-auto text-[10px]">
-                共 {message.searchStats!.total_deduped} 条去重数据
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {Object.entries(message.searchStats!.engines).map(([engine, count]) => (
-                <span
-                  key={engine}
-                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300"
-                >
-                  {engine}: {count}
-                </span>
-              ))}
-            </div>
-          </motion.div>
+          <Suspense fallback={<div className="h-[280px] animate-pulse bg-slate-800/30 rounded-2xl mb-3" />}>
+            <DataUniverseParticles
+              engines={message.searchStats!.engines}
+              totalResults={message.searchStats!.total_deduped}
+              isActive={!!message.isStreaming}
+            />
+          </Suspense>
         )}
 
         {hasGraph && (
@@ -203,6 +192,18 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
 
         {hasViralScore && (
           <ViralScorePanel data={message.viralScore!} />
+        )}
+
+        {message.wechatStrategy && (
+          <Suspense fallback={<div className="h-40 animate-pulse bg-slate-800/50 rounded-2xl mb-3" />}>
+            <WeChatEcosystemPanel strategy={message.wechatStrategy} domain="" />
+          </Suspense>
+        )}
+
+        {message.kocGrowth && (
+          <Suspense fallback={<div className="h-40 animate-pulse bg-slate-800/50 rounded-2xl mb-3" />}>
+            <KOCGrowthDashboard data={message.kocGrowth} />
+          </Suspense>
         )}
 
         {message.content ? (

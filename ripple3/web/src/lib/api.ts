@@ -20,7 +20,7 @@ export interface Citation {
 export interface GraphNode {
   id: string
   name: string
-  type: 'person' | 'topic' | 'platform' | 'format' | 'audience'
+  type: 'person' | 'topic' | 'platform' | 'format' | 'audience' | 'trend' | 'strategy' | 'brand' | 'event' | 'metric'
   val: number
   color: string
   desc?: string
@@ -90,8 +90,46 @@ export interface ViralScoreData {
   engagement_formula: string
 }
 
+export interface WeChatStrategy {
+  videoAccount: {
+    tips: string[]
+    algorithm: string
+    bestPractices: string[]
+  }
+  officialAccount: {
+    seoKeywords: string[]
+    format: string
+    tips: string[]
+  }
+  search: {
+    keywords: string[]
+    optimization: string[]
+  }
+  privateDomain: {
+    funnelSteps: string[]
+    tips: string[]
+  }
+}
+
+export interface KOCGrowthData {
+  currentFollowers: number
+  targetFollowers: number
+  daysToTarget: number
+  growthCurve: { day: number; followers: number }[]
+  weeklyPlan: { week: number; focus: string; posts: number; target: string }[]
+  platformBreakdown: { platform: string; percentage: number; color: string }[]
+  contentCalendar: { day: number; type: string; topic: string }[]
+}
+
+export interface DeepResearchPhase {
+  phase: number
+  total_phases: number
+  description: string
+  results_so_far: number
+}
+
 export interface SSEMessage {
-  type: 'thinking' | 'content' | 'sources' | 'done' | 'error' | 'graph' | 'score' | 'agent_speak' | 'agent_start' | 'arbiter_thinking' | 'search_stats' | 'data_warning' | 'token_usage' | 'viral_score' | 'reflection'
+  type: 'thinking' | 'content' | 'sources' | 'done' | 'error' | 'graph' | 'score' | 'agent_speak' | 'agent_start' | 'arbiter_thinking' | 'search_stats' | 'data_warning' | 'token_usage' | 'viral_score' | 'reflection' | 'deep_research' | 'wechat_strategy' | 'koc_growth'
   data: any
 }
 
@@ -113,6 +151,9 @@ export interface ChatMessage {
   dataWarning?: string
   tokenUsage?: TokenUsage
   viralScore?: ViralScoreData
+  wechatStrategy?: WeChatStrategy
+  kocGrowth?: KOCGrowthData
+  deepResearch?: DeepResearchPhase
   nextSteps?: NextStep[]
   isStreaming?: boolean
 }

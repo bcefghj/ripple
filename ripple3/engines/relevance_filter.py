@@ -3,6 +3,9 @@
 Uses a combination of keyword matching (fast) and LLM batch classification
 (accurate) to filter out irrelevant results. This directly addresses the
 core problem: searching "数码科技" but getting gaming/entertainment content.
+
+Ripple 6.1: Enhanced with original-query anchoring — extracts key entities
+from the user's original input and uses them as primary relevance anchors.
 """
 
 from __future__ import annotations
@@ -27,18 +30,21 @@ class FilterResult:
 async def filter_by_relevance(
     domain: str,
     results: list,
-    threshold: float = 0.6,
+    threshold: float = 0.5,
     max_batch_size: int = 50,
 ) -> FilterResult:
     """Filter search results for domain relevance using a two-pass approach.
 
     Pass 1: Fast keyword-based pre-filter (removes obvious mismatches)
     Pass 2: LLM batch classification for borderline cases
+
+    Ripple 6.1: Uses original query keywords as primary anchors.
     """
     if not results:
         return FilterResult(relevant=[], filtered=[], relevance_rate=0.0, diagnostics="无搜索结果")
 
     domain_keywords = _extract_domain_keywords(domain)
+    core_keywords = _extract_core_entities(domain)
 
     pass1_relevant = []
     pass1_borderline = []
@@ -46,10 +52,17 @@ async def filter_by_relevance(
 
     for r in results:
         text = f"{r.title} {r.snippet}".lower()
-        score = _keyword_relevance_score(text, domain_keywords)
-        if score >= 0.7:
+
+        # Priority: if ANY core entity from original query appears, it's relevant
+        core_match = any(ck.lower() in text for ck in core_keywords if len(ck) >= 2)
+        if core_match:
             pass1_relevant.append(r)
-        elif score >= 0.3:
+            continue
+
+        score = _keyword_relevance_score(text, domain_keywords)
+        if score >= 0.6:
+            pass1_relevant.append(r)
+        elif score >= 0.25:
             pass1_borderline.append(r)
         else:
             pass1_irrelevant.append(r)
@@ -70,7 +83,7 @@ async def filter_by_relevance(
     diagnostics = (
         f"总结果: {total} | 相关: {relevant_count} ({rate:.0%}) | "
         f"过滤: {len(final_filtered)} | "
-        f"关键词匹配: {len(pass1_relevant) - len(pass1_borderline)} | "
+        f"核心实体匹配: {sum(1 for r in pass1_relevant if any(ck.lower() in f'{r.title} {r.snippet}'.lower() for ck in core_keywords if len(ck) >= 2))} | "
         f"LLM验证: {len(pass1_borderline)}"
     )
 
@@ -83,9 +96,57 @@ async def filter_by_relevance(
     )
 
 
+def _extract_core_entities(query: str) -> list[str]:
+    """Extract the most important entities from the original user query.
+
+    These serve as hard anchors — any result containing these is considered relevant.
+    """
+    entities = []
+
+    # Extract location names (city names within the query)
+    city_pattern = r'(北京|上海|广州|深圳|成都|杭州|南京|武汉|重庆|西安|长沙|天津|苏州|厦门|青岛)'
+    for m in re.finditer(city_pattern, query):
+        entities.append(m.group(1))
+
+    # After extracting cities, try to get the person name (text before city or event keyword)
+    event_keywords = ["演唱会", "发布会", "比赛", "晚会", "直播", "新歌", "专辑", "电影", "综艺"]
+    for kw in event_keywords:
+        if kw in query:
+            prefix = query.split(kw)[0]
+            # Remove city from prefix to get person name
+            for m in re.finditer(city_pattern, prefix):
+                prefix = prefix.replace(m.group(1), "")
+            prefix = prefix.strip()
+            if 2 <= len(prefix) <= 4:
+                entities.append(prefix)
+            entities.append(kw)
+            break
+
+    # Split query into meaningful segments (by spaces, punctuation)
+    segments = re.split(r'[，。！？、\s]+', query)
+    for seg in segments:
+        if len(seg) >= 2:
+            entities.append(seg)
+
+    # The full query itself is always a core entity
+    if len(query) >= 2:
+        entities.append(query)
+
+    # Remove duplicates while preserving order
+    seen = set()
+    unique = []
+    for e in entities:
+        e_clean = e.strip()
+        if e_clean and e_clean not in seen:
+            seen.add(e_clean)
+            unique.append(e_clean)
+
+    return unique
+
+
 def _extract_domain_keywords(domain: str) -> list[str]:
     """Extract search keywords from domain name and common synonyms."""
-    keywords = [w for w in domain.split() if len(w) > 1]
+    keywords = [w for w in re.split(r'[\s，。、]+', domain) if len(w) > 1]
 
     synonym_map = {
         "数码": ["手机", "电脑", "笔记本", "平板", "耳机", "智能", "硬件", "芯片", "处理器",
@@ -99,12 +160,13 @@ def _extract_domain_keywords(domain: str) -> list[str]:
         "健身": ["运动", "减脂", "增肌", "训练", "饮食", "体态"],
         "旅行": ["旅游", "攻略", "景点", "打卡", "民宿", "酒店"],
         "职场": ["工作", "效率", "管理", "面试", "简历", "晋升"],
+        "演唱会": ["门票", "现场", "歌手", "舞台", "粉丝", "巡演", "安可", "演出"],
+        "娱乐": ["明星", "综艺", "八卦", "热搜", "粉丝", "偶像", "选秀"],
     }
 
     for key, synonyms in synonym_map.items():
         if key in domain:
             keywords.extend(synonyms)
-            break
 
     return list(set(keywords))
 

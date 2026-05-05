@@ -57,6 +57,7 @@ logs/
 docs/proposal/.fonts-detected
 docs/proposal/main.xdv
 apps/api/.ripple/
+ripple3/web/dist/
 
 # Output and generated content
 apps/ripple3/output/
@@ -64,8 +65,9 @@ apps/ripple3/.env
 ripple3/output/
 output/
 
-# Handover materials (local reference only, not in repo)
+# Handover materials (local reference only)
 _handover/
+ripple_complete_handover_materials/
 
 # PDF reports (too large for git)
 *.pdf

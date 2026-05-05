@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { Sparkles, ChevronDown, ChevronUp, ExternalLink, AlertTriangle, Database } from 'lucide-react'
 import { useState, useCallback } from 'react'
-import type { ChatMessage as ChatMsg, GraphNode } from '../lib/api'
+import type { ChatMessage as ChatMsg, GraphNode, GraphData } from '../lib/api'
 import MarkdownRenderer from './MarkdownRenderer'
 import ThinkingPanel from './ThinkingPanel'
 import KnowledgeGraph3D from './KnowledgeGraph3D'
@@ -10,6 +10,7 @@ import MultiAgentPanel from './MultiAgentPanel'
 import ScoreAnimation from './ScoreAnimation'
 import TokenUsagePanel from './TokenUsagePanel'
 import ViralScorePanel from './ViralScorePanel'
+import SearchRadar from './SearchRadar'
 import { expandGraphNode } from '../lib/api'
 
 interface Props {
@@ -20,6 +21,8 @@ interface Props {
 export default function ChatMessage({ message, onSendMessage }: Props) {
   const [sourcesExpanded, setSourcesExpanded] = useState(false)
   const [selectedGraphNode, setSelectedGraphNode] = useState<GraphNode | null>(null)
+  const [graphData, setGraphData] = useState<GraphData | undefined>(message.graph)
+  const [isExpandingGraph, setIsExpandingGraph] = useState(false)
   const isUser = message.role === 'user'
 
   const handleGraphNodeClick = useCallback((node: GraphNode) => {
@@ -27,16 +30,36 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
   }, [])
 
   const handleGraphExpand = useCallback(async (node: GraphNode) => {
+    setIsExpandingGraph(true)
     try {
       const domain = ''
       for await (const event of expandGraphNode(node.id, node.name, node.type, domain)) {
         if (event.type === 'graph') {
-          // Graph expansion results would be handled by parent state
-          console.log('Graph expanded:', event.data)
+          const expandedData = event.data as GraphData
+          setGraphData(prev => {
+            if (!prev) return expandedData
+            const existingIds = new Set(prev.nodes.map(n => n.id))
+            const newNodes = expandedData.nodes.filter(n => !existingIds.has(n.id))
+            const newLinks = expandedData.links.filter(l => {
+              const src = typeof l.source === 'string' ? l.source : (l.source as any).id
+              const tgt = typeof l.target === 'string' ? l.target : (l.target as any).id
+              return !prev.links.some(existing => {
+                const eSrc = typeof existing.source === 'string' ? existing.source : (existing.source as any).id
+                const eTgt = typeof existing.target === 'string' ? existing.target : (existing.target as any).id
+                return eSrc === src && eTgt === tgt
+              })
+            })
+            return {
+              nodes: [...prev.nodes, ...newNodes],
+              links: [...prev.links, ...newLinks],
+            }
+          })
         }
       }
     } catch (err) {
       console.warn('Graph expand failed:', err)
+    } finally {
+      setIsExpandingGraph(false)
     }
   }, [])
 
@@ -58,13 +81,14 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
 
   const hasThinking = message.thinking && message.thinking.length > 0
   const hasSources = message.sources && message.sources.length > 0
-  const hasGraph = message.graph && message.graph.nodes && message.graph.nodes.length > 0
+  const hasGraph = (graphData || message.graph) && (graphData || message.graph)!.nodes && (graphData || message.graph)!.nodes.length > 0
   const hasAgentMessages = message.agentMessages && message.agentMessages.length > 0
   const hasScore = message.scoreData && message.scoreData.total_score > 0
   const hasSearchStats = message.searchStats && message.searchStats.total_deduped > 0
   const hasDataWarning = !!message.dataWarning
   const hasTokenUsage = !!message.tokenUsage
   const hasViralScore = message.viralScore && message.viralScore.total_score > 0
+  const currentGraph = graphData || message.graph
 
   return (
     <motion.div
@@ -80,6 +104,15 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
 
       <div className="flex-1 min-w-0">
         {hasThinking && <ThinkingPanel steps={message.thinking!} />}
+
+        {/* Search Radar - shows during active search */}
+        {hasThinking && (
+          <SearchRadar
+            stats={message.searchStats}
+            steps={message.thinking!}
+            isActive={!!message.isStreaming}
+          />
+        )}
 
         {hasDataWarning && (
           <motion.div
@@ -120,8 +153,9 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
 
         {hasGraph && (
           <KnowledgeGraph3D
-            data={message.graph!}
+            data={currentGraph!}
             onNodeClick={handleGraphNodeClick}
+            isExpanding={isExpandingGraph}
           />
         )}
 
@@ -168,7 +202,7 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
         )}
 
         {hasViralScore && (
-          <ViralScorePanel score={message.viralScore!} />
+          <ViralScorePanel data={message.viralScore!} />
         )}
 
         {message.content ? (
@@ -248,7 +282,7 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
       {selectedGraphNode && hasGraph && (
         <GraphDetailPanel
           node={selectedGraphNode}
-          graphData={message.graph!}
+          graphData={currentGraph!}
           onClose={() => setSelectedGraphNode(null)}
           onExpand={handleGraphExpand}
         />

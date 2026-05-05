@@ -434,8 +434,13 @@ async def _search_minimax(queries: list[str], max_per_query: int = 20) -> list[S
 
 async def _fan_out_search(queries: list[str], *, max_per_query: int = 20) -> list[SearchResult]:
     """9-layer search matrix: fire all in parallel, merge and deduplicate."""
+    engine_names = [
+        "minimax", "hunyuan", "qwen", "serper", "tavily", "exa",
+        "you", "brave", "baidu", "google", "ddgs",
+        "platform", "dailyhot", "searxng", "jina",
+    ]
     tasks = [
-        _search_minimax(queries[:8], max_per_query=max_per_query),
+        _search_minimax(queries[:15], max_per_query=max_per_query),
         _search_hunyuan(queries[:6]),
         _search_qwen(queries[:6]),
         _search_serper(queries, num_per_query=max_per_query),
@@ -455,17 +460,28 @@ async def _fan_out_search(queries: list[str], *, max_per_query: int = 20) -> lis
 
     combined: list[SearchResult] = []
     engine_stats: dict[str, int] = {}
-    for result in results_lists:
-        if isinstance(result, list):
-            for r in result:
-                combined.append(r)
-                engine = r.engine.split(":")[0] if ":" in r.engine else r.engine
-                engine_stats[engine] = engine_stats.get(engine, 0) + 1
+    engine_status: dict[str, str] = {}
+
+    for name, result in zip(engine_names, results_lists):
+        if isinstance(result, BaseException):
+            engine_status[name] = f"ERROR: {result}"
+        elif isinstance(result, list):
+            count = len(result)
+            engine_status[name] = f"OK ({count})"
+            engine_stats[name] = count
+            combined.extend(result)
+        else:
+            engine_status[name] = "EMPTY"
 
     deduped = _dedup_results(combined)
+
+    active = [f"{k}={v}" for k, v in engine_stats.items() if v > 0]
+    failed = [k for k, v in engine_status.items() if v.startswith("ERROR")]
     log.info(
-        "搜索矩阵: %d 条原始 → %d 条去重 | 引擎统计: %s",
-        len(combined), len(deduped), engine_stats,
+        "搜索矩阵: %d queries → %d 原始 → %d 去重 | 活跃引擎: %s%s",
+        len(queries), len(combined), len(deduped),
+        ", ".join(active) if active else "无",
+        f" | 失败: {', '.join(failed)}" if failed else "",
     )
     return deduped
 

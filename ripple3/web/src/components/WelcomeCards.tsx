@@ -99,14 +99,14 @@ export default function WelcomeCards({ onSelect }: Props) {
             Ripple
           </h1>
           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white uppercase tracking-wider">
-            5.0
+            6.0
           </span>
         </div>
         <p className="text-slate-500 dark:text-slate-400 text-base leading-relaxed max-w-md mx-auto">
-          数据驱动的内容决策平台
+          KOC 决策智能平台
           <br />
           <span className="text-xs text-slate-400 dark:text-slate-500">
-            8层搜索矩阵 · 多Agent对抗辩论 · 内容DNA分析
+            9层搜索矩阵 · 多Agent辩论 · CES爆款预测 · 内容DNA分析
           </span>
         </p>
       </motion.div>

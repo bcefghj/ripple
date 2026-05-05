@@ -1,12 +1,16 @@
 """MiniMax Token Plan web search adapter.
 
-Leverages the MiniMax Coding Plan's built-in web_search capability
-via direct HTTP API call. Each Token Plan subscription includes 450
-search calls per day at no extra cost.
+Uses the MiniMax Coding Plan search endpoint (``/v1/coding_plan/search``)
+which is included free with every Token Plan subscription (450 calls/day).
+
+Fallback: if the direct search endpoint fails, use MiniMax chat completions
+with a web-search system prompt to extract structured results.
 """
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 from dataclasses import dataclass
 
@@ -25,19 +29,20 @@ class MiniMaxSearchResult:
 
 
 async def minimax_web_search(query: str, count: int = 20) -> list[MiniMaxSearchResult]:
-    """Perform a web search using MiniMax Token Plan's built-in search API."""
+    """Perform a web search using MiniMax Coding Plan search API."""
     from core.config import get_settings
     s = get_settings()
     if not s.minimax_api_key:
         return []
 
     host = s.minimax_search_host or "https://api.minimaxi.com"
-    url = f"{host.rstrip('/')}/v1/web_search"
+    url = f"{host.rstrip('/')}/v1/coding_plan/search"
     headers = {
         "Authorization": f"Bearer {s.minimax_api_key}",
         "Content-Type": "application/json",
+        "MM-API-Source": "Minimax-MCP",
     }
-    payload = {"query": query, "count": min(count, 30)}
+    payload = {"q": query, "count": min(count, 30)}
 
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
@@ -46,27 +51,32 @@ async def minimax_web_search(query: str, count: int = 20) -> list[MiniMaxSearchR
             data = resp.json()
 
         results: list[MiniMaxSearchResult] = []
-        for item in data.get("results", data.get("organic_results", [])):
-            results.append(MiniMaxSearchResult(
-                title=item.get("title", ""),
-                url=item.get("url", item.get("link", "")),
-                snippet=item.get("snippet", item.get("description", "")),
-            ))
+        items = (
+            data.get("organic")
+            or data.get("results")
+            or data.get("organic_results")
+            or data.get("web", {}).get("results")
+            or []
+        )
+        for item in items:
+            title = item.get("title", "")
+            link = item.get("url") or item.get("link") or ""
+            snippet = item.get("snippet") or item.get("description") or item.get("content", "")
+            if link:
+                results.append(MiniMaxSearchResult(title=title, url=link, snippet=snippet))
+
+        log.info("MiniMax search OK: query='%s' → %d results", query[:40], len(results))
         return results
     except httpx.HTTPStatusError as exc:
-        if exc.response.status_code == 404:
-            return await _fallback_chat_search(query, s)
-        log.warning("MiniMax web_search failed for '%s': %s", query[:50], exc)
-        return []
+        log.warning("MiniMax search HTTP %s for '%s', trying fallback", exc.response.status_code, query[:40])
+        return await _fallback_chat_search(query, s)
     except Exception as exc:
-        log.warning("MiniMax web_search failed for '%s': %s", query[:50], exc)
+        log.warning("MiniMax search error for '%s': %s, trying fallback", query[:40], exc)
         return await _fallback_chat_search(query, s)
 
 
 async def _fallback_chat_search(query: str, settings) -> list[MiniMaxSearchResult]:
-    """Fallback: use MiniMax chat with web search tool call if direct endpoint unavailable."""
-    import json
-
+    """Fallback: ask MiniMax LLM to search and return structured results."""
     headers = {
         "Authorization": f"Bearer {settings.minimax_api_key}",
         "Content-Type": "application/json",
@@ -74,10 +84,31 @@ async def _fallback_chat_search(query: str, settings) -> list[MiniMaxSearchResul
     payload = {
         "model": settings.minimax_text_model,
         "messages": [
-            {"role": "system", "content": "你是搜索助手。搜索并以JSON数组返回结果，每条含title/url/snippet。只输出JSON。"},
+            {
+                "role": "system",
+                "content": (
+                    "你是搜索助手。请针对用户的查询进行联网搜索，"
+                    "然后以 JSON 数组返回 10-20 条搜索结果。"
+                    "每条格式: {\"title\": \"...\", \"url\": \"...\", \"snippet\": \"...\"}\n"
+                    "只输出 JSON 数组，不要其他文字。"
+                ),
+            },
             {"role": "user", "content": query},
         ],
-        "tools": [{"type": "web_search", "web_search": {"enable": True}}],
+        "tools": [
+            {
+                "type": "function",
+                "function": {
+                    "name": "web_search",
+                    "description": "Search the web for real-time information",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"query": {"type": "string"}},
+                        "required": ["query"],
+                    },
+                },
+            }
+        ],
         "temperature": 0.1,
         "max_tokens": 4096,
     }
@@ -89,8 +120,10 @@ async def _fallback_chat_search(query: str, settings) -> list[MiniMaxSearchResul
             resp.raise_for_status()
             data = resp.json()
 
-        content = data["choices"][0]["message"]["content"]
-        return _parse_json_results(content)
+        content = data["choices"][0]["message"].get("content", "")
+        results = _parse_json_results(content)
+        log.info("MiniMax fallback search: query='%s' → %d results", query[:40], len(results))
+        return results
     except Exception as exc:
         log.warning("MiniMax fallback chat search failed: %s", exc)
         return []
@@ -98,7 +131,6 @@ async def _fallback_chat_search(query: str, settings) -> list[MiniMaxSearchResul
 
 def _parse_json_results(text: str) -> list[MiniMaxSearchResult]:
     """Parse JSON array from LLM output."""
-    import json
     text = text.strip()
     if text.startswith("```"):
         lines = text.split("\n")
@@ -125,20 +157,28 @@ def _parse_json_results(text: str) -> list[MiniMaxSearchResult]:
 
 
 async def minimax_search_multi(queries: list[str], max_per_query: int = 20) -> list[MiniMaxSearchResult]:
-    """Run multiple MiniMax searches with deduplication."""
+    """Run multiple MiniMax searches concurrently with deduplication."""
     from core.config import get_settings
     if not get_settings().minimax_api_key:
         return []
 
+    async def _search_one(q: str) -> list[MiniMaxSearchResult]:
+        try:
+            return await minimax_web_search(q, count=max_per_query)
+        except Exception as exc:
+            log.warning("MiniMax multi-search failed for '%s': %s", q[:40], exc)
+            return []
+
+    batch = queries[:10]
+    all_items = await asyncio.gather(*[_search_one(q) for q in batch])
+
     results: list[MiniMaxSearchResult] = []
     seen: set[str] = set()
-
-    for q in queries[:8]:
-        items = await minimax_web_search(q, count=max_per_query)
+    for items in all_items:
         for item in items:
             if item.url and item.url not in seen:
                 seen.add(item.url)
                 results.append(item)
 
-    log.info("MiniMax search: %d queries → %d results", min(len(queries), 8), len(results))
+    log.info("MiniMax multi-search: %d queries → %d unique results", len(batch), len(results))
     return results

@@ -150,11 +150,93 @@ async def test_jina():
         return False
 
 
+async def test_minimax_search():
+    """Test MiniMax Coding Plan search (requires MINIMAX_API_KEY)."""
+    log.info("=== MiniMax Search Test ===")
+    try:
+        from core.config import get_settings
+        s = get_settings()
+        if not s.minimax_api_key:
+            log.warning("  SKIP: MINIMAX_API_KEY not set")
+            return None
+
+        from adapters.minimax_search import minimax_web_search
+        results = await asyncio.wait_for(
+            minimax_web_search("谢娜 2026年5月 成都演唱会", count=10),
+            timeout=20,
+        )
+        log.info("  Results: %d", len(results))
+        for r in results[:5]:
+            log.info("    - %s | %s", r.title[:40], r.url[:60])
+
+        if len(results) == 0:
+            log.warning("  WARNING: MiniMax returned 0 results — endpoint may still be wrong")
+        return len(results) > 0
+    except Exception as e:
+        log.warning("  FAILED: %s", e)
+        return False
+
+
+async def test_minimax_multi():
+    """Test MiniMax concurrent multi-query search."""
+    log.info("=== MiniMax Multi-Search Test ===")
+    try:
+        from core.config import get_settings
+        if not get_settings().minimax_api_key:
+            log.warning("  SKIP: MINIMAX_API_KEY not set")
+            return None
+
+        from adapters.minimax_search import minimax_search_multi
+        queries = [
+            "谢娜 成都演唱会 2026",
+            "小红书 爆款 护肤 2026",
+            "数码科技 最新趋势",
+        ]
+        start = time.time()
+        results = await asyncio.wait_for(minimax_search_multi(queries, max_per_query=10), timeout=30)
+        elapsed = time.time() - start
+        log.info("  Results: %d unique (in %.1fs)", len(results), elapsed)
+        for r in results[:5]:
+            log.info("    - %s | %s", r.title[:40], r.url[:60])
+        return len(results) > 0
+    except Exception as e:
+        log.warning("  FAILED: %s", e)
+        return False
+
+
+async def test_realtime_relevance():
+    """Test that search can find a recent real-world event."""
+    log.info("=== Realtime Relevance Test (谢娜演唱会) ===")
+    try:
+        from adapters.search import _fan_out_search
+        queries = ["谢娜 2026年5月5日 成都演唱会"]
+        start = time.time()
+        results = await asyncio.wait_for(_fan_out_search(queries, max_per_query=10), timeout=60)
+        elapsed = time.time() - start
+
+        relevant = [r for r in results if "谢娜" in r.title or "演唱会" in r.title]
+        log.info("  Total: %d, Relevant: %d (in %.1fs)", len(results), len(relevant), elapsed)
+        for r in relevant[:5]:
+            log.info("    - [%s] %s", r.engine, r.title[:40])
+
+        if not relevant and results:
+            log.info("  Top 5 results (for diagnosis):")
+            for r in results[:5]:
+                log.info("    - [%s] %s | %s", r.engine, r.title[:40], r.url[:50])
+
+        return len(relevant) > 0
+    except Exception as e:
+        log.warning("  FAILED: %s", e)
+        return False
+
+
 async def main():
     quick = "--quick" in sys.argv
 
     tests = [
         ("Config", test_config),
+        ("MiniMax Search", test_minimax_search),
+        ("MiniMax Multi-Search", test_minimax_multi),
         ("Baidu (free)", test_baidu),
         ("Platform APIs (free)", test_platform_apis),
         ("DailyHotApi (free)", test_dailyhot),
@@ -166,6 +248,7 @@ async def main():
             ("SearXNG", test_searxng),
             ("Jina AI", test_jina),
             ("Full Fan-out Search", test_fan_out_search),
+            ("Realtime Relevance", test_realtime_relevance),
         ])
 
     results = {}

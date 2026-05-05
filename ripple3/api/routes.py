@@ -294,9 +294,9 @@ def _generate_next_steps(intent: str, domain: str, topic: str) -> list[dict]:
         ]
     else:
         steps = [
-            {"label": "探索领域", "prompt": "帮我分析一下数码科技领域的内容生态"},
-            {"label": "想选题", "prompt": "帮我想10个选题灵感"},
-            {"label": "评估选题", "prompt": "帮我评估一个选题的爆款潜力"},
+            {"label": "评估选题", "prompt": f"帮我评估「{topic or '这个话题'}」这个选题的爆款潜力"},
+            {"label": "深入分析", "prompt": f"帮我深入分析一下{domain or '这个领域'}的内容生态"},
+            {"label": "帮我写内容", "prompt": f"帮我写一篇关于{topic or '这个话题'}的小红书笔记"},
         ]
     return steps
 
@@ -789,6 +789,26 @@ async def _stream_distill(blogger: str, domain: str, history: list[dict]) -> Asy
 
 
 async def _stream_chat(message: str, history: list[dict], memory: str) -> AsyncIterator[str]:
+    search_context = ""
+    msg_len = len(message)
+    has_topic = msg_len > 4 and any(
+        kw not in message for kw in ["你好", "谢谢", "嗯", "哦"]
+    )
+
+    if has_topic and msg_len > 6:
+        yield thinking_event("联网搜索", f"搜索「{message[:30]}」的最新信息...", progress=10)
+        try:
+            from adapters.minimax_search import minimax_search_multi
+            search_results = await minimax_search_multi([message, f"{message} 最新"], max_per_query=10)
+            if search_results:
+                lines = []
+                for i, r in enumerate(search_results[:10], 1):
+                    lines.append(f"{i}. 【{r.title}】\n   {r.snippet}\n   来源: {r.url}")
+                search_context = "\n".join(lines)
+                yield thinking_event("搜索完成", f"找到 {len(search_results)} 条相关信息", progress=30)
+        except Exception:
+            pass
+
     system_msg = f"""你是 Ripple — KOC 内容灵感助手，帮想成为 KOC 的新手完成从选题到创作的全流程。
 {f'用户记忆: {memory}' if memory else ''}
 
@@ -802,6 +822,8 @@ async def _stream_chat(message: str, history: list[dict], memory: str) -> AsyncI
 - 分析某位博主的创作风格（蒸馏方法论）
 
 如果用户不知道要做什么，主动引导：先聊聊感兴趣的领域 → 看看同行 → 想选题 → 评估 → 出内容。
+
+{'以下是实时搜索到的最新信息，请基于这些信息回答用户的问题：' + chr(10) + search_context if search_context else ''}
 
 直接输出回答，不要输出任何思考过程。"""
 

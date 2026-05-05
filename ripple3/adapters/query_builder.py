@@ -129,18 +129,21 @@ def build_idea_queries(tree: TopicTree, user_context: str = "") -> dict[str, lis
 
 def build_predict_queries(topic: str, domain: str = "") -> dict[str, list[str]]:
     """Build queries for viral prediction of a specific topic."""
+    date = _current_date_str()
     year = _current_year()
     domain_prefix = f"{domain} " if domain else ""
 
     competition: list[str] = [
-        f"{topic}",
+        topic,
+        f"{topic} {date}",
+        f"{topic} 最新",
         f"{topic} 教程",
         f"{topic} 经验分享",
         f"site:xiaohongshu.com {topic}",
         f"site:bilibili.com {topic}",
         f"{domain_prefix}{topic} 内容",
         f"{topic} 怎么做 攻略",
-        f"{topic} 热门",
+        f"{topic} 热门 {year}",
         f"{topic} 讨论 评论",
         f"{topic} 数据 分析",
         f"{topic} 竞品 对比 {year}",
@@ -148,8 +151,8 @@ def build_predict_queries(topic: str, domain: str = "") -> dict[str, list[str]]:
     ]
 
     trending: list[str] = [
-        f"{topic} 热度",
-        f"{domain_prefix}热搜 相关",
+        f"{topic} 热度 {date}",
+        f"{domain_prefix}热搜 相关 {date}",
         f"{topic} 搜索量 趋势",
     ]
 

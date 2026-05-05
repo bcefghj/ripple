@@ -1,8 +1,7 @@
-"""Ripple 3.0 — Modern single-page chat UI.
+"""Ripple 3.0 — Modern single-page chat UI with responsive design.
 
-Replaces the 6-tab layout with a ChatGPT/Gemini-style conversational
-interface. All features are accessible through natural language — the
-intent router automatically dispatches to the right engine.
+All features accessible through natural language — the intent router
+automatically dispatches to the right engine with parallel search.
 """
 
 from __future__ import annotations
@@ -24,239 +23,18 @@ from core.intent import (
     dispatch_idea,
     dispatch_predict,
     dispatch_create,
+    dispatch_distill,
     dispatch_chat,
 )
+from core import store
 
 log = logging.getLogger(__name__)
 
 
-# ── CSS ──────────────────────────────────────────────────────────────────────
+# ── Load CSS from external file ──────────────────────────────────────────────
 
-CSS = """
-/* ── Global ────────────────────────────────────────── */
-.gradio-container {
-    max-width: 960px !important;
-    margin: 0 auto !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                 "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
-                 sans-serif !important;
-}
-
-/* Hide default footer */
-footer { display: none !important; }
-
-/* ── Header ────────────────────────────────────────── */
-.ripple-header {
-    text-align: center;
-    padding: 24px 16px 8px;
-}
-.ripple-header h1 {
-    font-size: 28px !important;
-    font-weight: 700 !important;
-    background: linear-gradient(135deg, #3B82F6, #8B5CF6) !important;
-    -webkit-background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    background-clip: text !important;
-    margin-bottom: 4px !important;
-}
-.ripple-header p {
-    color: #64748b !important;
-    font-size: 15px !important;
-    margin: 0 !important;
-}
-
-/* ── Welcome cards ─────────────────────────────────── */
-.welcome-area {
-    max-width: 720px;
-    margin: 20px auto 8px;
-}
-.welcome-grid {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 12px !important;
-    padding: 0 8px;
-}
-.welcome-card {
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 14px !important;
-    padding: 18px 16px !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    background: #ffffff !important;
-    text-align: left !important;
-}
-.welcome-card:hover {
-    border-color: #3B82F6 !important;
-    box-shadow: 0 2px 12px rgba(59,130,246,0.12) !important;
-    transform: translateY(-1px) !important;
-}
-.welcome-card .card-icon {
-    font-size: 24px;
-    margin-bottom: 6px;
-}
-.welcome-card .card-title {
-    font-weight: 600 !important;
-    font-size: 15px !important;
-    color: #1e293b !important;
-    margin-bottom: 4px !important;
-}
-.welcome-card .card-desc {
-    font-size: 13px !important;
-    color: #64748b !important;
-    line-height: 1.4 !important;
-}
-
-/* ── Chat area ─────────────────────────────────────── */
-.chat-area {
-    max-width: 960px;
-    margin: 0 auto;
-}
-#chatbot {
-    border: none !important;
-    box-shadow: none !important;
-}
-#chatbot .message {
-    border-radius: 16px !important;
-    padding: 14px 18px !important;
-    line-height: 1.65 !important;
-    font-size: 15px !important;
-}
-#chatbot .user {
-    background: linear-gradient(135deg, #3B82F6, #6366F1) !important;
-    color: white !important;
-    border-radius: 16px 16px 4px 16px !important;
-}
-#chatbot .bot {
-    background: #f8fafc !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 16px 16px 16px 4px !important;
-}
-#chatbot .bot table {
-    font-size: 13px !important;
-    border-collapse: collapse !important;
-    width: 100% !important;
-    margin: 8px 0 !important;
-}
-#chatbot .bot table th,
-#chatbot .bot table td {
-    padding: 6px 10px !important;
-    border: 1px solid #e2e8f0 !important;
-    text-align: left !important;
-}
-#chatbot .bot table th {
-    background: #f1f5f9 !important;
-    font-weight: 600 !important;
-}
-
-/* ── Input area ────────────────────────────────────── */
-.input-area {
-    max-width: 720px;
-    margin: 0 auto;
-}
-.input-area textarea {
-    border-radius: 24px !important;
-    padding: 14px 20px !important;
-    font-size: 15px !important;
-    border: 2px solid #e2e8f0 !important;
-    transition: border-color 0.2s !important;
-}
-.input-area textarea:focus {
-    border-color: #3B82F6 !important;
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.1) !important;
-}
-
-/* ── Quick actions ─────────────────────────────────── */
-.quick-actions {
-    display: flex !important;
-    gap: 8px !important;
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    padding: 4px 8px 12px !important;
-}
-.quick-actions button {
-    border-radius: 20px !important;
-    padding: 6px 16px !important;
-    font-size: 13px !important;
-    border: 1px solid #e2e8f0 !important;
-    background: white !important;
-    color: #475569 !important;
-    cursor: pointer !important;
-    transition: all 0.15s !important;
-}
-.quick-actions button:hover {
-    border-color: #3B82F6 !important;
-    color: #3B82F6 !important;
-    background: #eff6ff !important;
-}
-
-/* ── Status indicator ──────────────────────────────── */
-.status-bar {
-    text-align: center;
-    padding: 4px;
-}
-.status-bar p {
-    font-size: 13px !important;
-    color: #3B82F6 !important;
-    animation: pulse 1.5s ease-in-out infinite;
-}
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-/* ── Sidebar ───────────────────────────────────────── */
-.sidebar-section {
-    padding: 8px 0;
-}
-.sidebar-section h3 {
-    font-size: 13px !important;
-    font-weight: 600 !important;
-    color: #64748b !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-    margin-bottom: 8px !important;
-}
-.sidebar-section .item {
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    color: #334155;
-}
-.sidebar-section .item:hover {
-    background: #f1f5f9;
-}
-
-/* ── Dark mode adjustments ─────────────────────────── */
-.dark .welcome-card {
-    background: #1e293b !important;
-    border-color: #334155 !important;
-}
-.dark .welcome-card:hover {
-    border-color: #60a5fa !important;
-}
-.dark .welcome-card .card-title { color: #f1f5f9 !important; }
-.dark .welcome-card .card-desc { color: #94a3b8 !important; }
-.dark #chatbot .bot {
-    background: #1e293b !important;
-    border-color: #334155 !important;
-}
-.dark #chatbot .bot table th { background: #334155 !important; }
-.dark .quick-actions button {
-    background: #1e293b !important;
-    border-color: #334155 !important;
-    color: #94a3b8 !important;
-}
-
-/* ── Responsive ────────────────────────────────────── */
-@media (max-width: 640px) {
-    .welcome-grid {
-        grid-template-columns: 1fr !important;
-    }
-    .ripple-header h1 { font-size: 22px !important; }
-}
-"""
-
+_CSS_PATH = Path(__file__).parent / "style.css"
+CSS = _CSS_PATH.read_text(encoding="utf-8") if _CSS_PATH.exists() else ""
 
 THEME = gr.themes.Soft(
     primary_hue="blue",
@@ -309,14 +87,12 @@ def create_app() -> gr.Blocks:
             "domain": "",
             "last_ideas": [],
             "last_topic": "",
+            "conv_id": "",
         })
 
         # ── Sidebar ──────────────────────────────────────────────────────
-        with gr.Sidebar(open=True, label="Ripple"):
-            gr.Markdown(
-                "### Ripple\n"
-                "KOC 内容灵感助手",
-            )
+        with gr.Sidebar(open=False, label="Ripple"):
+            gr.Markdown("### Ripple\nKOC 内容灵感助手")
             new_chat_btn = gr.Button("+ 新对话", variant="secondary", size="sm")
 
             gr.Markdown("---")
@@ -329,6 +105,7 @@ def create_app() -> gr.Blocks:
             sidebar_idea = gr.Button("💡 发现选题", size="sm", variant="secondary")
             sidebar_predict = gr.Button("🔮 评估选题", size="sm", variant="secondary")
             sidebar_create = gr.Button("✍️ 创作内容", size="sm", variant="secondary")
+            sidebar_distill = gr.Button("🎨 分析风格", size="sm", variant="secondary")
 
             gr.Markdown("---")
             gr.Markdown(
@@ -347,23 +124,18 @@ def create_app() -> gr.Blocks:
             "</div>"
         )
 
-        # ── Welcome cards (visible when no messages) ─────────────────────
+        # ── Welcome cards (Gradio native buttons) ────────────────────────
         with gr.Group(visible=True, elem_classes=["welcome-area"]) as welcome_group:
-            gr.HTML(
-                '<div class="welcome-grid">'
-                + "".join(
-                    f'<div class="welcome-card" onclick="'
-                    f"document.querySelector('#msg-input textarea').value = '{card['prompt']}';"
-                    f"document.querySelector('#msg-input textarea').dispatchEvent(new Event('input'));"
-                    f'">'
-                    f'<div class="card-icon">{card["icon"]}</div>'
-                    f'<div class="card-title">{card["title"]}</div>'
-                    f'<div class="card-desc">{card["desc"]}</div>'
-                    f"</div>"
-                    for card in WELCOME_CARDS
-                )
-                + "</div>"
-            )
+            with gr.Row(elem_classes=["welcome-grid"]):
+                card_btns = []
+                for card in WELCOME_CARDS:
+                    btn = gr.Button(
+                        f"{card['icon']} {card['title']}\n{card['desc']}",
+                        variant="secondary",
+                        size="sm",
+                        elem_classes=["welcome-card"],
+                    )
+                    card_btns.append((btn, card["prompt"]))
 
         # ── Status bar ───────────────────────────────────────────────────
         status_display = gr.Markdown("", visible=False, elem_classes=["status-bar"])
@@ -371,7 +143,7 @@ def create_app() -> gr.Blocks:
         # ── Chatbot ──────────────────────────────────────────────────────
         chatbot = gr.Chatbot(
             elem_id="chatbot",
-            height=520,
+            height="60vh",
             show_label=False,
             render_markdown=True,
             placeholder="",
@@ -380,9 +152,9 @@ def create_app() -> gr.Blocks:
         # ── Quick action buttons ─────────────────────────────────────────
         with gr.Row(elem_classes=["quick-actions"]):
             qa1 = gr.Button("💡 帮我想选题", size="sm")
-            qa2 = gr.Button("🔍 分析这个领域", size="sm")
-            qa3 = gr.Button("✍️ 写小红书笔记", size="sm")
-            qa4 = gr.Button("📊 评估爆款潜力", size="sm")
+            qa2 = gr.Button("🔍 分析领域", size="sm")
+            qa3 = gr.Button("✍️ 写笔记", size="sm")
+            qa4 = gr.Button("📊 评估爆款", size="sm")
 
         # ── Input ────────────────────────────────────────────────────────
         with gr.Row(elem_classes=["input-area"]):
@@ -392,8 +164,10 @@ def create_app() -> gr.Blocks:
                 container=False,
                 scale=8,
                 elem_id="msg-input",
+                lines=1,
+                max_lines=4,
             )
-            send_btn = gr.Button("发送", variant="primary", scale=1, min_width=80)
+            send_btn = gr.Button("➤", variant="primary", scale=1, min_width=52)
 
         # ── Chat handler ─────────────────────────────────────────────────
         async def respond(message: str, chat_history: list[dict], state: dict):
@@ -402,14 +176,16 @@ def create_app() -> gr.Blocks:
                 return
 
             message = message.strip()
-
             chat_history = chat_history or []
             chat_history.append({"role": "user", "content": message})
+
+            if not state.get("conv_id"):
+                state["conv_id"] = store.new_conversation_id()
 
             yield (
                 chat_history,
                 state,
-                gr.update(value="", visible=True),
+                gr.update(value="", visible=False),
                 gr.update(visible=False),
             )
 
@@ -438,6 +214,9 @@ def create_app() -> gr.Blocks:
             elif intent.intent == "create" and (topic or domain):
                 create_topic = topic or f"{domain}相关内容"
                 stream = dispatch_create(create_topic, domain, intent.platform, plain_history)
+            elif intent.intent == "distill":
+                blogger = intent.topic or intent.domain or message
+                stream = dispatch_distill(blogger, domain, plain_history)
             else:
                 stream = dispatch_chat(message, plain_history)
 
@@ -448,9 +227,34 @@ def create_app() -> gr.Blocks:
                 yield (
                     chat_history,
                     state,
-                    gr.update(visible=True),
+                    gr.update(visible=False),
                     gr.update(visible=False),
                 )
+
+            # Auto-save content for create/distill/predict intents
+            final_content = chat_history[-1]["content"]
+            if intent.intent in ("create", "predict", "distill") and len(final_content) > 200:
+                try:
+                    await store.save_content(
+                        topic=topic or domain or message[:50],
+                        score=None,
+                        content=final_content,
+                        platform=intent.platform or "通用",
+                    )
+                except Exception as exc:
+                    log.warning("Failed to save content: %s", exc)
+
+            # Persist conversation
+            try:
+                title = message[:30] + ("..." if len(message) > 30 else "")
+                await store.save_conversation(
+                    conv_id=state["conv_id"],
+                    title=title,
+                    messages=chat_history,
+                    domain=state.get("domain", ""),
+                )
+            except Exception as exc:
+                log.warning("Failed to save conversation: %s", exc)
 
             yield (
                 chat_history,
@@ -462,17 +266,21 @@ def create_app() -> gr.Blocks:
         inputs = [msg_input, chatbot, session_state]
         outputs = [chatbot, session_state, status_display, welcome_group]
 
-        msg_input.submit(
-            fn=respond, inputs=inputs, outputs=outputs,
-        )
-        send_btn.click(
-            fn=respond, inputs=inputs, outputs=outputs,
-        )
+        msg_input.submit(fn=respond, inputs=inputs, outputs=outputs)
+        send_btn.click(fn=respond, inputs=inputs, outputs=outputs)
+
+        # ── Welcome card click → set input + auto-submit ─────────────────
+        for btn, prompt_text in card_btns:
+            btn.click(
+                fn=lambda p=prompt_text: p,
+                outputs=[msg_input],
+            ).then(
+                fn=respond,
+                inputs=inputs,
+                outputs=outputs,
+            )
 
         # ── Quick action handlers ────────────────────────────────────────
-        def set_msg(text):
-            return text
-
         qa1.click(fn=lambda: "帮我想10个选题灵感", outputs=[msg_input])
         qa2.click(fn=lambda: "帮我分析一下这个领域的内容生态", outputs=[msg_input])
         qa3.click(fn=lambda: "帮我写一篇小红书笔记", outputs=[msg_input])
@@ -483,9 +291,14 @@ def create_app() -> gr.Blocks:
         sidebar_idea.click(fn=lambda: "帮我想一些有创意的选题点子", outputs=[msg_input])
         sidebar_predict.click(fn=lambda: "帮我评估这个选题能不能火", outputs=[msg_input])
         sidebar_create.click(fn=lambda: "帮我写一篇完整的内容", outputs=[msg_input])
+        sidebar_distill.click(fn=lambda: "帮我分析一下这位博主的创作风格", outputs=[msg_input])
 
         def clear_chat():
-            return [], {"domain": "", "last_ideas": [], "last_topic": ""}, gr.update(visible=True)
+            return (
+                [],
+                {"domain": "", "last_ideas": [], "last_topic": "", "conv_id": ""},
+                gr.update(visible=True),
+            )
 
         new_chat_btn.click(
             fn=clear_chat,

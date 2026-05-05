@@ -1,20 +1,24 @@
 """Intent recognition router — classifies user messages and dispatches to engines.
 
 Uses a lightweight LLM call to classify intent, then routes to the
-appropriate engine pipeline. Keeps latency low with a focused prompt.
+appropriate engine pipeline with parallel search and streaming output.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from collections.abc import AsyncIterator
 
 from core.llm import chat_stream, chat_deep_stream
+from core.citations import CitationList
 from adapters.search import (
-    search_peers, search_bloggers, search_news,
-    search_competition, search_trending,
+    search_parallel_radar,
+    search_parallel_idea,
+    search_parallel_predict,
+    search_parallel_distill,
 )
 
 log = logging.getLogger(__name__)
@@ -82,8 +86,6 @@ async def classify_intent(
 
     try:
         full = full.strip()
-        # Strip <think>...</think> blocks from reasoning models
-        import re
         full = re.sub(r"<think>.*?</think>", "", full, flags=re.DOTALL).strip()
         if full.startswith("```"):
             lines = full.split("\n")
@@ -137,19 +139,23 @@ def _fallback_classify(message: str) -> dict:
 
 # ── Engine dispatch: yields streaming markdown ─────────────────────────────
 
+
 async def dispatch_radar(domain: str, history: list[dict]) -> AsyncIterator[str]:
-    """Run peer radar analysis for a domain."""
+    """Run peer radar analysis for a domain with parallel search."""
+    yield "**正在搜索数据中...**\n\n"
+
+    data = await search_parallel_radar(domain)
+    citations = CitationList()
+    citations.add_from_search(data["peers"][:15])
+    citations.add_from_search(data["bloggers"][:15])
+    citations.add_from_search(data["news"][:10])
+
+    peer_text = _fmt_search("同行内容", data["peers"][:15])
+    blogger_text = _fmt_search("博主/达人", data["bloggers"][:15])
+    news_text = _fmt_news(data["news"][:10])
+    trend_text = _fmt_trending(data["trending"])
+
     yield f"**正在分析「{domain}」领域的内容生态...**\n\n"
-
-    peer_data = search_peers(domain)
-    blogger_data = search_bloggers(domain)
-    news_data = search_news(domain)
-    trending = search_trending()
-
-    peer_text = _fmt_search("同行内容", peer_data[:15])
-    blogger_text = _fmt_search("博主/达人", blogger_data[:15])
-    news_text = _fmt_news(news_data[:10])
-    trend_text = _fmt_trending(trending)
 
     system_msg = """你是 Ripple — 一位懂行的社媒内容顾问。用户想了解一个领域的内容生态。
 
@@ -194,24 +200,31 @@ async def dispatch_radar(domain: str, history: list[dict]) -> AsyncIterator[str]
     )):
         yield chunk
 
+    source_md = citations.to_markdown()
+    if source_md:
+        yield f"\n\n---\n{source_md}\n"
+
 
 async def dispatch_idea(domain: str, context: str, history: list[dict]) -> AsyncIterator[str]:
-    """Generate topic ideas for a domain."""
-    yield f"**正在为「{domain}」领域搜索灵感素材...**\n\n"
+    """Generate topic ideas for a domain with parallel search."""
+    yield "**正在搜索灵感素材...**\n\n"
 
-    peer_data = search_peers(domain)
-    news_data = search_news(domain)
-    trending = search_trending()
+    data = await search_parallel_idea(domain)
+    citations = CitationList()
+    citations.add_from_search(data["peers"][:15])
+    citations.add_from_search(data["news"][:10])
 
-    peer_text = _fmt_search("同行内容", peer_data[:15])
-    news_text = _fmt_news(news_data[:10])
-    trend_text = _fmt_trending(trending)
+    peer_text = _fmt_search("同行内容", data["peers"][:15])
+    news_text = _fmt_news(data["news"][:10])
+    trend_text = _fmt_trending(data["trending"])
 
     prev_context = ""
     for h in reversed(history):
         if h["role"] == "assistant" and len(h["content"]) > 200:
             prev_context = h["content"][:2000]
             break
+
+    yield f"**正在为「{domain}」领域生成选题灵感...**\n\n"
 
     system_msg = """你是 Ripple — 一位超有创意的内容策划师。帮用户想出10-15个选题点子。
 
@@ -253,18 +266,27 @@ async def dispatch_idea(domain: str, context: str, history: list[dict]) -> Async
     )):
         yield chunk
 
+    source_md = citations.to_markdown()
+    if source_md:
+        yield f"\n\n---\n{source_md}\n"
+
 
 async def dispatch_predict(topic: str, domain: str, platform: str, history: list[dict]) -> AsyncIterator[str]:
-    """Predict viral potential for a topic."""
-    yield f"**正在搜索「{topic}」的竞品数据...**\n\n"
+    """Predict viral potential for a topic with parallel search."""
+    yield "**正在搜索竞品数据...**\n\n"
 
-    comp_data = search_competition(topic)
+    data = await search_parallel_predict(topic)
+    citations = CitationList()
+    citations.add_from_search(data["competition"][:10])
+
     comp_text = "\n".join(
         f"- 【{r.title}】{r.snippet[:120]}\n  {r.url}"
-        for r in comp_data[:10]
+        for r in data["competition"][:10]
     ) or "（未找到直接竞品）"
 
     platform = platform or "小红书"
+
+    yield f"**正在评估「{topic}」的爆款潜力...**\n\n"
 
     system_msg = """你是 Ripple — 一位数据驱动的内容分析师。用12维度模型评估选题的爆款潜力。
 
@@ -277,7 +299,7 @@ async def dispatch_predict(topic: str, domain: str, platform: str, history: list
 
 ## 选题评估：「标题」
 
-### 综合评分：XX/100  ⭐⭐⭐⭐
+### 综合评分：XX/100
 
 ### 基础维度
 | 维度 | 分数 | 评价 |
@@ -306,7 +328,7 @@ async def dispatch_predict(topic: str, domain: str, platform: str, history: list
 （怎么做出不一样的内容？3条具体建议）
 
 ### 最终判断
-（🔥强烈推荐 / ✅值得做 / ⚠️需调整 / ❌不建议）+ 理由
+（强烈推荐 / 值得做 / 需调整 / 不建议）+ 理由
 
 要求：每个维度引用竞品数据作为证据。"""
 
@@ -324,6 +346,10 @@ async def dispatch_predict(topic: str, domain: str, platform: str, history: list
         max_tokens=6000, temperature=0.3,
     )):
         yield chunk
+
+    source_md = citations.to_markdown()
+    if source_md:
+        yield f"\n\n---\n{source_md}\n"
 
 
 async def dispatch_create(topic: str, domain: str, platform: str, history: list[dict]) -> AsyncIterator[str]:
@@ -391,6 +417,71 @@ async def dispatch_create(topic: str, domain: str, platform: str, history: list[
         yield chunk
 
 
+async def dispatch_distill(blogger: str, domain: str, history: list[dict]) -> AsyncIterator[str]:
+    """Distill a blogger's style using search + LLM analysis."""
+    yield f"**正在搜索「{blogger}」的内容和风格数据...**\n\n"
+
+    data = await search_parallel_distill(blogger)
+    citations = CitationList()
+    citations.add_from_search(data["content"])
+    citations.add_from_search(data["profile"])
+
+    content_text = _fmt_search("内容样本", data["content"][:10])
+    profile_text = _fmt_search("博主资料", data["profile"][:5])
+
+    yield f"**正在蒸馏「{blogger}」的创作方法论...**\n\n"
+
+    system_msg = """你是 Ripple — 一位资深内容策划与写作教练。你的任务是"蒸馏"一位博主的创作方法论。
+
+蒸馏 ≠ 抄袭。你要提炼的是可复用的创作框架，包含五个层级：
+
+## 博主画像
+（一段话介绍这位博主是谁、做什么领域、核心风格）
+
+## 表达 DNA
+- 语气特征（口语化？专业？幽默？）
+- 常用句式和节奏
+- emoji 使用习惯
+- 标点符号风格
+
+## 内容框架
+- 标题公式（3-5个模板，如"数字+经验+技巧"）
+- 内容结构（总分总？故事型？清单型？）
+- 开头 Hook 手法（提问？反常识？数据？）
+- 结尾设计（引导互动？金句收尾？）
+
+## 选题模式
+- 偏好什么类型的话题
+- 追热点的方式
+- 话题切入角度的特点
+
+## 可复用的创作清单
+（基于以上分析，给出一个新手可以直接套用的创作检查清单）
+
+要求：基于搜索到的内容分析，不凭空编造。如果搜索数据有限，诚实说明哪些是推断。"""
+
+    user_msg = f"""博主: {blogger}
+领域: {domain or '未知'}
+
+搜索到的内容样本:
+{content_text}
+
+博主资料:
+{profile_text}
+
+请输出风格蒸馏报告。"""
+
+    async for chunk in _filter_think_tags(chat_deep_stream(
+        [{"role": "system", "content": system_msg}, {"role": "user", "content": user_msg}],
+        max_tokens=6000, temperature=0.5,
+    )):
+        yield chunk
+
+    source_md = citations.to_markdown()
+    if source_md:
+        yield f"\n\n---\n{source_md}\n"
+
+
 async def dispatch_chat(message: str, history: list[dict]) -> AsyncIterator[str]:
     """General chat — guide users through the workflow."""
     system_msg = """你是 Ripple — KOC 内容灵感助手。你帮想成为 KOC 的新手小白完成从选题到创作的全流程。
@@ -402,6 +493,7 @@ async def dispatch_chat(message: str, history: list[dict]) -> AsyncIterator[str]
 - 帮想选题点子
 - 评估某个选题能不能火
 - 直接帮写内容（小红书/视频号/公众号/抖音都行）
+- 分析某位博主的创作风格（蒸馏方法论）
 
 如果用户不知道要做什么，主动引导：先聊聊感兴趣的领域 → 看看同行在做什么 → 一起想选题 → 评估 → 出内容。
 
@@ -425,11 +517,9 @@ async def _filter_think_tags(stream: AsyncIterator[str]) -> AsyncIterator[str]:
     """Strip <think>...</think> blocks from streaming output."""
     buffer = ""
     inside_think = False
-    for_check = ""
 
     async for chunk in stream:
         buffer += chunk
-        # Process buffer character by character
         while buffer:
             if inside_think:
                 end_idx = buffer.find("</think>")
@@ -437,9 +527,9 @@ async def _filter_think_tags(stream: AsyncIterator[str]) -> AsyncIterator[str]:
                     buffer = buffer[end_idx + 8:]
                     inside_think = False
                     continue
-                else:
-                    buffer = ""
-                    break
+                elif len(buffer) > 20:
+                    buffer = buffer[-8:]
+                break
             else:
                 think_idx = buffer.find("<think>")
                 if think_idx >= 0:
@@ -448,23 +538,19 @@ async def _filter_think_tags(stream: AsyncIterator[str]) -> AsyncIterator[str]:
                     buffer = buffer[think_idx + 7:]
                     inside_think = True
                     continue
-                elif "<" in buffer and not buffer.endswith(">"):
-                    # Might be a partial <think> tag — hold in buffer
-                    partial_idx = buffer.rfind("<")
-                    possible = buffer[partial_idx:]
-                    if "<think>"[:len(possible)] == possible:
+
+                partial_idx = buffer.rfind("<")
+                if partial_idx >= 0 and partial_idx > len(buffer) - 9:
+                    tail = buffer[partial_idx:]
+                    if "<think>"[:len(tail)] == tail or "</think>"[:len(tail)] == tail:
                         if partial_idx > 0:
                             yield buffer[:partial_idx]
-                        buffer = possible
+                        buffer = tail
                         break
-                    else:
-                        yield buffer
-                        buffer = ""
-                        break
-                else:
-                    yield buffer
-                    buffer = ""
-                    break
+
+                yield buffer
+                buffer = ""
+                break
 
     if buffer and not inside_think:
         yield buffer

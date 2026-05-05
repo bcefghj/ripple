@@ -13,7 +13,6 @@ from core.config import get_settings, IMAGES_DIR
 log = logging.getLogger(__name__)
 
 _TIMEOUT = httpx.Timeout(connect=10, read=120, write=10, pool=10)
-_ENDPOINT = "https://api.minimax.io/v1/image_generation"
 
 
 async def generate_image(
@@ -42,8 +41,9 @@ async def generate_image(
         "prompt_optimizer": optimize_prompt,
     }
 
+    url = f"{s.minimax_api_base.rstrip('/')}/image_generation"
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        resp = await client.post(_ENDPOINT, headers=headers, json=payload)
+        resp = await client.post(url, headers=headers, json=payload)
         resp.raise_for_status()
         data = resp.json()
 

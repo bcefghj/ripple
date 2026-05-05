@@ -1,9 +1,10 @@
-"""SQLite storage layer for distilled skills, content history, and preferences."""
+"""SQLite storage layer for conversations, content history, skills, and preferences."""
 
 from __future__ import annotations
 
 import json
 import logging
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,6 +33,15 @@ CREATE TABLE IF NOT EXISTS content_history (
     created_at  TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS conversations (
+    id          TEXT PRIMARY KEY,
+    title       TEXT NOT NULL DEFAULT '',
+    messages    TEXT NOT NULL DEFAULT '[]',
+    domain      TEXT NOT NULL DEFAULT '',
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS user_prefs (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -45,6 +55,8 @@ async def _get_db() -> aiosqlite.Connection:
     await db.executescript(_SCHEMA)
     return db
 
+
+# ── Skills ───────────────────────────────────────────────────────────────────
 
 async def save_skill(skill_id: str, blogger: str, domain: str, skill: dict) -> None:
     db = await _get_db()
@@ -78,7 +90,9 @@ async def list_skills() -> list[dict]:
         await db.close()
 
 
-async def save_content(topic: str, score: float | None, content: str, platform: str, skill_id: str | None) -> int:
+# ── Content history ──────────────────────────────────────────────────────────
+
+async def save_content(topic: str, score: float | None, content: str, platform: str, skill_id: str | None = None) -> int:
     db = await _get_db()
     try:
         cur = await db.execute(
@@ -90,6 +104,64 @@ async def save_content(topic: str, score: float | None, content: str, platform: 
     finally:
         await db.close()
 
+
+async def list_content(limit: int = 20) -> list[dict]:
+    db = await _get_db()
+    try:
+        cur = await db.execute(
+            "SELECT id, topic, platform, created_at FROM content_history ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+        rows = await cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        await db.close()
+
+
+# ── Conversations ────────────────────────────────────────────────────────────
+
+async def save_conversation(conv_id: str, title: str, messages: list[dict], domain: str = "") -> None:
+    db = await _get_db()
+    try:
+        now = _now()
+        await db.execute(
+            "INSERT OR REPLACE INTO conversations (id, title, messages, domain, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, COALESCE((SELECT created_at FROM conversations WHERE id = ?), ?), ?)",
+            (conv_id, title, json.dumps(messages, ensure_ascii=False), domain, conv_id, now, now),
+        )
+        await db.commit()
+    finally:
+        await db.close()
+
+
+async def list_conversations(limit: int = 20) -> list[dict]:
+    db = await _get_db()
+    try:
+        cur = await db.execute(
+            "SELECT id, title, domain, updated_at FROM conversations ORDER BY updated_at DESC LIMIT ?",
+            (limit,),
+        )
+        rows = await cur.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        await db.close()
+
+
+async def load_conversation(conv_id: str) -> list[dict] | None:
+    db = await _get_db()
+    try:
+        cur = await db.execute("SELECT messages FROM conversations WHERE id = ?", (conv_id,))
+        row = await cur.fetchone()
+        return json.loads(row["messages"]) if row else None
+    finally:
+        await db.close()
+
+
+def new_conversation_id() -> str:
+    return uuid.uuid4().hex[:12]
+
+
+# ── Preferences ──────────────────────────────────────────────────────────────
 
 async def get_pref(key: str, default: str = "") -> str:
     db = await _get_db()

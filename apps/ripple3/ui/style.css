@@ -1,0 +1,342 @@
+/* ── Ripple 3.0 — Global ──────────────────────────── */
+.gradio-container {
+    max-width: 960px !important;
+    margin: 0 auto !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+                 sans-serif !important;
+}
+
+footer { display: none !important; }
+
+/* ── Header ───────────────────────────────────────── */
+.ripple-header {
+    text-align: center;
+    padding: 24px 16px 8px;
+}
+.ripple-header h1 {
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, #3B82F6, #8B5CF6) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    margin-bottom: 4px !important;
+}
+.ripple-header p {
+    color: #64748b !important;
+    font-size: 15px !important;
+    margin: 0 !important;
+}
+
+/* ── Welcome cards ────────────────────────────────── */
+.welcome-area {
+    max-width: 720px;
+    margin: 20px auto 8px;
+}
+.welcome-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+    padding: 0 8px;
+}
+.welcome-card {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 18px 16px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    background: #ffffff !important;
+    text-align: left !important;
+}
+.welcome-card:hover {
+    border-color: #3B82F6 !important;
+    box-shadow: 0 2px 12px rgba(59,130,246,0.12) !important;
+    transform: translateY(-1px) !important;
+}
+.welcome-card .card-icon {
+    font-size: 24px;
+    margin-bottom: 6px;
+}
+.welcome-card .card-title {
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    color: #1e293b !important;
+    margin-bottom: 4px !important;
+}
+.welcome-card .card-desc {
+    font-size: 13px !important;
+    color: #64748b !important;
+    line-height: 1.4 !important;
+}
+
+/* ── Chat area ────────────────────────────────────── */
+.chat-area {
+    max-width: 960px;
+    margin: 0 auto;
+}
+#chatbot {
+    border: none !important;
+    box-shadow: none !important;
+    min-height: 200px !important;
+}
+#chatbot .message {
+    border-radius: 16px !important;
+    padding: 14px 18px !important;
+    line-height: 1.7 !important;
+    font-size: 15px !important;
+    max-width: 85% !important;
+}
+#chatbot .user {
+    background: linear-gradient(135deg, #3B82F6, #6366F1) !important;
+    color: white !important;
+    border-radius: 16px 16px 4px 16px !important;
+}
+#chatbot .bot {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px 16px 16px 4px !important;
+}
+#chatbot .bot table {
+    font-size: 13px !important;
+    border-collapse: collapse !important;
+    width: 100% !important;
+    margin: 8px 0 !important;
+    overflow-x: auto !important;
+    display: block !important;
+}
+#chatbot .bot table th,
+#chatbot .bot table td {
+    padding: 6px 10px !important;
+    border: 1px solid #e2e8f0 !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+}
+#chatbot .bot table th {
+    background: #f1f5f9 !important;
+    font-weight: 600 !important;
+}
+#chatbot .bot pre {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 12px !important;
+    overflow-x: auto !important;
+    font-size: 13px !important;
+}
+#chatbot .bot h2 {
+    font-size: 17px !important;
+    margin-top: 20px !important;
+    margin-bottom: 8px !important;
+    padding-bottom: 4px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+#chatbot .bot h3 {
+    font-size: 15px !important;
+    margin-top: 16px !important;
+    margin-bottom: 6px !important;
+}
+
+/* ── Input area ───────────────────────────────────── */
+.input-area {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 8px;
+}
+.input-area textarea {
+    border-radius: 24px !important;
+    padding: 14px 20px !important;
+    font-size: 15px !important;
+    border: 2px solid #e2e8f0 !important;
+    transition: border-color 0.2s !important;
+    resize: none !important;
+}
+.input-area textarea:focus {
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1) !important;
+}
+.input-area button.primary {
+    border-radius: 24px !important;
+    min-width: 64px !important;
+}
+
+/* ── Quick actions ────────────────────────────────── */
+.quick-actions {
+    display: flex !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    padding: 4px 8px 12px !important;
+}
+.quick-actions button {
+    border-radius: 20px !important;
+    padding: 6px 16px !important;
+    font-size: 13px !important;
+    border: 1px solid #e2e8f0 !important;
+    background: white !important;
+    color: #475569 !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
+}
+.quick-actions button:hover {
+    border-color: #3B82F6 !important;
+    color: #3B82F6 !important;
+    background: #eff6ff !important;
+}
+
+/* ── Status indicator ─────────────────────────────── */
+.status-bar {
+    text-align: center;
+    padding: 4px;
+}
+.status-bar p {
+    font-size: 13px !important;
+    color: #3B82F6 !important;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ── Sidebar ──────────────────────────────────────── */
+.sidebar-section {
+    padding: 8px 0;
+}
+.sidebar-section h3 {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    margin-bottom: 8px !important;
+}
+.sidebar-section .item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #334155;
+}
+.sidebar-section .item:hover {
+    background: #f1f5f9;
+}
+
+/* ── Dark mode ────────────────────────────────────── */
+.dark .welcome-card {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+.dark .welcome-card:hover {
+    border-color: #60a5fa !important;
+}
+.dark .welcome-card .card-title { color: #f1f5f9 !important; }
+.dark .welcome-card .card-desc { color: #94a3b8 !important; }
+.dark #chatbot .bot {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+}
+.dark #chatbot .bot table th { background: #334155 !important; }
+.dark #chatbot .bot table td { border-color: #475569 !important; }
+.dark #chatbot .bot h2 { border-color: #475569 !important; }
+.dark .quick-actions button {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #94a3b8 !important;
+}
+.dark .input-area textarea {
+    border-color: #334155 !important;
+    background: #0f172a !important;
+    color: #e2e8f0 !important;
+}
+
+/* ── Responsive: Tablet (768px) ───────────────────── */
+@media (max-width: 768px) {
+    .gradio-container {
+        max-width: 100% !important;
+        padding: 0 4px !important;
+    }
+    .welcome-grid {
+        gap: 8px !important;
+    }
+    .welcome-card {
+        padding: 14px 12px !important;
+    }
+    #chatbot .message {
+        max-width: 92% !important;
+        padding: 12px 14px !important;
+    }
+    .input-area {
+        max-width: 100% !important;
+    }
+}
+
+/* ── Responsive: Mobile (480px) ───────────────────── */
+@media (max-width: 480px) {
+    .ripple-header {
+        padding: 16px 8px 4px;
+    }
+    .ripple-header h1 {
+        font-size: 22px !important;
+    }
+    .ripple-header p {
+        font-size: 13px !important;
+    }
+    .welcome-grid {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+        padding: 0 4px;
+    }
+    .welcome-card {
+        padding: 12px 10px !important;
+    }
+    .welcome-card .card-icon {
+        font-size: 20px;
+    }
+    .welcome-card .card-title {
+        font-size: 14px !important;
+    }
+    .welcome-card .card-desc {
+        font-size: 12px !important;
+    }
+    #chatbot {
+        min-height: 150px !important;
+    }
+    #chatbot .message {
+        max-width: 95% !important;
+        padding: 10px 12px !important;
+        font-size: 14px !important;
+        line-height: 1.6 !important;
+    }
+    #chatbot .bot table {
+        font-size: 11px !important;
+    }
+    #chatbot .bot table th,
+    #chatbot .bot table td {
+        padding: 4px 6px !important;
+    }
+    .input-area textarea {
+        padding: 12px 16px !important;
+        font-size: 14px !important;
+        border-radius: 20px !important;
+    }
+    .input-area button.primary {
+        min-width: 52px !important;
+        border-radius: 20px !important;
+    }
+    .quick-actions {
+        gap: 6px !important;
+        padding: 2px 4px 8px !important;
+    }
+    .quick-actions button {
+        padding: 5px 12px !important;
+        font-size: 12px !important;
+    }
+}
+
+/* ── Safe-area for notched devices ────────────────── */
+@supports (padding: env(safe-area-inset-bottom)) {
+    .input-area {
+        padding-bottom: env(safe-area-inset-bottom) !important;
+    }
+}

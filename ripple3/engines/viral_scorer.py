@@ -128,10 +128,11 @@ async def score_viral_potential(
     competition_data: str = "",
 ) -> ViralScore:
     """Score a topic's viral potential using platform algorithm simulation."""
+    comp_section = f'竞品数据参考:\n{competition_data[:2000]}' if competition_data else ''
     user_msg = f"""选题/标题: 「{topic}」
 领域: {domain or '综合'}
 目标平台: {platform}
-{f'竞品数据参考:\\n{competition_data[:2000]}' if competition_data else ''}
+{comp_section}
 
 请进行全维度评分。"""
 

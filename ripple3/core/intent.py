@@ -126,7 +126,7 @@ def _fallback_classify(message: str) -> dict:
             domain = kw
             break
 
-    if any(w in msg for w in ["领域", "行业", "同行", "博主", "达人", "生态", "想做", "分析", "内容", "赛道"]):
+    if any(w in msg for w in ["领域", "行业", "同行", "博主", "达人", "生态", "想做", "分析", "内容", "赛道", "策略", "扩展", "想做什么"]):
         return {"intent": "radar", "domain": domain}
     if any(w in msg for w in ["选题", "灵感", "话题", "点子", "想写什么"]):
         return {"intent": "idea", "domain": domain}

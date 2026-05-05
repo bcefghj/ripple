@@ -1,11 +1,16 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { Plus, Search, Lightbulb, TrendingUp, PenTool, Palette, X, Menu, Waves } from 'lucide-react'
+import { Plus, Search, Lightbulb, TrendingUp, PenTool, Palette, X, Menu, Waves, Clock, Trash2, MessageSquare } from 'lucide-react'
+import type { Conversation } from '../lib/api'
 
 interface Props {
   isOpen: boolean
   onToggle: () => void
   onNewChat: () => void
   onQuickAction: (prompt: string) => void
+  conversations: Conversation[]
+  currentConversationId: string
+  onLoadConversation: (id: string) => void
+  onDeleteConversation: (id: string) => void
 }
 
 const actions = [
@@ -16,10 +21,30 @@ const actions = [
   { icon: Palette, label: '分析风格', prompt: '帮我分析一下这位博主的创作风格' },
 ]
 
-export default function Sidebar({ isOpen, onToggle, onNewChat, onQuickAction }: Props) {
+function timeAgo(dateStr: string): string {
+  try {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diff = now.getTime() - date.getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return '刚刚'
+    if (mins < 60) return `${mins}分钟前`
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return `${hours}小时前`
+    const days = Math.floor(hours / 24)
+    if (days < 7) return `${days}天前`
+    return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+  } catch {
+    return ''
+  }
+}
+
+export default function Sidebar({
+  isOpen, onToggle, onNewChat, onQuickAction,
+  conversations, currentConversationId, onLoadConversation, onDeleteConversation,
+}: Props) {
   return (
     <>
-      {/* Mobile overlay */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -32,7 +57,6 @@ export default function Sidebar({ isOpen, onToggle, onNewChat, onQuickAction }: 
         )}
       </AnimatePresence>
 
-      {/* Toggle button */}
       <button
         onClick={onToggle}
         className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors lg:hidden"
@@ -40,7 +64,6 @@ export default function Sidebar({ isOpen, onToggle, onNewChat, onQuickAction }: 
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
-      {/* Sidebar panel */}
       <aside
         className={`fixed top-0 left-0 h-full w-[260px] z-50 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col shadow-xl transition-transform duration-300 ease-in-out lg:shadow-none lg:relative lg:!translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
@@ -52,7 +75,7 @@ export default function Sidebar({ isOpen, onToggle, onNewChat, onQuickAction }: 
             </div>
             <div>
               <div className="font-bold text-sm bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">Ripple</div>
-              <div className="text-[10px] text-slate-400">KOC 内容灵感助手</div>
+              <div className="text-[10px] text-slate-400">KOC 决策智能平台</div>
             </div>
           </div>
           <button
@@ -64,29 +87,69 @@ export default function Sidebar({ isOpen, onToggle, onNewChat, onQuickAction }: 
           </button>
         </div>
 
-        {/* Quick actions */}
-        <div className="flex-1 overflow-y-auto p-3">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">
-            快捷入口
+        <div className="flex-1 overflow-y-auto">
+          {/* Quick actions */}
+          <div className="p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">
+              快捷入口
+            </div>
+            <div className="space-y-0.5">
+              {actions.map(a => (
+                <button
+                  key={a.label}
+                  onClick={() => { onQuickAction(a.prompt); onToggle(); }}
+                  className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
+                >
+                  <a.icon className="w-4 h-4" />
+                  <span>{a.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="space-y-0.5">
-            {actions.map(a => (
-              <button
-                key={a.label}
-                onClick={() => { onQuickAction(a.prompt); onToggle(); }}
-                className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
-              >
-                <a.icon className="w-4 h-4" />
-                <span>{a.label}</span>
-              </button>
-            ))}
-          </div>
+
+          {/* History */}
+          {conversations.length > 0 && (
+            <div className="p-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                历史对话
+              </div>
+              <div className="space-y-0.5">
+                {conversations.map(conv => (
+                  <div
+                    key={conv.id}
+                    className={`group flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
+                      conv.id === currentConversationId
+                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <button
+                      className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                      onClick={() => { onLoadConversation(conv.id); onToggle(); }}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-50" />
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate text-xs">{conv.title}</div>
+                        <div className="text-[10px] text-slate-400">{timeAgo(conv.updated_at)}</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
+                      className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Footer */}
         <div className="p-3 border-t border-slate-100 dark:border-slate-800">
           <p className="text-[10px] text-slate-400 leading-relaxed">
-            直接用自然语言告诉我你想做什么，Ripple 会自动理解你的需求。
+            Ripple 会记住你的偏好和探索过的领域，在新对话中自动关联上下文。
           </p>
         </div>
       </aside>

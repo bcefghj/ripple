@@ -513,6 +513,12 @@ async def dispatch_chat(message: str, history: list[dict]) -> AsyncIterator[str]
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
+def _filter_think_content(text: str) -> str:
+    """Strip <think>...</think> blocks from a complete string."""
+    import re
+    return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+
+
 async def _filter_think_tags(stream: AsyncIterator[str]) -> AsyncIterator[str]:
     """Strip <think>...</think> blocks from streaming output."""
     buffer = ""

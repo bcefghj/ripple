@@ -1,4 +1,4 @@
-# Ripple 涟漪 — KOC 内容灵感 AI 助手
+# Ripple 涟漪 — KOC 决策智能平台
 
 > **用 AI 拿捏社媒流量密码，帮普通 KOC 轻松涨粉。**
 
@@ -6,66 +6,118 @@
 
 ---
 
-## Ripple 3.0 — 对话式 KOC 助手 (最新版)
+## Ripple 6.0 — KOC 决策智能平台 (最新版)
 
-**一句话定位**: 你的 KOC 内容灵感助手 — 对话即完成，从选题到创作全流程闭环。
+**一句话定位**: 你的 KOC 决策智能助手 — 9层搜索矩阵 + 多Agent辩论 + CES爆款预测，帮你从"不知道做什么"到"做出第一篇爆款"。
 
-### 核心升级
+### 版本演进
 
-| 对比 | v2.0 | v3.0 |
+| 对比 | v3.0 | v6.0 |
 |------|------|------|
-| **交互方式** | 6 个功能 Tab 手动切换 | 对话式单页面，意图自动识别 |
-| **用户门槛** | 需要理解各功能模块 | 说人话就行，AI 自动调度 |
-| **目标用户** | 有经验的内容运营 | KOC 新手小白 |
-| **UI 设计** | Gradio 标准 Tab | ChatGPT/Gemini 风格现代界面 |
-| **搜索性能** | 串行阻塞 12s+ | 并行搜索 3-5s（TaskGroup） |
-| **数据时效** | 静态 | 实时搜索 + 2026 时效 + 5min 缓存 |
-| **移动适配** | 无 | 三断点响应式（480/768/1024px） |
-| **数据持久化** | 内存丢失 | SQLite 对话历史 + 内容库 |
+| **搜索引擎** | 4路并行，329条 | 9层矩阵，1000+条 |
+| **搜索相关性** | 无过滤 | LLM批量分类 + 相关性>80% |
+| **查询策略** | 宽泛关键词拼接 | Topic Decomposition 4层精准分解 |
+| **Agent系统** | 3位专家，15条数据 | 5+1 Agent辩论，50-100条数据 |
+| **爆款预测** | HKRR 12维度 | CES 19维100分 + 流量池预测 |
+| **质量控制** | 无 | 搜索自测 + 反射循环自改进 |
+| **可视化** | 基础进度条 | Token消耗 + 爆款评分 + Agent面板 |
+| **意图引导** | 手动触发 | 自动引导 + 下一步建议 |
 
-### 技术亮点
+### 核心创新 (6.0 独有)
 
-- **asyncio.TaskGroup 并行搜索**: 4 路搜索同时跑，响应速度提升 3-4x
-- **LLM 意图识别 + 关键词兜底**: 准确率 6/6，零学习成本
-- **HKRR 爆款预测模型**: 12 维度评分（含影视飓风 Hook/Knowledge/Resonance/Replay）
-- **风格蒸馏**: 分析任意博主的表达 DNA、内容框架、选题模式
-- **引用溯源**: 每次分析自动附加搜索数据来源
-- **TTL 缓存 + Semaphore 并发控制**: 相同领域 5min 内不重复搜索
+#### 1. 9层搜索矩阵 + Topic Decomposition
+- **Layer 0**: MiniMax 联网搜索（Token Plan 450次/日免费）
+- **Layer 1**: 腾讯混元 EnableEnhancement（比赛加分项）
+- **Layer 2-8**: Tavily / Exa / Serper / DuckDuckGo / 百度 / DailyHot / 社交平台
+- **话题分解**: 宽泛领域 → 子话题树 → 30+ 精准查询
 
-### 快速启动 (Ripple 3.0)
+#### 2. CES 爆款预测评分 (核心差异化)
+- 小红书官方 CES 公式内置: `关注*8 + 评论*4 + 转发*4 + 收藏*1 + 点赞*1`
+- 19维100分评分体系（标题吸引力/情绪共鸣/平台适配/竞争蓝海...）
+- 流量池阶梯预测: 冷启动池 → 初级池 → 热门池
+
+#### 3. 自改进反射循环 (Reflection Pattern)
+- 搜索反射: 相关性不足 → 自动重写查询 → 重搜
+- 分析反射: Agent输出空洞 → 要求补充证据 → 重新分析
+- 终止条件: 最多2轮迭代，或质量分>=80
+
+#### 4. 多Agent 2轮辩论制
+- 5位专家: 数据分析师 / 内容策划师 / 平台运营专家 / 用户画像师 / 趋势研究员
+- 仲裁者: 整合观点，指出矛盾，最终决策
+- 强制证据引用: 每个观点必须引用具体搜索数据
+
+### 技术栈
+
+| 层 | 选型 |
+|----|------|
+| 后端 | Python 3.9+ · FastAPI · asyncio |
+| 前端 | React 19 · TypeScript · Tailwind 4 · Framer Motion |
+| AI/LLM | MiniMax M2.7 首选 · 腾讯混元 · 小米 MiMo |
+| 搜索 | 9引擎矩阵 (MiniMax/混元/Tavily/Exa/Serper/DDG/百度/DailyHot/社交平台) |
+| 算法 | CES评分 · Topic Decomposition · Reflection Loop · 相关性过滤 |
+| 存储 | SQLite 对话历史 + 用户偏好 |
+| 部署 | Docker + nginx + 阿里云 ECS |
+
+### 快速启动
 
 ```bash
-cd apps/ripple3
+# 1. 克隆
+git clone https://github.com/bcefghj/ripple.git && cd ripple
+
+# 2. 安装依赖
+cd ripple3
 pip install -r requirements.txt
-cp .env.example .env  # 填入 MINIMAX_API_KEY
-python ui/app.py      # 打开 http://localhost:7860
+cd web && npm install && cd ..
+
+# 3. 配置
+cp .env.example .env
+# 编辑 .env，填入 MINIMAX_API_KEY
+
+# 4. 启动后端
+python -m uvicorn api.main:app --reload --port 8001
+
+# 5. 启动前端 (新终端)
+cd web && npm run dev
+
+# 6. 访问
+# 前端: http://localhost:5173
+# API文档: http://localhost:8001/docs
 ```
 
-### 核心功能（全部通过对话触发）
+### 核心功能（对话触发 + 智能引导）
 
-- **探索领域**: "我想做美食类内容" → 自动分析领域生态、推荐博主、发现蓝海机会
-- **发现选题**: "帮我想选题" → 基于实时搜索数据生成 10+ 个有创意的选题
-- **评估选题**: "这个能火吗？" → 12 维度深度评分（含影视飓风 HKRR 模型）
-- **创作内容**: "帮我写小红书笔记" → 完整内容包 + 多平台适配（小红书/视频号/公众号/抖音）
-- **分析风格**: "分析李子柒的创作风格" → 蒸馏博主方法论，提炼可复用的创作框架
+- **探索领域**: "帮我分析数码科技领域" → 9层搜索1000+条 + 5Agent讨论 + 生态报告
+- **发现选题**: "帮我想选题" → 基于实时数据 + 蓝海分析 + 差异化建议
+- **评估选题**: "评估折叠屏手机一年体验" → CES 19维评分 + 流量池预测 + 优化建议
+- **创作内容**: "帮我写小红书笔记" → 多平台适配 + 内容DNA分析
+- **分析风格**: "分析何同学的风格" → 蒸馏方法论 + 可复用框架
 
-### 架构 (Ripple 3.0)
+### 架构 (Ripple 6.0)
 
 ```
-用户输入 → 意图识别 (LLM JSON + 关键词兜底)
+用户输入 → 智能意图引擎 (自动引导 + 流式衔接)
               ↓
-    ┌──────────────────────────────────────┐
-    │ radar   → 同行雷达 (并行搜索 4 路)    │
-    │ idea    → 选题灵感 (并行搜索 3 路)    │
-    │ predict → 爆款预测 (HKRR 12维度)     │
-    │ create  → 内容创作 (多平台文案包)     │
-    │ distill → 风格蒸馏 (表达DNA提炼)     │
-    │ chat    → 通用对话 (引导+问答)        │
-    └──────────────────────────────────────┘
+    话题分解引擎 → 30+ 精准子查询
               ↓
-    流式 Markdown + 引用来源 → Gradio ChatInterface
+    ┌──────────────────────────────────────────┐
+    │ 9层搜索矩阵 (并行, Semaphore=30)          │
+    │ MiniMax | 混元 | Tavily | Exa | Serper   │
+    │ DDG | 百度 | DailyHot | 社交平台API        │
+    └──────────────────────────────────────────┘
               ↓
-    SQLite 自动保存 (对话历史 + 内容库)
+    相关性双重过滤 (关键词 + LLM分类) → >80%相关
+              ↓
+    搜索质量自测 (4维度) → 不达标自动重搜
+              ↓
+    ┌──────────────────────────────────────────┐
+    │ 5+1 Agent 2轮辩论                         │
+    │ 数据分析师 | 内容策划师 | 平台专家          │
+    │ 用户画像师 | 趋势研究员 | 仲裁者            │
+    └──────────────────────────────────────────┘
+              ↓
+    CES 爆款评分 + 反射循环自改进
+              ↓
+    流式 SSE → React 前端 (Token可视化 + 爆款评分面板)
 ```
 
 ---
@@ -74,210 +126,9 @@ python ui/app.py      # 打开 http://localhost:7860
 
 | 入口 | 地址 | 说明 |
 |------|------|------|
-| **产品官网** | [http://120.55.247.6](http://120.55.247.6) | 了解产品定位、技术亮点、真实案例 |
-| **在线 Demo** | [http://120.55.247.6/demo](http://120.55.247.6/demo) | 在线体验 |
-| **API 文档** | [http://120.55.247.6/docs](http://120.55.247.6/docs) | FastAPI Swagger |
-| **技术报告 PDF** | [http://120.55.247.6/ripple_report.pdf](http://120.55.247.6/ripple_report.pdf) | 完整参赛文档 |
-
----
-
-## 产品定位
-
-帮助想成为 KOC 的新手小白，从"不知道做什么"到"做出第一篇爆款内容"。AI 在其中承担选题发现、数据分析、内容创作的全部重活。
-
----
-
-## 核心创新 (3 个杀手锏)
-
-### 1. 早期信号雷达 (Oracle)
-
-借鉴金融界 [Digital Oracle](https://github.com/komako-workshop/digital-oracle) 的「资本永远先于舆论」哲学:
-
-- **7 个数据源并行扫描**: Polymarket 预测市场(直连) / Manifold(直连) / HackerNews(直连) / 微博热搜 / 抖音热搜 / 百度热搜 / B站热门(国内热搜经 xxapi.cn 聚合 API)
-- **算法**: CUSUM 累积和检测 + MAD-zscore 鲁棒统计 + 跨平台矛盾推理
-- **真实 API**: 所有数据源均为实时 API 调用,无硬编码 Mock 数据
-
-### 2. 12 Agent 论坛辩论 (Forum)
-
-- 移植 [BettaFish](https://github.com/Kocoro-lab/BettaFish) ForumEngine
-- 4 Phase × 12 个专业 Agent 协作
-- 多视角推理 + 反方意见 + 风险提示,而非单 Agent 黑箱
-
-### 3. Claude Code 架构移植
-
-- 100% 借鉴 Claude Code 51 万行架构: TAOR 主循环 + 5 层记忆 + 4 层压缩 + Hooks + Skills + Subagent
-- 端侧 BYOK 加密 (AES-256-GCM + Argon2id) + 11 个 LLM Provider
-- 全栈开源
-
----
-
-## 真实案例演示 (零 Mock)
-
-以下案例均通过 `test_oracle_real.py` 运行,数据来自实时 API 调用(国际源直连,国内热搜经第三方聚合)。内容生成由 MiMo / MiniMax 完成。
-
-### 案例 1: 跨平台时差 — 微博热搜 #3 但抖音/B站零覆盖
-
-```
-场景: Oracle 并行扫描 4 大国内平台实时热搜
-
-                微博热搜    抖音热搜    百度热搜    B站热门
-  某话题        #3 (790万)   —(未覆盖)   #8(上升中)  —(未覆盖)
-                   ✅           ❌           ✅          ❌
-
-Oracle 判断:
-  该话题仅在微博爆发,抖音/B站尚未覆盖
-  → 窗口期 2-4 天
-  → KOC 应立即在短视频平台布局
-
-生成内容:
-  小红书标题: 「微博790万人在讨论这件事,但抖音上还没人做!」
-  视频号脚本: 30s 口播,引用真实热搜排名数据
-  发布策略: 当天 18:00-20:00 发布,抢占首发红利
-```
-
-### 案例 2: 跨国信息差 — Polymarket $2M+ 但国内零覆盖
-
-```
-场景: Oracle 扫描 Polymarket 预测市场
-
-  Polymarket 合约: 某国际热门事件
-  24h 交易量: $2,150,000 (真实数据)
-  国内热搜覆盖: 微博 ✗ 抖音 ✗ 百度 ✗ B站 ✗ → 0/4 平台
-
-Oracle 判断:
-  全球资本高度关注,国内完全空白
-  → 信息差窗口 5-7 天
-  → 「把华尔街的数据变成普通人的信息优势」
-
-生成内容:
-  公众号文章: 「Polymarket 上有超过 200 万美元在押注这件事,
-              但国内几乎没人讨论...」
-  视频号脚本: 开头用 Polymarket 交易量做钩子
-  发布策略: 公众号先发(深度),视频号次日跟进(解读)
-```
-
-### 案例 3: 节日热点 — 「五一旅游」跨平台差异化
-
-```
-场景: 以「五一旅游」为种子词扫描全平台
-
-  跨平台分析:
-  微博: 主打吐槽/人流量 (情绪向)
-  抖音: 侧重探店 vlog (体验向)
-  百度: 搜索「冷门路线」上升 (需求向)
-  B站: 深度攻略供给不足 (缺口)
-
-  矛盾推理:
-  抖音「网红打卡」vs 小红书「避坑指南」观点对立
-  → 最佳角度: 数据驱动的冷门路线推荐
-
-生成内容:
-  视频号: 「五一去哪玩?我用AI分析了百度搜索数据,
-          找到了5个人少景美的冷门目的地...」
-  公众号: 深度图文,引用百度搜索趋势
-  小红书: 清单帖,「这5个地方微博0讨论但百度搜索量暴涨」
-```
-
----
-
-## 快速启动
-
-### 本地运行
-
-```bash
-# 1. 克隆
-git clone https://github.com/bcefghj/ripple.git && cd ripple
-
-# 2. 安装依赖
-cd apps/api && pip install -r requirements.txt
-
-# 3. 配置 API Key
-cp .env.example .env
-# 编辑 .env,填入 XIAOMI_API_KEY 或 MINIMAX_API_KEY
-
-# 4. 一键启动
-cd ../..
-./start.sh
-```
-
-打开浏览器:
-
-| 入口 | 地址 |
-|------|------|
-| Streamlit Demo | http://localhost:8501 |
-| FastAPI Docs | http://localhost:8000/docs |
-| 产品介绍页 | http://localhost:5050 |
-
-### 快速演示 (无需启动服务)
-
-```bash
-export XIAOMI_API_KEY=tp-xxxxx   # 或 MINIMAX_API_KEY=sk-xxxxx
-bash run_demo.sh
-```
-
-### 服务器部署
-
-```bash
-DEPLOY_HOST=120.55.247.6 bash deploy/deploy_ripple.sh
-```
-
----
-
-## 架构概览
-
-```mermaid
-graph TB
-    subgraph 入口层
-        Web[产品官网]
-        Streamlit[Streamlit Demo]
-        API[FastAPI API]
-    end
-
-    subgraph 核心引擎
-        Loop[TAOR 主循环<br>借鉴 Claude Code]
-        Memory[5 层记忆系统]
-        Compress[4 层上下文压缩]
-        Hooks[Hooks 安全系统]
-        Skills[Skills 渐进披露]
-    end
-
-    subgraph 12 Agent 工厂
-        P1[Phase 1 信号感知<br>Oracle / TrendScout / StyleDecoder]
-        P2[Phase 2 决策辩论<br>ForumDebate / TopicStrategist]
-        P3[Phase 3 内容生产<br>ScriptWriter / VisualProducer / MaterialCurator]
-        P4[Phase 4 审查发布<br>FactChecker / RiskReviewer / SimPredictor / InsightAnalyst]
-    end
-
-    subgraph LLM 路由
-        MiMo[小米 MiMo 首选]
-        MiniMax[MiniMax M2.7 备用]
-        Others[腾讯混元 / DeepSeek / 豆包 / 智谱 / Kimi / Claude / GPT]
-        Local[本地 Ollama / LM Studio]
-    end
-
-    subgraph 数据源 7个真实API
-        PM[Polymarket]
-        MF[Manifold]
-        HN[HackerNews]
-        WB[微博热搜]
-        DY[抖音热搜]
-        BD[百度热搜]
-        BL[B站热门]
-    end
-
-    Web --> API
-    Streamlit --> API
-    API --> Loop
-    Loop --> Memory
-    Loop --> Compress
-    Loop --> Hooks
-    Loop --> Skills
-    Loop --> P1
-    P1 --> P2 --> P3 --> P4
-    P4 --> MiMo
-    MiMo -.-> MiniMax -.-> Others -.-> Local
-    P1 --> PM & MF & HN & WB & DY & BD & BL
-```
+| **产品官网** | http://120.55.247.6 | 了解产品定位、技术亮点 |
+| **在线 Demo** | http://120.55.247.6/demo | 在线体验 |
+| **API 文档** | http://120.55.247.6/docs | FastAPI Swagger |
 
 ---
 
@@ -285,64 +136,79 @@ graph TB
 
 ```
 ripple/
-├── start.sh                           # 一键启动
-├── run_demo.sh                        # 快速演示 (无需服务)
-├── deploy/                            # 部署脚本
-│   ├── deploy_ripple.sh               # 一键部署到阿里云
-│   ├── nginx_ripple.conf              # nginx 配置
-│   └── smoke_test.sh                  # 部署验证
+├── ripple3/                           # ★ 核心代码 (Ripple 6.0)
+│   ├── adapters/                      # 搜索引擎适配器 (9层)
+│   │   ├── search.py                  # 搜索编排器主逻辑
+│   │   ├── minimax_search.py          # MiniMax 联网搜索
+│   │   ├── hunyuan_search.py          # 腾讯混元搜索增强
+│   │   ├── query_builder.py           # 4层查询策略生成器
+│   │   └── ...                        # 其他引擎适配器
+│   ├── engines/                       # AI 引擎模块
+│   │   ├── topic_decomposer.py        # 话题分解引擎
+│   │   ├── multi_agent.py             # 多Agent讨论系统
+│   │   ├── viral_scorer.py            # CES 爆款评分模型
+│   │   ├── relevance_filter.py        # 相关性过滤器
+│   │   ├── search_validator.py        # 搜索质量验证
+│   │   ├── reflection.py              # 自改进反射循环
+│   │   └── content_dna.py             # 内容DNA分析
+│   ├── api/                           # FastAPI 后端
+│   │   ├── routes.py                  # API路由 + SSE流
+│   │   └── sse.py                     # 事件流系统
+│   ├── core/                          # 核心配置
+│   │   ├── config.py                  # 配置管理
+│   │   ├── intent.py                  # 意图识别引擎
+│   │   └── store.py                   # 数据存储
+│   ├── web/                           # React 前端
+│   │   └── src/
+│   │       ├── components/            # UI组件
+│   │       │   ├── TokenUsagePanel.tsx # Token消耗可视化
+│   │       │   ├── ViralScorePanel.tsx # CES评分面板
+│   │       │   └── ...
+│   │       └── hooks/useChat.ts       # 聊天状态管理
+│   └── tests/                         # 自动化测试
 │
-├── apps/
-│   ├── api/                           # FastAPI + 12 Agent + Claude Code 架构
-│   │   ├── agent/                     # TAOR 主循环 / 记忆 / 压缩 / Hooks / Skills
-│   │   ├── agents/                    # 12 个业务 Agent + Orchestrator
-│   │   │   └── oracle_agent.py        # 核心: 7 真实数据源早期信号雷达
-│   │   ├── utils/                     # LLM Router (11 Provider) + BYOK 加密
-│   │   ├── tests/                     # 真实 API 测试
-│   │   │   ├── test_oracle_real.py    # Oracle v2 全真实数据深度测试
-│   │   │   └── test_real_minimax.py   # MiniMax 3 场景真实测试
-│   │   └── main.py                    # FastAPI 入口
-│   ├── streamlit_demo/                # 主演示 UI
-│   └── web/                           # 静态产品官网
+├── apps/                              # 旧版入口 (v1/v2 兼容)
+│   ├── api/                           # v1 FastAPI + 12Agent
+│   ├── streamlit_demo/                # Streamlit 演示
+│   └── web/                           # 产品官网
 │
-├── docs/
+├── docs/                              # 文档
 │   ├── proposal/                      # LaTeX 技术报告
-│   │   ├── main.tex                   # 主文档
-│   │   └── build.sh                   # 编译脚本
-│   ├── deployment/                    # 部署文档
-│   └── defense/QA.md                  # 答辩 Q&A 20 题
+│   └── defense/QA.md                  # 答辩 Q&A
 │
-└── infra/docker/                      # Docker 部署
+├── deploy/                            # 部署脚本
+│   ├── deploy_ripple.sh               # 一键部署
+│   └── nginx_ripple.conf              # nginx 配置
+│
+├── _handover/                         # 交接材料 (本地参考)
+│
+└── start.sh                           # 一键启动
 ```
 
 ---
 
-## 技术栈
+## 差异化优势 (vs 竞品)
 
-| 层 | 选型 |
-|----|------|
-| 后端 | Python 3.10+ · FastAPI · LiteLLM · Pydantic v2 · loguru |
-| Agent | 自研 12 Agent + 移植 Claude Code 架构 |
-| LLM | 小米 MiMo 首选 / MiniMax M2.7 备用 / 腾讯混元兜底 / DeepSeek / 豆包 / 智谱 / Kimi / Claude / GPT / Ollama / LM Studio (BYOK) |
-| 数据源 | Polymarket · Manifold · HackerNews · 微博 · 抖音 · 百度 · B站 (全部真实 API) |
-| 算法 | CUSUM 累积和 · MAD-zscore 鲁棒统计 · 跨平台矛盾推理 |
-| 前端 | Streamlit (MVP) · 纯 HTML/CSS/JS (产品官网) |
-| 加密 | AES-256-GCM + Argon2id (OWASP 2025 推荐) |
-| 文档 | LaTeX (xelatex + ctex + tikz + tcolorbox) |
-| 部署 | nginx + systemd + 阿里云 ECS |
-| 观测 | OpenTelemetry + Prometheus + Sentry + Langfuse |
+| 维度 | ChatGPT | OClaw | 蝉妈妈 | **Ripple 6.0** |
+|------|---------|-------|--------|----------------|
+| 搜索量 | 5-10条 | 不搜索 | 历史数据 | **1000+条实时** |
+| 相关性 | 依赖引擎 | — | 高 | **LLM过滤>80%** |
+| 分析深度 | 单视角 | 单Agent | 数据面板 | **5Agent辩论** |
+| 爆款预测 | 通用建议 | 互动率 | CES历史 | **19维CES+流量池** |
+| 成本 | $20/月 | ¥199 | ¥8000/年 | **开源免费** |
+| 自改进 | 无 | 无 | 无 | **反射循环** |
 
 ---
 
-## 灵感谱系
+## 参考项目
 
-| 项目 | 借鉴的具体设计 |
-|------|---------------|
-| **Digital Oracle** | 早期信号思想(资本走在舆论之前) |
-| **Claude Code (51 万行)** | TAOR 主循环 / 5 层记忆 / 4 层压缩 / Hooks / Skills / Subagent |
-| **MiroFish** | 群体仿真 (SimPredictor 附加增强) |
-| **BettaFish** | 多 Agent 论坛辩论 (ForumEngine) |
-| **Hermes Agent** | Memory pattern + Plan-Execute-Reflect 循环 |
+- **GPT Researcher** (26k stars): 20+源聚合、质量验证循环
+- **Nexus Agents**: Topic Decomposition + A2A 通信
+- **DingBulb**: 5 Agent 并行内容创作
+- **Digital Oracle**: 多信号交叉验证哲学
+- **Viral Loop Engine**: 加权互动率评分公式
+- **小红书 CES 公式**: `关注*8 + 评论*4 + 转发*4 + 收藏*1 + 点赞*1`
+- **Claude Code 架构**: TAOR 主循环 / 5 层记忆 / Hooks / Skills
 
 ---
 
@@ -350,8 +216,8 @@ ripple/
 
 | 类型 | 文件 | 状态 |
 |------|------|------|
-| **Demo** | [http://120.55.247.6](http://120.55.247.6) | ✅ |
-| **技术报告 PDF** | [在线下载](http://120.55.247.6/ripple_report.pdf) | ✅ |
+| **Demo** | http://120.55.247.6 | ✅ |
+| **技术报告** | [在线下载](http://120.55.247.6/ripple_report.pdf) | ✅ |
 | **源码** | [GitHub](https://github.com/bcefghj/ripple) | ✅ |
 
 ---
@@ -364,8 +230,7 @@ MIT License
 
 ## 致谢
 
-- Anthropic Claude Code 团队 — 51 万行架构启发
+- Anthropic Claude Code 团队 — 架构启发
 - Komako Workshop / Digital Oracle — 早期信号哲学
-- Kocoro Lab (BettaFish / Shannon) — 多 Agent 框架
-- 腾讯 PCG / 小米 MiMo / MiniMax / DeepSeek 等 LLM 提供方
-- 36氪、克劳锐、CSDN 上分享真实工作日常的 KOC 们
+- 腾讯 PCG / MiniMax / 小米 MiMo / DeepSeek 等 LLM 提供方
+- GPT Researcher / Nexus Agents / DingBulb — 搜索和Agent架构参考

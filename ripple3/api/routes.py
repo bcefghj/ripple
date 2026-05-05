@@ -1,4 +1,4 @@
-"""API routes — SSE streaming endpoints wrapping existing engines."""
+"""API routes — SSE streaming endpoints with knowledge graph, multi-agent, and memory."""
 
 from __future__ import annotations
 
@@ -15,8 +15,18 @@ from api.sse import (
     thinking_event,
     content_event,
     sources_event,
+    graph_event,
+    score_event,
+    agent_speak_event,
+    agent_start_event,
+    arbiter_thinking_event,
+    search_stats_event,
+    data_warning_event,
     done_event,
     error_event,
+    token_usage_event,
+    viral_score_event,
+    reflection_event,
 )
 from core.intent import classify_intent, _filter_think_tags
 from core.llm import chat_stream, chat_deep_stream
@@ -28,34 +38,27 @@ from adapters.search import (
     search_parallel_predict,
     search_parallel_distill,
 )
+from engines.graph_builder import build_knowledge_graph
+from engines.multi_agent import run_multi_agent_discussion, run_feature_agents
+from engines.content_dna import stream_content_dna_analysis
+from engines.title_ab_test import run_ab_test
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
 
-# ── Request models ────────────────────────────────────────────────────────────
-
 class ChatRequest(BaseModel):
     message: str
     history: list[dict] = []
     session: dict = {}
+    conversation_id: str = ""
 
 
-class PredictRequest(BaseModel):
-    topic: str
-    domain: str = ""
-    platform: str = "小红书"
-
-
-class CreateRequest(BaseModel):
-    topic: str
-    domain: str = ""
-    platform: str = "小红书"
-
-
-class DistillRequest(BaseModel):
-    blogger: str
+class GraphExpandRequest(BaseModel):
+    node_id: str
+    node_name: str
+    node_type: str
     domain: str = ""
 
 
@@ -74,6 +77,107 @@ async def list_conversations():
     return {"conversations": items}
 
 
+@router.get("/conversations/{conv_id}")
+async def get_conversation(conv_id: str):
+    messages = await store.load_conversation(conv_id)
+    if messages is None:
+        return {"error": "not found"}
+    return {"id": conv_id, "messages": messages}
+
+
+@router.delete("/conversations/{conv_id}")
+async def delete_conversation(conv_id: str):
+    await store.delete_conversation(conv_id)
+    return {"ok": True}
+
+
+# ── Memory ────────────────────────────────────────────────────────────────────
+
+@router.get("/memory")
+async def get_memory():
+    memory = await store.get_all_memory()
+    return {"memory": memory}
+
+
+@router.post("/memory")
+async def update_memory(req: Request):
+    data = await req.json()
+    for key, value in data.items():
+        await store.set_pref(key, value)
+    return {"ok": True}
+
+
+# ── Hot trends ────────────────────────────────────────────────────────────────
+
+@router.get("/trends")
+async def get_trends():
+    try:
+        from adapters.hot_trends import fetch_all_trends
+        trends = await fetch_all_trends(limit_per_platform=10)
+        result = {}
+        for platform, items in trends.items():
+            result[platform] = [
+                {"title": t.title, "hot_value": t.hot_value, "platform": t.platform, "rank": t.rank}
+                for t in items
+            ]
+        return {"trends": result}
+    except Exception as exc:
+        log.warning("Trends fetch failed: %s", exc)
+        return {"trends": {}, "error": str(exc)}
+
+
+# ── Graph expand ──────────────────────────────────────────────────────────────
+
+@router.post("/graph/expand")
+async def graph_expand(req: GraphExpandRequest):
+    """Expand a knowledge graph node — search for more related entities."""
+    async def generate() -> AsyncIterator[str]:
+        try:
+            yield thinking_event("搜索关联内容", f"正在搜索「{req.node_name}」的关联信息...", progress=10)
+
+            from adapters.search import search_parallel_distill, _fan_out_search
+            queries = [
+                f"{req.node_name} {req.domain} 相关内容",
+                f"{req.node_name} 详细介绍 分析",
+                f"{req.node_name} 最新动态",
+            ]
+            if req.node_type == "person":
+                queries.extend([
+                    f"{req.node_name} 博主 粉丝 作品",
+                    f"{req.node_name} 代表作 爆款",
+                ])
+            elif req.node_type == "topic":
+                queries.extend([
+                    f"{req.node_name} 热度 趋势",
+                    f"{req.node_name} 竞争 分析",
+                ])
+
+            results = await _fan_out_search(queries, max_per_query=10)
+
+            yield thinking_event("搜索完成", f"找到 {len(results)} 条关联内容", progress=50)
+
+            search_data = {"peers": results, "bloggers": [], "news": [], "trending": []}
+            graph = await build_knowledge_graph(
+                f"{req.node_name}（{req.domain}）",
+                search_data,
+                max_nodes=20,
+            )
+
+            yield graph_event(graph["nodes"], graph["links"])
+            yield thinking_event("完成", "关联图谱已生成", progress=100)
+            yield done_event(intent="graph_expand")
+
+        except Exception as exc:
+            log.error("Graph expand error: %s", exc)
+            yield error_event(f"展开失败: {exc}")
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )
+
+
 # ── Unified chat endpoint ─────────────────────────────────────────────────────
 
 @router.post("/chat")
@@ -85,12 +189,15 @@ async def chat_endpoint(req: ChatRequest):
                 yield error_event("消息不能为空")
                 return
 
+            conv_id = req.conversation_id or store.new_conversation_id()
             yield thinking_event("解析意图", f"理解「{message[:40]}」...", progress=5)
 
             plain_history = [
                 {"role": m["role"], "content": m["content"]}
                 for m in req.history[-20:]
             ]
+
+            memory_context = await store.get_pref("memory_summary", "")
 
             intent = await classify_intent(message, plain_history)
             domain = intent.domain or req.session.get("domain", "")
@@ -104,13 +211,13 @@ async def chat_endpoint(req: ChatRequest):
             )
 
             if intent.intent == "radar" and domain:
-                async for chunk in _stream_radar(domain, plain_history):
+                async for chunk in _stream_radar(domain, plain_history, memory_context):
                     yield chunk
             elif intent.intent == "idea" and domain:
-                async for chunk in _stream_idea(domain, message, plain_history):
+                async for chunk in _stream_idea(domain, message, plain_history, memory_context):
                     yield chunk
             elif intent.intent == "predict" and topic:
-                async for chunk in _stream_predict(topic, domain, platform, plain_history):
+                async for chunk in _stream_predict(topic, domain, platform, plain_history, memory_context):
                     yield chunk
             elif intent.intent == "create" and (topic or domain):
                 create_topic = topic or f"{domain}相关内容"
@@ -121,10 +228,14 @@ async def chat_endpoint(req: ChatRequest):
                 async for chunk in _stream_distill(blogger, domain, plain_history):
                     yield chunk
             else:
-                async for chunk in _stream_chat(message, plain_history):
+                async for chunk in _stream_chat(message, plain_history, memory_context):
                     yield chunk
 
-            yield done_event(intent=intent.intent, domain=domain, topic=topic)
+            await _save_conversation(conv_id, message, domain, plain_history)
+            await _update_memory(domain, topic, intent.intent)
+
+            next_steps = _generate_next_steps(intent.intent, domain, topic)
+            yield done_event(intent=intent.intent, domain=domain, topic=topic, conversation_id=conv_id, next_steps=next_steps)
 
         except Exception as exc:
             log.error("Chat error: %s\n%s", exc, traceback.format_exc())
@@ -142,6 +253,52 @@ async def chat_endpoint(req: ChatRequest):
 
 
 # ── Stream helpers ────────────────────────────────────────────────────────────
+
+def _generate_next_steps(intent: str, domain: str, topic: str) -> list[dict]:
+    """Generate contextual next-step suggestions based on completed intent."""
+    steps = []
+    if intent == "radar":
+        steps = [
+            {"label": "帮我想选题", "prompt": f"帮我想10个{domain}相关的选题灵感"},
+            {"label": "评估选题", "prompt": f"帮我评估一个{domain}领域的选题"},
+            {"label": "分析博主", "prompt": f"帮我分析{domain}领域的头部博主风格"},
+        ]
+    elif intent == "idea":
+        if topic:
+            steps = [
+                {"label": "评估这个选题", "prompt": f"帮我评估「{topic}」这个选题的爆款潜力"},
+                {"label": "开始创作", "prompt": f"帮我写一篇关于「{topic}」的内容"},
+                {"label": "换个方向", "prompt": f"帮我想更多{domain}的选题灵感"},
+            ]
+        else:
+            steps = [
+                {"label": "评估选题", "prompt": f"帮我评估一个{domain}领域的选题"},
+                {"label": "深入分析", "prompt": f"帮我分析{domain}领域的内容生态"},
+            ]
+    elif intent == "predict":
+        steps = [
+            {"label": "开始创作", "prompt": f"帮我写一篇关于「{topic}」的内容"},
+            {"label": "换个选题", "prompt": f"帮我想10个{domain or ''}相关的选题灵感"},
+            {"label": "分析竞品", "prompt": f"帮我分析做「{topic}」的竞品博主"},
+        ]
+    elif intent == "create":
+        steps = [
+            {"label": "评估爆款潜力", "prompt": f"帮我评估「{topic}」这个选题的爆款潜力"},
+            {"label": "换个角度写", "prompt": f"帮我用不同角度重新写「{topic}」"},
+            {"label": "想更多选题", "prompt": f"帮我想更多{domain}的选题灵感"},
+        ]
+    elif intent == "distill":
+        steps = [
+            {"label": "学习风格写作", "prompt": f"帮我用这位博主的风格写一篇{domain}的内容"},
+            {"label": "探索领域", "prompt": f"帮我分析{domain}领域的内容生态"},
+        ]
+    else:
+        steps = [
+            {"label": "探索领域", "prompt": "帮我分析一下数码科技领域的内容生态"},
+            {"label": "想选题", "prompt": "帮我想10个选题灵感"},
+            {"label": "评估选题", "prompt": "帮我评估一个选题的爆款潜力"},
+        ]
+    return steps
 
 
 def _fmt_search(label: str, results: list) -> str:
@@ -169,90 +326,177 @@ def _fmt_trending(results: list) -> str:
     return "\n".join(f"{i}. 【{r.title}】 {r.snippet}" for i, r in enumerate(results, 1))
 
 
-async def _stream_radar(domain: str, history: list[dict]) -> AsyncIterator[str]:
-    yield thinking_event("并行搜索", f"正在搜索「{domain}」领域数据...", progress=15, agents=[
-        {"name": "同行内容", "status": "running"},
-        {"name": "博主达人", "status": "running"},
-        {"name": "最新动态", "status": "running"},
-        {"name": "热搜趋势", "status": "running"},
+async def _stream_radar(domain: str, history: list[dict], memory: str) -> AsyncIterator[str]:
+    import time as _time
+    _start_time = _time.time()
+
+    yield thinking_event("话题分解 + 9层搜索矩阵", f"正在分解「{domain}」为子话题并跨15个引擎搜索...", progress=10, agents=[
+        {"name": "话题分解引擎", "status": "running"},
+        {"name": "MiniMax搜索", "status": "pending"},
+        {"name": "LLM联网搜索", "status": "pending"},
+        {"name": "搜索API", "status": "pending"},
+        {"name": "免费搜索库", "status": "pending"},
+        {"name": "平台直连", "status": "pending"},
+        {"name": "热搜聚合", "status": "pending"},
+        {"name": "相关性过滤", "status": "pending"},
     ])
 
     data = await search_parallel_radar(domain)
     peer_count = len(data["peers"])
     blogger_count = len(data["bloggers"])
     news_count = len(data["news"])
+    total = peer_count + blogger_count + news_count + len(data["trending"])
 
-    yield thinking_event("搜索完成", f"找到 {peer_count} 条内容 + {blogger_count} 位博主 + {news_count} 条动态", progress=50, agents=[
-        {"name": "同行内容", "status": "done", "count": peer_count},
-        {"name": "博主达人", "status": "done", "count": blogger_count},
-        {"name": "最新动态", "status": "done", "count": news_count},
-        {"name": "热搜趋势", "status": "done", "count": len(data["trending"])},
+    engine_counts: dict[str, int] = {}
+    for key in ("peers", "bloggers", "news", "trending"):
+        for r in data[key]:
+            eng = r.engine.split(":")[0] if ":" in r.engine else r.engine
+            engine_counts[eng] = engine_counts.get(eng, 0) + 1
+
+    yield search_stats_event(total, total, engine_counts)
+
+    if total < 10:
+        yield data_warning_event(f"搜索数据较少（仅 {total} 条），分析结果可能不够全面。请检查网络或 API 配置。")
+
+    yield thinking_event("搜索完成", f"跨引擎共找到 {total} 条数据：{peer_count} 条内容 + {blogger_count} 位博主 + {news_count} 条动态", progress=45, agents=[
+        {"name": "LLM联网搜索", "status": "done"},
+        {"name": "搜索API", "status": "done"},
+        {"name": "免费搜索库", "status": "done"},
+        {"name": "平台直连", "status": "done"},
+        {"name": "热搜聚合", "status": "done"},
+        {"name": "知识图谱", "status": "running"},
     ])
 
-    citations = CitationList()
-    citations.add_from_search(data["peers"][:15])
-    citations.add_from_search(data["bloggers"][:15])
-    citations.add_from_search(data["news"][:10])
+    import asyncio
+    graph_task = asyncio.create_task(build_knowledge_graph(domain, data, max_nodes=80))
 
-    yield thinking_event("AI 分析", f"AI 正在深度分析「{domain}」领域生态...", progress=60)
+    citations = CitationList()
+    citations.add_from_search(data["peers"][:30])
+    citations.add_from_search(data["bloggers"][:30])
+    citations.add_from_search(data["news"][:20])
+
+    yield thinking_event("构建知识图谱", f"正在从 {total} 条数据中提取实体关系...", progress=55, agents=[
+        {"name": "Google搜索", "status": "done", "count": peer_count},
+        {"name": "DuckDuckGo", "status": "done", "count": blogger_count},
+        {"name": "Exa语义搜索", "status": "done", "count": news_count},
+        {"name": "Tavily搜索", "status": "done"},
+        {"name": "知识图谱", "status": "running"},
+    ])
+
+    try:
+        graph_data = await graph_task
+        yield graph_event(graph_data["nodes"], graph_data["links"])
+    except Exception as exc:
+        log.warning("Graph build failed: %s", exc)
+
+    yield thinking_event("多Agent分析", "数据分析师+内容策划师+平台专家 三方讨论...", progress=58)
+
+    agent_context = f"分析「{domain}」领域的内容生态，基于 {total} 条搜索数据"
+    agent_data = _fmt_search("搜索数据", data["peers"][:50]) + "\n" + _fmt_trending(data["trending"])
+    async for event in run_feature_agents("radar", agent_context, agent_data):
+        if event["type"] == "agent_start":
+            yield agent_start_event(event["agent"])
+        elif event["type"] == "agent_speak":
+            yield agent_speak_event(event["agent"], event["content"], round_num=event.get("round", 1))
+
+    yield thinking_event("AI 深度分析", f"综合专家讨论和 {total} 条数据生成报告...", progress=65)
 
     system_msg = f"""你是 Ripple — 一位懂行的社媒内容顾问。用户想了解一个领域的内容生态。
+{f'用户记忆: {memory}' if memory else ''}
+
+你现在基于跨引擎搜索到的 {total} 条数据进行分析。
+
 请用自然、口语化的方式输出分析（像一位有经验的前辈在和新手聊天），包含：
 
 ## 这个领域现在是什么状况
-（用2-3段话概括，包括主流内容形式、受众画像、近期变化。特别关注视频号和微信公众号的趋势）
+（用2-3段话概括，包括主流内容形式、受众画像、近期变化。引用具体的搜索数据作为证据）
 
 ## 值得关注的博主/达人
-（每位博主：名字、平台、风格特点、值得学习的点。推荐5-8位，优先推荐视频号和公众号创作者）
+（每位博主：名字、平台、风格特点、值得学习的点。推荐5-8位，必须基于搜索数据中真实出现的博主名字）
 
 ## 最近大家都在聊什么
-（热门话题 + 为什么火）
+（热门话题 + 为什么火 + 数据证据）
 
 ## 哪些方向还有机会
-（蓝海机会，有需求但好内容不多的方向，特别是在视频号和微信生态中的机会）
+（蓝海机会，有需求但好内容不多的方向）
 
 ## 给你的建议
-（作为新手KOC，从哪里切入最好？2-3条具体建议，考虑微信生态的分发优势）
+（作为新手KOC，从哪里切入最好？2-3条具体可执行的建议）
 
-要求：基于搜索数据分析，不编造博主。语气亲和，像朋友聊天。"""
+**严格要求**：
+- 所有观点必须基于上述搜索数据，不得凭空编造
+- 绝对不能编造不存在的博主名字、数据或案例
+- 如果搜索数据中没有出现某个博主，就不要提及
+- 如果数据不足以支撑某个结论，明确说"基于有限数据推测"
+- 语气亲和，像朋友聊天"""
 
     user_msg = f"""领域: {domain}
-搜索到的同行内容:\n{_fmt_search("同行内容", data["peers"][:15])}
-博主/达人信息:\n{_fmt_search("博主/达人", data["bloggers"][:15])}
-最新动态:\n{_fmt_news(data["news"][:10])}
+搜索到的同行内容（{peer_count}条）:\n{_fmt_search("同行内容", data["peers"][:60])}
+博主/达人信息（{blogger_count}条）:\n{_fmt_search("博主/达人", data["bloggers"][:40])}
+最新动态（{news_count}条）:\n{_fmt_news(data["news"][:30])}
 当前热搜趋势:\n{_fmt_trending(data["trending"])}
 请输出分析。"""
 
     async for chunk in _filter_think_tags(chat_deep_stream(
         [{"role": "system", "content": system_msg}, {"role": "user", "content": user_msg}],
-        max_tokens=6000, temperature=0.6,
+        max_tokens=8000, temperature=0.6,
     )):
         yield content_event(chunk)
+
+    if peer_count >= 5:
+        yield content_event("\n\n---\n\n")
+        yield thinking_event("内容DNA分析", "正在提取爆款内容的基因图谱...", progress=92)
+        samples = [{"title": r.title, "snippet": r.snippet, "url": r.url} for r in data["peers"][:25]]
+        async for chunk in stream_content_dna_analysis(samples, domain):
+            yield content_event(chunk)
 
     if citations.citations:
         yield sources_event(citations.to_list())
 
+    elapsed_ms = int((_time.time() - _start_time) * 1000)
+    yield token_usage_event(
+        search_calls=total,
+        agent_rounds=1,
+        elapsed_ms=elapsed_ms,
+    )
 
-async def _stream_idea(domain: str, context: str, history: list[dict]) -> AsyncIterator[str]:
-    yield thinking_event("并行搜索", f"搜索「{domain}」灵感素材...", progress=15, agents=[
-        {"name": "同行内容", "status": "running"},
-        {"name": "最新动态", "status": "running"},
-        {"name": "热搜趋势", "status": "running"},
+
+async def _stream_idea(domain: str, context: str, history: list[dict], memory: str) -> AsyncIterator[str]:
+    yield thinking_event("8层搜索矩阵启动", f"跨引擎搜索「{domain}」灵感素材...", progress=15, agents=[
+        {"name": "LLM联网搜索", "status": "running"},
+        {"name": "搜索API", "status": "running"},
+        {"name": "免费搜索库", "status": "running"},
+        {"name": "热搜聚合", "status": "running"},
     ])
 
     data = await search_parallel_idea(domain)
+    total = len(data['peers']) + len(data['news']) + len(data['trending'])
 
-    yield thinking_event("搜索完成", f"找到 {len(data['peers'])} 条内容参考", progress=50, agents=[
-        {"name": "同行内容", "status": "done", "count": len(data["peers"])},
-        {"name": "最新动态", "status": "done", "count": len(data["news"])},
-        {"name": "热搜趋势", "status": "done", "count": len(data["trending"])},
+    if total < 10:
+        yield data_warning_event(f"搜索数据较少（仅 {total} 条），灵感可能有限。")
+
+    yield thinking_event("搜索完成", f"跨引擎共找到 {total} 条灵感素材", progress=50, agents=[
+        {"name": "LLM联网搜索", "status": "done"},
+        {"name": "搜索API", "status": "done"},
+        {"name": "免费搜索库", "status": "done"},
+        {"name": "热搜聚合", "status": "done"},
     ])
 
     citations = CitationList()
-    citations.add_from_search(data["peers"][:15])
-    citations.add_from_search(data["news"][:10])
+    citations.add_from_search(data["peers"][:30])
+    citations.add_from_search(data["news"][:20])
 
-    yield thinking_event("AI 创意", f"AI 正在为「{domain}」生成选题灵感...", progress=60)
+    yield thinking_event("创意人 vs 风控人", "创意发散 + 风险把控 对抗讨论...", progress=55)
+
+    agent_context = f"为「{domain}」领域生成选题灵感，{f'用户要求: {context}' if context else ''}"
+    agent_data = _fmt_search("搜索数据", data["peers"][:40]) + "\n" + _fmt_trending(data["trending"])
+    async for event in run_feature_agents("idea", agent_context, agent_data):
+        if event["type"] == "agent_start":
+            yield agent_start_event(event["agent"])
+        elif event["type"] == "agent_speak":
+            yield agent_speak_event(event["agent"], event["content"], round_num=event.get("round", 1))
+
+    yield thinking_event("AI 创意", f"综合专家意见从 {total} 条数据中生成选题灵感...", progress=65)
 
     prev_context = ""
     for h in reversed(history):
@@ -260,7 +504,8 @@ async def _stream_idea(domain: str, context: str, history: list[dict]) -> AsyncI
             prev_context = h["content"][:2000]
             break
 
-    system_msg = """你是 Ripple — 一位超有创意的内容策划师。帮用户想出10-15个选题点子。
+    system_msg = f"""你是 Ripple — 一位超有创意的内容策划师。帮用户想出10-15个选题点子。
+{f'用户偏好: {memory}' if memory else ''}
 
 每个选题格式：
 ### N. 「标题」
@@ -273,19 +518,20 @@ async def _stream_idea(domain: str, context: str, history: list[dict]) -> AsyncI
 
 最后推荐 TOP 3 最值得做的选题，说明理由。
 
-要求：标题要像真正的爆款标题。覆盖不同角度和形式。优先考虑视频号和微信公众号的内容偏好。"""
+**严格要求**：标题要像真正的爆款标题。覆盖不同角度和形式。优先考虑视频号和微信公众号。
+所有灵感必须基于搜索数据启发，不得凭空编造数据或案例。"""
 
     user_msg = f"""领域: {domain}
 {f'用户补充: {context}' if context else ''}
-搜索数据:\n{_fmt_search("同行内容", data["peers"][:15])}
-最新动态:\n{_fmt_news(data["news"][:10])}
+搜索数据:\n{_fmt_search("同行内容", data["peers"][:30])}
+最新动态:\n{_fmt_news(data["news"][:20])}
 热搜趋势:\n{_fmt_trending(data["trending"])}
 {f'之前的领域分析: {prev_context[:1000]}' if prev_context else ''}
 请生成选题灵感。"""
 
     async for chunk in _filter_think_tags(chat_deep_stream(
         [{"role": "system", "content": system_msg}, {"role": "user", "content": user_msg}],
-        max_tokens=6000, temperature=0.8,
+        max_tokens=8000, temperature=0.8,
     )):
         yield content_event(chunk)
 
@@ -293,85 +539,105 @@ async def _stream_idea(domain: str, context: str, history: list[dict]) -> AsyncI
         yield sources_event(citations.to_list())
 
 
-async def _stream_predict(topic: str, domain: str, platform: str, history: list[dict]) -> AsyncIterator[str]:
-    yield thinking_event("搜索竞品", f"搜索「{topic}」竞品数据...", progress=15, agents=[
-        {"name": "竞品分析", "status": "running"},
-        {"name": "热搜趋势", "status": "running"},
+async def _stream_predict(topic: str, domain: str, platform: str, history: list[dict], memory: str) -> AsyncIterator[str]:
+    import time as _time
+    _start_time = _time.time()
+
+    yield thinking_event("9层搜索矩阵启动", f"跨引擎搜索「{topic}」竞品数据...", progress=15, agents=[
+        {"name": "MiniMax搜索", "status": "running"},
+        {"name": "LLM联网搜索", "status": "running"},
+        {"name": "搜索API", "status": "running"},
+        {"name": "免费搜索库", "status": "running"},
+        {"name": "平台直连", "status": "running"},
     ])
 
-    data = await search_parallel_predict(topic)
+    data = await search_parallel_predict(topic, domain)
     citations = CitationList()
-    citations.add_from_search(data["competition"][:10])
-
-    yield thinking_event("搜索完成", f"找到 {len(data['competition'])} 条竞品内容", progress=50, agents=[
-        {"name": "竞品分析", "status": "done", "count": len(data["competition"])},
-        {"name": "热搜趋势", "status": "done", "count": len(data["trending"])},
-    ])
+    citations.add_from_search(data["competition"][:30])
 
     comp_text = "\n".join(
-        f"- 【{r.title}】{r.snippet[:120]}\n  {r.url}"
-        for r in data["competition"][:10]
+        f"- 【{r.title}】{r.snippet[:150]}\n  {r.url}"
+        for r in data["competition"][:40]
     ) or "（未找到直接竞品）"
 
-    yield thinking_event("AI 评估", f"12维度深度评估「{topic}」的爆款潜力...", progress=60)
+    total_comp = len(data['competition'])
 
-    system_msg = """你是 Ripple — 一位数据驱动的内容分析师。用12维度模型评估选题的爆款潜力。
+    if total_comp < 5:
+        yield data_warning_event(f"竞品数据较少（仅 {total_comp} 条），评估结果仅供参考。")
 
-分析框架：**8个基础维度 + 影视飓风HKRR模型4维度**
+    yield thinking_event("搜索完成", f"找到 {total_comp} 条竞品内容", progress=30, agents=[
+        {"name": "MiniMax搜索", "status": "done"},
+        {"name": "LLM联网搜索", "status": "done"},
+        {"name": "搜索API", "status": "done"},
+        {"name": "免费搜索库", "status": "done"},
+        {"name": "平台直连", "status": "done"},
+    ])
 
-对每个维度给出：分数(0-100) + 一句话理由 + 提升建议
+    # CES viral scoring
+    yield thinking_event("CES爆款评分", f"运行 19维评分模型（{platform or '小红书'}算法模拟）...", progress=35)
+    try:
+        from engines.viral_scorer import score_viral_potential, format_score_for_display
+        from api.sse import viral_score_event
+        viral_score = await score_viral_potential(topic, domain, platform or "小红书", comp_text[:2000])
+        yield viral_score_event(format_score_for_display(viral_score))
+    except Exception as exc:
+        log.warning("Viral scoring failed: %s", exc)
 
-输出格式：
+    yield thinking_event("7位AI专家讨论", "专家圆桌会议开始，7位AI专家并行分析...", progress=40, agents=[
+        {"name": "📊 数据分析师", "status": "running"},
+        {"name": "🎨 内容策划师", "status": "running"},
+        {"name": "🧠 用户心理专家", "status": "running"},
+        {"name": "⚙️ 平台运营专家", "status": "running"},
+        {"name": "🛡️ 风险评估师", "status": "running"},
+        {"name": "🔬 行业研究员", "status": "running"},
+        {"name": "👤 用户代言人", "status": "running"},
+    ])
 
-## 选题评估：「标题」
+    async for event in run_multi_agent_discussion(topic, domain, platform, comp_text):
+        if event["type"] == "agent_start":
+            yield agent_start_event(event["agent"])
+        elif event["type"] == "agent_speak":
+            yield agent_speak_event(event["agent"], event["content"], round_num=event.get("round", 1))
+        elif event["type"] == "arbiter_start":
+            yield thinking_event("首席仲裁", "仲裁者正在综合各方意见，生成最终评估...", progress=85)
+        elif event["type"] == "arbiter_thinking":
+            yield arbiter_thinking_event(event["content"])
+        elif event["type"] == "arbiter_result":
+            yield score_event(event["data"])
 
-### 综合评分：XX/100
+    yield thinking_event("生成报告", "正在生成详细分析报告...", progress=90)
 
-### 基础维度
-| 维度 | 分数 | 评价 |
-|------|------|------|
-| 话题热度 | XX | ... |
-| 竞争蓝海 | XX | ... |
-| 情绪共鸣 | XX | ... |
-| 实用价值 | XX | ... |
-| 标题吸引力 | XX | ... |
-| 平台适配 | XX | ... |
-| 原创空间 | XX | ... |
-| 时效窗口 | XX | ... |
+    system_msg = f"""你是 Ripple — 一位数据驱动的内容分析师。基于 7 位AI专家的讨论结果，用简洁的语言总结评估。
+{f'用户偏好: {memory}' if memory else ''}
 
-### HKRR 模型
-| 维度 | 分数 | 评价 |
-|------|------|------|
-| H-快乐度 | XX | ... |
-| K-知识量 | XX | ... |
-| R-共鸣感 | XX | ... |
-| R-节奏感 | XX | ... |
+请简要总结：
+1. 各专家的核心观点（每人1-2句，标注态度）
+2. 关键共识和分歧
+3. 具体的行动建议（3-5条，要具体可执行）
 
-### 竞品分析
-（分析已有内容的竞争格局）
-
-### 差异化建议
-（3条具体建议）
-
-### 最终判断
-（强烈推荐 / 值得做 / 需调整 / 不建议）+ 理由
-
-要求：引用竞品数据作为证据。重点分析在视频号和微信公众号上的表现预测。"""
+不需要重复评分表格（已通过可视化展示），重点放在洞察和建议上。控制在 800 字以内。"""
 
     user_msg = f"""选题: {topic}
 领域: {domain or '综合'}
 目标平台: {platform}
-竞品搜索数据:\n{comp_text}
-请输出完整评估报告。"""
+竞品数据（{total_comp}条）:\n{comp_text}
+请输出总结报告。"""
 
     async for chunk in _filter_think_tags(chat_deep_stream(
         [{"role": "system", "content": system_msg}, {"role": "user", "content": user_msg}],
-        max_tokens=6000, temperature=0.3,
+        max_tokens=4000, temperature=0.3,
     )):
         yield content_event(chunk)
 
     if citations.citations:
         yield sources_event(citations.to_list())
+
+    elapsed_ms = int((_time.time() - _start_time) * 1000)
+    yield token_usage_event(
+        search_calls=total_comp,
+        agent_rounds=2,
+        elapsed_ms=elapsed_ms,
+    )
 
 
 async def _stream_create(topic: str, domain: str, platform: str, history: list[dict]) -> AsyncIterator[str]:
@@ -431,21 +697,41 @@ async def _stream_create(topic: str, domain: str, platform: str, history: list[d
     )):
         yield content_event(chunk)
 
+    yield content_event("\n\n---\n\n")
+    yield thinking_event("A/B标题模拟", "多用户画像模拟点击行为...", progress=85)
+
+    async for chunk in run_ab_test(topic, domain):
+        yield content_event(chunk)
+
+    yield thinking_event("路人评审团", "模拟真实用户的第一反应...", progress=92)
+
+    async for event in run_feature_agents("create", f"评价关于「{topic}」的内容", f"选题: {topic}\n领域: {domain}"):
+        if event["type"] == "agent_start":
+            yield agent_start_event(event["agent"])
+        elif event["type"] == "agent_speak":
+            yield agent_speak_event(event["agent"], event["content"], round_num=event.get("round", 1))
+
 
 async def _stream_distill(blogger: str, domain: str, history: list[dict]) -> AsyncIterator[str]:
-    yield thinking_event("搜索博主", f"搜索「{blogger}」的内容和风格...", progress=15, agents=[
-        {"name": "内容样本", "status": "running"},
-        {"name": "博主资料", "status": "running"},
+    yield thinking_event("8层搜索矩阵启动", f"跨引擎搜索「{blogger}」的内容和风格...", progress=15, agents=[
+        {"name": "LLM联网搜索", "status": "running"},
+        {"name": "搜索API", "status": "running"},
+        {"name": "免费搜索库", "status": "running"},
     ])
 
     data = await search_parallel_distill(blogger)
     citations = CitationList()
     citations.add_from_search(data["content"])
     citations.add_from_search(data["profile"])
+    total = len(data['content']) + len(data['profile'])
 
-    yield thinking_event("搜索完成", f"找到 {len(data['content'])} 条内容样本", progress=50, agents=[
-        {"name": "内容样本", "status": "done", "count": len(data["content"])},
-        {"name": "博主资料", "status": "done", "count": len(data["profile"])},
+    if total < 5:
+        yield data_warning_event(f"关于「{blogger}」的数据较少（仅 {total} 条），分析可能不够全面。")
+
+    yield thinking_event("搜索完成", f"找到 {total} 条内容样本", progress=50, agents=[
+        {"name": "LLM联网搜索", "status": "done"},
+        {"name": "搜索API", "status": "done"},
+        {"name": "免费搜索库", "status": "done"},
     ])
 
     yield thinking_event("AI 蒸馏", f"正在蒸馏「{blogger}」的创作方法论...", progress=60)
@@ -475,26 +761,36 @@ async def _stream_distill(blogger: str, domain: str, history: list[dict]) -> Asy
 ## 可复用的创作清单
 （基于以上分析，给出一个新手可以直接套用的创作检查清单）
 
-要求：基于搜索到的内容分析。如果数据有限，诚实说明哪些是推断。"""
+**严格要求**：基于搜索到的内容分析，不得编造不存在的作品或数据。如果数据有限，诚实说明哪些是推断。"""
 
     user_msg = f"""博主: {blogger}
 领域: {domain or '未知'}
-搜索到的内容样本:\n{_fmt_search("内容样本", data["content"][:10])}
-博主资料:\n{_fmt_search("博主资料", data["profile"][:5])}
+搜索到的内容样本:\n{_fmt_search("内容样本", data["content"][:15])}
+博主资料:\n{_fmt_search("博主资料", data["profile"][:10])}
 请输出风格蒸馏报告。"""
 
     async for chunk in _filter_think_tags(chat_deep_stream(
         [{"role": "system", "content": system_msg}, {"role": "user", "content": user_msg}],
-        max_tokens=6000, temperature=0.5,
+        max_tokens=8000, temperature=0.5,
     )):
         yield content_event(chunk)
+
+    yield thinking_event("语言学家+心理学家", "协作解构博主方法论...", progress=90)
+
+    agent_data = _fmt_search("内容样本", data["content"][:10])
+    async for event in run_feature_agents("distill", f"分析博主「{blogger}」的创作风格", agent_data):
+        if event["type"] == "agent_start":
+            yield agent_start_event(event["agent"])
+        elif event["type"] == "agent_speak":
+            yield agent_speak_event(event["agent"], event["content"], round_num=event.get("round", 1))
 
     if citations.citations:
         yield sources_event(citations.to_list())
 
 
-async def _stream_chat(message: str, history: list[dict]) -> AsyncIterator[str]:
-    system_msg = """你是 Ripple — KOC 内容灵感助手，帮想成为 KOC 的新手完成从选题到创作的全流程。
+async def _stream_chat(message: str, history: list[dict], memory: str) -> AsyncIterator[str]:
+    system_msg = f"""你是 Ripple — KOC 内容灵感助手，帮想成为 KOC 的新手完成从选题到创作的全流程。
+{f'用户记忆: {memory}' if memory else ''}
 
 你的语气：像一位热心的学姐/学长，亲和、专业、接地气。
 
@@ -516,3 +812,46 @@ async def _stream_chat(message: str, history: list[dict]) -> AsyncIterator[str]:
 
     async for chunk in _filter_think_tags(chat_deep_stream(messages, max_tokens=4096, temperature=0.7)):
         yield content_event(chunk)
+
+
+# ── Persistence helpers ───────────────────────────────────────────────────────
+
+async def _save_conversation(conv_id: str, message: str, domain: str, history: list[dict]) -> None:
+    try:
+        title = message[:30] + ("..." if len(message) > 30 else "")
+        all_messages = history + [{"role": "user", "content": message}]
+        await store.save_conversation(conv_id, title, all_messages, domain)
+    except Exception as exc:
+        log.warning("Failed to save conversation: %s", exc)
+
+
+async def _update_memory(domain: str, topic: str, intent: str) -> None:
+    try:
+        if domain:
+            domains = await store.get_pref("explored_domains", "")
+            domain_list = [d.strip() for d in domains.split(",") if d.strip()] if domains else []
+            if domain not in domain_list:
+                domain_list.append(domain)
+                await store.set_pref("explored_domains", ",".join(domain_list[-20:]))
+
+        if topic:
+            topics = await store.get_pref("recent_topics", "")
+            topic_list = [t.strip() for t in topics.split(",") if t.strip()] if topics else []
+            if topic not in topic_list:
+                topic_list.append(topic)
+                await store.set_pref("recent_topics", ",".join(topic_list[-20:]))
+
+        usage = await store.get_pref("usage_count", "0")
+        await store.set_pref("usage_count", str(int(usage) + 1))
+
+        summary_parts = []
+        domains = await store.get_pref("explored_domains", "")
+        if domains:
+            summary_parts.append(f"探索过的领域: {domains}")
+        topics = await store.get_pref("recent_topics", "")
+        if topics:
+            summary_parts.append(f"关注的选题: {topics}")
+        if summary_parts:
+            await store.set_pref("memory_summary", "; ".join(summary_parts))
+    except Exception as exc:
+        log.warning("Failed to update memory: %s", exc)

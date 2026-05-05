@@ -157,6 +157,15 @@ async def load_conversation(conv_id: str) -> list[dict] | None:
         await db.close()
 
 
+async def delete_conversation(conv_id: str) -> None:
+    db = await _get_db()
+    try:
+        await db.execute("DELETE FROM conversations WHERE id = ?", (conv_id,))
+        await db.commit()
+    finally:
+        await db.close()
+
+
 def new_conversation_id() -> str:
     return uuid.uuid4().hex[:12]
 
@@ -178,6 +187,16 @@ async def set_pref(key: str, value: str) -> None:
     try:
         await db.execute("INSERT OR REPLACE INTO user_prefs (key, value) VALUES (?, ?)", (key, value))
         await db.commit()
+    finally:
+        await db.close()
+
+
+async def get_all_memory() -> dict:
+    db = await _get_db()
+    try:
+        cur = await db.execute("SELECT key, value FROM user_prefs")
+        rows = await cur.fetchall()
+        return {row["key"]: row["value"] for row in rows}
     finally:
         await db.close()
 

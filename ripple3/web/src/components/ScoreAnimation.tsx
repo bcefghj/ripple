@@ -15,14 +15,14 @@ interface Props {
   verdict?: string
 }
 
-function ScoreRing({ score, size = 120, strokeWidth = 8 }: { score: number; size?: number; strokeWidth?: number }) {
+function ScoreRing({ score, size = 140, strokeWidth = 10 }: { score: number; size?: number; strokeWidth?: number }) {
   const mv = useMotionValue(0)
   const [displayed, setDisplayed] = useState(0)
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
 
   useEffect(() => {
-    const controls = animate(mv, score, { duration: 1.5, ease: 'easeOut' })
+    const controls = animate(mv, score, { duration: 2, ease: [0.34, 1.56, 0.64, 1] })
     const unsub = mv.on('change', v => setDisplayed(Math.round(v)))
     return () => { controls.stop(); unsub() }
   }, [score, mv])
@@ -36,52 +36,99 @@ function ScoreRing({ score, size = 120, strokeWidth = 8 }: { score: number; size
     return '#ef4444'
   }
 
+  const getGlow = (s: number) => {
+    if (s >= 80) return '0 0 20px rgba(16,185,129,0.3)'
+    if (s >= 60) return '0 0 20px rgba(245,158,11,0.3)'
+    return '0 0 20px rgba(239,68,68,0.3)'
+  }
+
   return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+    <motion.div
+      className="relative flex items-center justify-center"
+      style={{ width: size, height: size }}
+      initial={{ scale: 0, rotate: -180 }}
+      animate={{ scale: 1, rotate: 0 }}
+      transition={{ type: 'spring', damping: 12, stiffness: 100, delay: 0.2 }}
+    >
+      <svg width={size} height={size} className="-rotate-90" style={{ filter: `drop-shadow(${getGlow(score)})` }}>
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor"
           className="text-slate-200 dark:text-slate-700" strokeWidth={strokeWidth} />
         <motion.circle cx={size / 2} cy={size / 2} r={radius} fill="none"
           stroke={getColor(score)} strokeWidth={strokeWidth} strokeLinecap="round"
           strokeDasharray={circumference} style={{ strokeDashoffset }} />
+        {/* Glow circle */}
+        <motion.circle cx={size / 2} cy={size / 2} r={radius} fill="none"
+          stroke={getColor(score)} strokeWidth={strokeWidth + 4} strokeLinecap="round"
+          strokeDasharray={circumference} style={{ strokeDashoffset }}
+          opacity={0.15} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-bold" style={{ fontVariantNumeric: 'tabular-nums', color: getColor(score) }}>
+        <motion.span
+          className="text-4xl font-black"
+          style={{ fontVariantNumeric: 'tabular-nums', color: getColor(score) }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
           {displayed}
-        </span>
-        <span className="text-[10px] text-slate-400">/ 100</span>
+        </motion.span>
+        <span className="text-[10px] text-slate-400 font-medium">/ 100</span>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
 function DimensionBar({ dim, delay }: { dim: ScoreDimension; delay: number }) {
   const max = dim.maxScore || 100
+  const pct = dim.score / max * 100
 
   const getColor = (s: number) => {
-    const pct = s / max * 100
-    if (pct >= 80) return 'from-emerald-400 to-emerald-500'
-    if (pct >= 60) return 'from-amber-400 to-amber-500'
-    if (pct >= 40) return 'from-orange-400 to-orange-500'
+    if (s >= 80) return 'from-emerald-400 to-emerald-500'
+    if (s >= 60) return 'from-amber-400 to-amber-500'
+    if (s >= 40) return 'from-orange-400 to-orange-500'
     return 'from-red-400 to-red-500'
   }
 
+  const getGlowColor = (s: number) => {
+    if (s >= 80) return 'rgba(16,185,129,0.3)'
+    if (s >= 60) return 'rgba(245,158,11,0.3)'
+    return 'rgba(239,68,68,0.3)'
+  }
+
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="w-20 text-right text-slate-600 dark:text-slate-400 shrink-0 truncate">{dim.name}</span>
-      <div className="flex-1 h-5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
+    <motion.div
+      className="flex items-center gap-2 text-xs"
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay, duration: 0.3 }}
+    >
+      <span className="w-20 text-right text-slate-600 dark:text-slate-400 shrink-0 truncate text-[11px]">{dim.name}</span>
+      <div className="flex-1 h-6 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative">
         <motion.div
-          className={`h-full rounded-full bg-gradient-to-r ${getColor(dim.score)}`}
+          className={`h-full rounded-full bg-gradient-to-r ${getColor(pct)} relative overflow-hidden`}
           initial={{ width: 0 }}
-          animate={{ width: `${(dim.score / max) * 100}%` }}
-          transition={{ duration: 0.8, delay, ease: 'easeOut' }}
-        />
-        <span className="absolute inset-y-0 right-2 flex items-center text-[10px] font-semibold text-slate-700 dark:text-slate-300"
-          style={{ fontVariantNumeric: 'tabular-nums' }}>
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 1, delay: delay + 0.2, ease: [0.34, 1.56, 0.64, 1] }}
+          style={{ boxShadow: `0 0 8px ${getGlowColor(pct)}` }}
+        >
+          {/* Charging shimmer */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
+            animate={{ x: ['-100%', '200%'] }}
+            transition={{ repeat: Infinity, duration: 2, delay: delay + 1, ease: 'easeInOut' }}
+          />
+        </motion.div>
+        <motion.span
+          className="absolute inset-y-0 right-2 flex items-center text-[11px] font-bold text-slate-700 dark:text-slate-300"
+          style={{ fontVariantNumeric: 'tabular-nums' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: delay + 0.8 }}
+        >
           {dim.score}
-        </span>
+        </motion.span>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -129,14 +176,35 @@ function RadarChart({ dimensions, size = 200 }: { dimensions: ScoreDimension[]; 
         )
       })}
 
+      {/* Animated fill with pulse */}
       <motion.path
         d={dataPath}
-        fill="rgba(59,130,246,0.15)"
+        fill="rgba(59,130,246,0.12)"
+        stroke="none"
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ opacity: [0, 1, 0.8], scale: [0, 1.05, 1] }}
+        transition={{ duration: 1.5, ease: 'easeOut' }}
+        style={{ transformOrigin: `${cx}px ${cy}px` }}
+      />
+      <motion.path
+        d={dataPath}
+        fill="none"
         stroke="#3B82F6"
-        strokeWidth={2}
-        initial={{ opacity: 0, scale: 0.3 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1, ease: 'easeOut' }}
+        strokeWidth={2.5}
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={{ pathLength: 1, opacity: 1 }}
+        transition={{ duration: 2, ease: 'easeOut' }}
+      />
+      {/* Inner glow pulse */}
+      <motion.path
+        d={dataPath}
+        fill="none"
+        stroke="#3B82F6"
+        strokeWidth={6}
+        opacity={0.1}
+        initial={{ scale: 0 }}
+        animate={{ scale: [1, 1.02, 1] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
         style={{ transformOrigin: `${cx}px ${cy}px` }}
       />
 
@@ -177,18 +245,18 @@ function VerdictBadge({ verdict }: { verdict: string }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: 1.5, type: 'spring', stiffness: 300 }}
-      className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold ${
-        isPositive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-        isNegative ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-        'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+      initial={{ opacity: 0, scale: 0, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ delay: 1.5, type: 'spring', stiffness: 400, damping: 15 }}
+      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold shadow-lg ${
+        isPositive ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-emerald-200/50 dark:shadow-emerald-900/30' :
+        isNegative ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-red-200/50 dark:shadow-red-900/30' :
+        'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-amber-200/50 dark:shadow-amber-900/30'
       }`}
     >
-      {isPositive ? <TrendingUp className="w-4 h-4" /> :
-       isNegative ? <TrendingDown className="w-4 h-4" /> :
-       <Minus className="w-4 h-4" />}
+      {isPositive ? <TrendingUp className="w-5 h-5" /> :
+       isNegative ? <TrendingDown className="w-5 h-5" /> :
+       <Minus className="w-5 h-5" />}
       {verdict}
     </motion.div>
   )

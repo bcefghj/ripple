@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, BarChart3 } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
 import { useChat } from './hooks/useChat'
 import { useDarkMode } from './hooks/useDarkMode'
 import Sidebar from './components/Sidebar'
@@ -8,10 +9,15 @@ import ChatMessage from './components/ChatMessage'
 import ChatInput from './components/ChatInput'
 import RippleBackground from './components/RippleBackground'
 import AgentStatusPanel from './components/AgentStatus'
+import TrendDashboard from './components/TrendDashboard'
 
 export default function App() {
-  const { messages, isLoading, thinkingSteps, sendMessage, clearChat } = useChat()
+  const {
+    messages, isLoading, thinkingSteps, sendMessage, clearChat,
+    conversationId, conversations, loadHistory, deleteHistory,
+  } = useChat()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showDashboard, setShowDashboard] = useState(false)
   const [dark, setDark] = useDarkMode()
   const scrollRef = useRef<HTMLDivElement>(null)
   const hasMessages = messages.length > 0
@@ -44,11 +50,22 @@ export default function App() {
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onNewChat={clearChat}
         onQuickAction={handleSend}
+        conversations={conversations}
+        currentConversationId={conversationId}
+        onLoadConversation={loadHistory}
+        onDeleteConversation={deleteHistory}
       />
 
       <main className="flex-1 flex flex-col min-w-0 relative z-10">
-        {/* Top bar with dark mode toggle */}
-        <div className="flex justify-end items-center px-4 pt-3 pb-1">
+        <div className="flex justify-end items-center gap-1 px-4 pt-3 pb-1">
+          <button
+            onClick={() => setShowDashboard(true)}
+            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            aria-label="热搜仪表盘"
+            title="热搜趋势仪表盘"
+          >
+            <BarChart3 className="w-4 h-4" />
+          </button>
           <button
             onClick={() => setDark(!dark)}
             className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -58,7 +75,6 @@ export default function App() {
           </button>
         </div>
 
-        {/* Agent status bar */}
         {currentAgents.length > 0 && (
           <div className="border-b border-slate-100 dark:border-slate-800">
             <div className="max-w-3xl mx-auto">
@@ -67,7 +83,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Scrollable chat area */}
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto"
@@ -79,13 +94,12 @@ export default function App() {
           ) : (
             <div className="max-w-3xl mx-auto px-4 py-6">
               {messages.map((msg, i) => (
-                <ChatMessage key={i} message={msg} />
+                <ChatMessage key={`${conversationId}-${i}`} message={msg} onSendMessage={handleSend} />
               ))}
             </div>
           )}
         </div>
 
-        {/* Quick action chips (when chatting) */}
         {hasMessages && !isLoading && (
           <div className="flex justify-center gap-2 px-4 py-1 flex-wrap">
             {[
@@ -105,12 +119,23 @@ export default function App() {
           </div>
         )}
 
-        {/* Input area */}
         <ChatInput
           onSend={handleSend}
           isLoading={isLoading}
         />
       </main>
+
+      <AnimatePresence>
+        {showDashboard && (
+          <TrendDashboard
+            onClose={() => setShowDashboard(false)}
+            onTopicSelect={(prompt) => {
+              setShowDashboard(false)
+              handleSend(prompt)
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

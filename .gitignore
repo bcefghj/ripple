@@ -1,6 +1,8 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyc
+*.pyo
 *.egg-info/
 dist/
 build/
@@ -9,7 +11,7 @@ venv/
 .env
 *.env.local
 
-# Secrets — never commit
+# Secrets
 .env.local
 .env.*.local
 secrets.json
@@ -24,6 +26,7 @@ htmlcov/
 node_modules/
 .next/
 .nuxt/
+.vite/
 
 # macOS
 .DS_Store
@@ -40,7 +43,7 @@ logs/
 *.db
 *.sqlite
 
-# Compiled LaTeX (keep main.pdf)
+# Compiled LaTeX
 *.aux
 *.out
 *.toc
@@ -56,7 +59,5 @@ apps/api/.ripple/
 # Ripple 3.0 output
 apps/ripple3/output/
 apps/ripple3/.env
-
-# venv
-venv/
-*.egg-info/
+ripple3/output/
+output/

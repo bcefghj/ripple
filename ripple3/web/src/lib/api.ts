@@ -1,7 +1,12 @@
 export interface ThinkingStep {
-  step: string
-  detail: string
-  progress: number
+  step?: string
+  label?: string
+  text?: string
+  detail?: string
+  progress?: number
+  status?: string
+  type?: string
+  id?: string
   agents?: AgentStatus[]
 }
 
@@ -20,7 +25,7 @@ export interface Citation {
 export interface GraphNode {
   id: string
   name: string
-  type: 'person' | 'topic' | 'platform' | 'format' | 'audience' | 'trend' | 'strategy' | 'brand' | 'event' | 'metric'
+  type: string
   val: number
   color: string
   desc?: string
@@ -30,112 +35,12 @@ export interface GraphLink {
   source: string
   target: string
   label: string
-  strength: number
+  strength?: number
 }
 
 export interface GraphData {
   nodes: GraphNode[]
   links: GraphLink[]
-}
-
-export interface AgentPersona {
-  id: string
-  name: string
-  emoji: string
-  color: string
-}
-
-export interface AgentMessage {
-  agent: AgentPersona
-  content: string
-  round: number
-}
-
-export interface ScoreData {
-  total_score: number
-  verdict: string
-  summary?: string
-  dimensions: { name: string; score: number }[]
-  hkrr: { name: string; score: number }[]
-  key_risks?: string[]
-  action_items?: string[]
-}
-
-export interface SearchStats {
-  total_raw: number
-  total_deduped: number
-  engines: Record<string, number>
-}
-
-export interface TokenUsage {
-  search_tokens: number
-  llm_tokens: number
-  total_tokens: number
-  search_calls: number
-  agent_rounds: number
-  elapsed_ms: number
-}
-
-export interface ViralScoreData {
-  total_score: number
-  dimensions: { id: string; name: string; score: number; max: number; reason: string }[]
-  predicted_pool: string
-  pool_probability: string
-  ces_analysis: string
-  ces_weights: Record<string, number>
-  traffic_pools: { name: string; exposure: string; threshold: string }[]
-  strengths: string[]
-  weaknesses: string[]
-  optimization_tips: string[]
-  engagement_formula: string
-}
-
-export interface WeChatStrategy {
-  videoAccount: {
-    tips: string[]
-    algorithm: string
-    bestPractices: string[]
-  }
-  officialAccount: {
-    seoKeywords: string[]
-    format: string
-    tips: string[]
-  }
-  search: {
-    keywords: string[]
-    optimization: string[]
-  }
-  privateDomain: {
-    funnelSteps: string[]
-    tips: string[]
-  }
-}
-
-export interface KOCGrowthData {
-  currentFollowers: number
-  targetFollowers: number
-  daysToTarget: number
-  growthCurve: { day: number; followers: number }[]
-  weeklyPlan: { week: number; focus: string; posts: number; target: string }[]
-  platformBreakdown: { platform: string; percentage: number; color: string }[]
-  contentCalendar: { day: number; type: string; topic: string }[]
-}
-
-export interface DeepResearchPhase {
-  phase: number
-  total_phases: number
-  description: string
-  results_so_far: number
-}
-
-export interface SSEMessage {
-  type: 'thinking' | 'content' | 'sources' | 'done' | 'error' | 'graph' | 'score' | 'agent_speak' | 'agent_start' | 'arbiter_thinking' | 'search_stats' | 'data_warning' | 'token_usage' | 'viral_score' | 'reflection' | 'deep_research' | 'wechat_strategy' | 'koc_growth'
-  data: any
-}
-
-export interface NextStep {
-  label: string
-  prompt: string
 }
 
 export interface ChatMessage {
@@ -144,32 +49,12 @@ export interface ChatMessage {
   thinking?: ThinkingStep[]
   sources?: Citation[]
   graph?: GraphData
-  agentMessages?: AgentMessage[]
-  scoreData?: ScoreData
-  arbiterThinking?: string
-  searchStats?: SearchStats
-  dataWarning?: string
-  tokenUsage?: TokenUsage
-  viralScore?: ViralScoreData
-  wechatStrategy?: WeChatStrategy
-  kocGrowth?: KOCGrowthData
-  deepResearch?: DeepResearchPhase
-  nextSteps?: NextStep[]
-  titleAbTest?: TitleAbTestData
-  hooks?: HookData
   isStreaming?: boolean
 }
 
-export interface TitleAbTestData {
-  titles: { text: string; predicted_ctr: number; strategy: string; emoji_variant?: string; reason?: string }[]
-  best_pick: number
-  analysis: string
-}
-
-export interface HookData {
-  hooks: { text: string; type: string; estimated_retention_boost: string; delivery_note?: string; first_frame?: string }[]
-  strategy_note: string
-  avoid?: string[]
+export interface SSEMessage {
+  type: 'thinking' | 'content' | 'sources' | 'done' | 'error' | 'graph' | string
+  data: any
 }
 
 export interface Conversation {
@@ -269,28 +154,6 @@ export async function deleteConversation(id: string): Promise<boolean> {
     return resp.ok
   } catch {
     return false
-  }
-}
-
-export async function fetchTrends(): Promise<Record<string, any[]>> {
-  try {
-    const resp = await fetch('/api/trends')
-    if (!resp.ok) return {}
-    const data = await resp.json()
-    return data.trends || {}
-  } catch {
-    return {}
-  }
-}
-
-export async function fetchMemory(): Promise<Record<string, string>> {
-  try {
-    const resp = await fetch('/api/memory')
-    if (!resp.ok) return {}
-    const data = await resp.json()
-    return data.memory || {}
-  } catch {
-    return {}
   }
 }
 

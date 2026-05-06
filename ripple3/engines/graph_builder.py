@@ -285,6 +285,65 @@ async def build_knowledge_graph(
     return graph
 
 
+async def build_graph_fast(domain: str, search_results: list) -> dict:
+    """Single-pass fast graph extraction (50-80 nodes, ~5-10s).
+
+    Designed for the slim pipeline. Extracts both nodes and links in one LLM call.
+    """
+    sample_text = "\n".join(
+        f"- {r.title}: {r.snippet[:80]}" for r in search_results[:40]
+    )
+
+    prompt = f"""从以下搜索数据中提取知识图谱。输出严格JSON:
+{{
+  "nodes": [
+    {{"id": "英文ID", "name": "中文名", "type": "topic|person|platform|brand|trend|strategy|keyword", "val": 10}}
+  ],
+  "links": [
+    {{"source": "节点ID", "target": "节点ID", "label": "关系描述"}}
+  ]
+}}
+
+要求:
+- 提取 40-70 个节点，覆盖: 话题、人物、平台、品牌、趋势、策略、关键词
+- 每个节点 val 在 5-40 之间，越重要越大
+- 建立 60-120 条关系连线，展示事物之间的关联
+- 关系类型包含: 属于、竞争、适合、推荐、热门于、相关
+
+领域: {domain}
+搜索数据:
+{sample_text}"""
+
+    messages = [
+        {"role": "system", "content": "你是知识图谱提取引擎。只输出JSON，不要任何其他文本。"},
+        {"role": "user", "content": prompt},
+    ]
+
+    try:
+        raw = await chat_deep_json(messages, max_tokens=4096, temperature=0.3)
+        nodes = raw.get("nodes", [])
+        links = raw.get("links", [])
+
+        for node in nodes:
+            node_type = node.get("type", "topic")
+            node["color"] = _TYPE_COLORS.get(node_type, "#818cf8")
+            node.setdefault("val", 10)
+
+        valid_ids = {n["id"] for n in nodes}
+        links = [
+            l for l in links
+            if l.get("source") in valid_ids and l.get("target") in valid_ids
+        ]
+
+        log.info("Fast graph: %d nodes, %d links", len(nodes), len(links))
+        return {"nodes": nodes, "links": links}
+    except Exception as e:
+        log.warning("Fast graph failed: %s", e)
+        return {"nodes": [
+            {"id": "center", "name": domain, "type": "topic", "val": 30, "color": "#6366f1"}
+        ], "links": []}
+
+
 # ---------------------------------------------------------------------------
 # Pass-1: entity extraction
 # ---------------------------------------------------------------------------

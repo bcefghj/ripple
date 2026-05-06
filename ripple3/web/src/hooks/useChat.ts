@@ -1,12 +1,11 @@
 import { useState, useCallback, useEffect } from 'react'
 import { streamChat, fetchConversations, loadConversation, deleteConversation } from '../lib/api'
-import type { ChatMessage, ThinkingStep, Citation, AgentMessage, GraphData, ScoreData, SearchStats, TokenUsage, ViralScoreData, WeChatStrategy, KOCGrowthData, NextStep, Conversation } from '../lib/api'
+import type { ChatMessage, ThinkingStep, Citation, GraphData, Conversation } from '../lib/api'
 import { DEMO_CASES } from '../data/demoCases'
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([])
   const [session, setSession] = useState<Record<string, string>>({})
   const [conversationId, setConversationId] = useState<string>('')
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -25,7 +24,6 @@ export function useChat() {
     if (msgs) {
       setMessages(msgs.map(m => ({ ...m, isStreaming: false })))
       setConversationId(id)
-      setThinkingSteps([])
     }
   }, [])
 
@@ -41,7 +39,6 @@ export function useChat() {
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading) return
 
-    // Check if this matches a demo case for instant loading
     const demoCase = DEMO_CASES.find(c => c.prompt === text.trim())
     if (demoCase) {
       const userMsg: ChatMessage = { role: 'user', content: text.trim() }
@@ -56,36 +53,23 @@ export function useChat() {
       content: '',
       thinking: [],
       sources: [],
-      agentMessages: [],
       isStreaming: true,
     }
 
     setMessages(prev => [...prev, userMsg, assistantMsg])
     setIsLoading(true)
-    setThinkingSteps([])
 
     const currentHistory = [...messages, userMsg]
     let content = ''
     let thinking: ThinkingStep[] = []
     let sources: Citation[] = []
     let graph: GraphData | undefined
-    let agentMessages: AgentMessage[] = []
-    let scoreData: ScoreData | undefined
-    let arbiterThinking = ''
-    let searchStats: SearchStats | undefined
-    let dataWarning = ''
-    let tokenUsage: TokenUsage | undefined
-    let viralScore: ViralScoreData | undefined
-    let wechatStrategy: WeChatStrategy | undefined
-    let kocGrowth: KOCGrowthData | undefined
-    let nextSteps: NextStep[] | undefined
 
     try {
       for await (const event of streamChat(text.trim(), currentHistory, session, conversationId)) {
         switch (event.type) {
           case 'thinking':
             thinking = [...thinking, event.data as ThinkingStep]
-            setThinkingSteps([...thinking])
             setMessages(prev => {
               const updated = [...prev]
               const last = updated[updated.length - 1]
@@ -102,7 +86,7 @@ export function useChat() {
               const updated = [...prev]
               const last = updated[updated.length - 1]
               if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, content, thinking: [...thinking] }
+                updated[updated.length - 1] = { ...last, content }
               }
               return updated
             })
@@ -132,55 +116,6 @@ export function useChat() {
             })
             break
 
-          case 'agent_start':
-          case 'agent_speak': {
-            if (event.type === 'agent_speak') {
-              const agentMsg = event.data as AgentMessage
-              const idx = agentMessages.findIndex(
-                m => m.agent.id === agentMsg.agent.id && m.round === agentMsg.round
-              )
-              if (idx >= 0) {
-                agentMessages = [...agentMessages]
-                agentMessages[idx] = agentMsg
-              } else {
-                agentMessages = [...agentMessages, agentMsg]
-              }
-              setMessages(prev => {
-                const updated = [...prev]
-                const last = updated[updated.length - 1]
-                if (last.role === 'assistant') {
-                  updated[updated.length - 1] = { ...last, agentMessages: [...agentMessages] }
-                }
-                return updated
-              })
-            }
-            break
-          }
-
-          case 'arbiter_thinking':
-            arbiterThinking = event.data.content || ''
-            setMessages(prev => {
-              const updated = [...prev]
-              const last = updated[updated.length - 1]
-              if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, arbiterThinking }
-              }
-              return updated
-            })
-            break
-
-          case 'score':
-            scoreData = event.data as ScoreData
-            setMessages(prev => {
-              const updated = [...prev]
-              const last = updated[updated.length - 1]
-              if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, scoreData }
-              }
-              return updated
-            })
-            break
-
           case 'done':
             if (event.data.domain) {
               setSession(prev => ({ ...prev, domain: event.data.domain }))
@@ -191,111 +126,6 @@ export function useChat() {
             if (event.data.conversation_id) {
               setConversationId(event.data.conversation_id)
             }
-            if (event.data.next_steps) {
-              nextSteps = event.data.next_steps as NextStep[]
-              setMessages(prev => {
-                const updated = [...prev]
-                const last = updated[updated.length - 1]
-                if (last.role === 'assistant') {
-                  updated[updated.length - 1] = { ...last, nextSteps }
-                }
-                return updated
-              })
-            }
-            break
-
-          case 'search_stats':
-            searchStats = event.data as SearchStats
-            setMessages(prev => {
-              const updated = [...prev]
-              const last = updated[updated.length - 1]
-              if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, searchStats }
-              }
-              return updated
-            })
-            break
-
-          case 'data_warning':
-            dataWarning = event.data.message || ''
-            setMessages(prev => {
-              const updated = [...prev]
-              const last = updated[updated.length - 1]
-              if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, dataWarning }
-              }
-              return updated
-            })
-            break
-
-          case 'token_usage':
-            tokenUsage = event.data as TokenUsage
-            setMessages(prev => {
-              const updated = [...prev]
-              const last = updated[updated.length - 1]
-              if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, tokenUsage }
-              }
-              return updated
-            })
-            break
-
-          case 'viral_score':
-            viralScore = event.data as ViralScoreData
-            setMessages(prev => {
-              const updated = [...prev]
-              const last = updated[updated.length - 1]
-              if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, viralScore }
-              }
-              return updated
-            })
-            break
-
-          case 'wechat_strategy':
-            wechatStrategy = event.data as WeChatStrategy
-            setMessages(prev => {
-              const updated = [...prev]
-              const last = updated[updated.length - 1]
-              if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, wechatStrategy }
-              }
-              return updated
-            })
-            break
-
-          case 'koc_growth':
-            kocGrowth = event.data as KOCGrowthData
-            setMessages(prev => {
-              const updated = [...prev]
-              const last = updated[updated.length - 1]
-              if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, kocGrowth }
-              }
-              return updated
-            })
-            break
-
-          case 'title_ab_test':
-            setMessages(prev => {
-              const updated = [...prev]
-              const last = updated[updated.length - 1]
-              if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, titleAbTest: event.data }
-              }
-              return updated
-            })
-            break
-
-          case 'hooks':
-            setMessages(prev => {
-              const updated = [...prev]
-              const last = updated[updated.length - 1]
-              if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, hooks: event.data }
-              }
-              return updated
-            })
             break
 
           case 'error':
@@ -326,28 +156,16 @@ export function useChat() {
           thinking: [...thinking],
           sources,
           graph,
-          agentMessages: [...agentMessages],
-          scoreData,
-          arbiterThinking,
-          searchStats,
-          dataWarning,
-          tokenUsage,
-          viralScore,
-          wechatStrategy,
-          kocGrowth,
-          nextSteps,
         }
       }
       return updated
     })
     setIsLoading(false)
-    setThinkingSteps([])
     refreshConversations()
   }, [messages, isLoading, session, conversationId, refreshConversations])
 
   const clearChat = useCallback(() => {
     setMessages([])
-    setThinkingSteps([])
     setSession({})
     setConversationId('')
   }, [])
@@ -355,14 +173,11 @@ export function useChat() {
   return {
     messages,
     isLoading,
-    thinkingSteps,
     sendMessage,
     clearChat,
-    session,
     conversationId,
     conversations,
     loadHistory,
     deleteHistory,
-    refreshConversations,
   }
 }

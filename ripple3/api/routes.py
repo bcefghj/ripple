@@ -44,8 +44,6 @@ from adapters.search import (
 )
 from engines.graph_builder import build_knowledge_graph
 from engines.multi_agent import run_multi_agent_discussion, run_feature_agents
-from engines.content_dna import stream_content_dna_analysis
-from engines.title_ab_test import run_ab_test
 
 log = logging.getLogger(__name__)
 
@@ -331,171 +329,94 @@ def _fmt_trending(results: list) -> str:
 
 
 async def _stream_radar(domain: str, history: list[dict], memory: str) -> AsyncIterator[str]:
+    """Slim radar pipeline: search → graph → report. Target: 30-60s."""
     import time as _time
     _start_time = _time.time()
 
-    yield thinking_event("话题分解 + 9层搜索矩阵", f"正在分解「{domain}」为子话题并跨15个引擎搜索...", progress=10, agents=[
-        {"name": "话题分解引擎", "status": "running"},
-        {"name": "MiniMax搜索", "status": "pending"},
-        {"name": "LLM联网搜索", "status": "pending"},
-        {"name": "搜索API", "status": "pending"},
-        {"name": "免费搜索库", "status": "pending"},
-        {"name": "平台直连", "status": "pending"},
-        {"name": "热搜聚合", "status": "pending"},
-        {"name": "相关性过滤", "status": "pending"},
-    ])
+    # Step 1: Fast parallel search (3-5 engines, 10s timeout)
+    yield thinking_event("搜索中", f"正在从多个引擎搜索「{domain}」...", progress=10)
 
-    data = await search_parallel_radar(domain)
-    peer_count = len(data["peers"])
-    blogger_count = len(data["bloggers"])
-    news_count = len(data["news"])
-    total = peer_count + blogger_count + news_count + len(data["trending"])
+    from adapters.search import search_fast
+    search_data = await search_fast(domain)
+    results = search_data["results"]
+    engine_stats = search_data["engine_stats"]
+    total = len(results)
 
-    engine_counts: dict[str, int] = {}
-    for key in ("peers", "bloggers", "news", "trending"):
-        for r in data[key]:
-            eng = r.engine.split(":")[0] if ":" in r.engine else r.engine
-            engine_counts[eng] = engine_counts.get(eng, 0) + 1
+    yield search_stats_event(total, total, engine_stats)
+    yield thinking_event("搜索完成", f"找到 {total} 条数据，来自 {len(engine_stats)} 个引擎", progress=35)
 
-    yield search_stats_event(total, total, engine_counts)
+    if total < 5:
+        yield data_warning_event(f"搜索数据较少（仅 {total} 条），分析结果可能不够全面。")
 
-    if total < 10:
-        yield data_warning_event(f"搜索数据较少（仅 {total} 条），分析结果可能不够全面。请检查网络或 API 配置。")
-
-    yield thinking_event("搜索完成", f"跨引擎共找到 {total} 条数据：{peer_count} 条内容 + {blogger_count} 位博主 + {news_count} 条动态", progress=45, agents=[
-        {"name": "LLM联网搜索", "status": "done"},
-        {"name": "搜索API", "status": "done"},
-        {"name": "免费搜索库", "status": "done"},
-        {"name": "平台直连", "status": "done"},
-        {"name": "热搜聚合", "status": "done"},
-        {"name": "知识图谱", "status": "running"},
-    ])
+    # Step 2: Build knowledge graph (single pass, 50-80 nodes)
+    yield thinking_event("构建知识图谱", "正在分析事物之间的关联...", progress=45)
 
     import asyncio
-    graph_task = asyncio.create_task(build_knowledge_graph(domain, data, max_nodes=80))
-
-    citations = CitationList()
-    citations.add_from_search(data["peers"][:30])
-    citations.add_from_search(data["bloggers"][:30])
-    citations.add_from_search(data["news"][:20])
-
-    yield thinking_event("构建知识图谱", f"正在从 {total} 条数据中提取实体关系...", progress=55, agents=[
-        {"name": "Google搜索", "status": "done", "count": peer_count},
-        {"name": "DuckDuckGo", "status": "done", "count": blogger_count},
-        {"name": "Exa语义搜索", "status": "done", "count": news_count},
-        {"name": "Tavily搜索", "status": "done"},
-        {"name": "知识图谱", "status": "running"},
-    ])
-
+    from engines.graph_builder import build_graph_fast
     try:
-        graph_data = await graph_task
+        graph_data = await asyncio.wait_for(build_graph_fast(domain, results), timeout=30)
         yield graph_event(graph_data["nodes"], graph_data["links"])
     except Exception as exc:
         log.warning("Graph build failed: %s", exc)
 
-    yield thinking_event("多Agent分析", "数据分析师+内容策划师+平台专家 三方讨论...", progress=58)
+    # Step 3: Generate unified report (single LLM call, structured output)
+    yield thinking_event("生成报告", "AI 正在综合分析并生成完整方案...", progress=60)
 
-    agent_context = f"分析「{domain}」领域的内容生态，基于 {total} 条搜索数据"
-    agent_data = _fmt_search("搜索数据", data["peers"][:50]) + "\n" + _fmt_trending(data["trending"])
-    async for event in run_feature_agents("radar", agent_context, agent_data):
-        if event["type"] == "agent_start":
-            yield agent_start_event(event["agent"])
-        elif event["type"] == "agent_speak":
-            yield agent_speak_event(event["agent"], event["content"], round_num=event.get("round", 1))
+    citations = CitationList()
+    citations.add_from_search(results[:30])
 
-    yield thinking_event("AI 深度分析", f"综合专家讨论和 {total} 条数据生成报告...", progress=65)
+    search_text = "\n".join(
+        f"{i+1}. 【{r.title}】{r.snippet[:100]}\n   来源: {r.url}"
+        for i, r in enumerate(results[:50])
+    )
 
-    system_msg = f"""你是 Ripple — 一位懂行的社媒内容顾问。用户想了解一个领域的内容生态。
+    system_msg = f"""你是 Ripple — AI 内容增长顾问。用户想了解一个领域的内容生态并获得完整的增长方案。
 {f'用户记忆: {memory}' if memory else ''}
 
-你现在基于跨引擎搜索到的 {total} 条数据进行分析。
+基于搜索到的 {total} 条数据，输出一份**结构化分析报告**。
 
-请用自然、口语化的方式输出分析（像一位有经验的前辈在和新手聊天），包含：
+## 必须包含的章节（按此顺序输出）：
 
-## 这个领域现在是什么状况
-（用2-3段话概括，包括主流内容形式、受众画像、近期变化。引用具体的搜索数据作为证据）
+### 赛道机会评分
+用 1-10 分评估这个赛道，说明理由（市场大小、竞争程度、增长趋势）。
 
-## 值得关注的博主/达人
-（每位博主：名字、平台、风格特点、值得学习的点。推荐5-8位，必须基于搜索数据中真实出现的博主名字）
+### 内容策略
+- 差异化定位建议（2-3 条）
+- 推荐的内容形式和风格
+- 5 个标题建议（附预估点击率）
+- 3 个开场 Hook（附预估留存提升）
 
-## 最近大家都在聊什么
-（热门话题 + 为什么火 + 数据证据）
+### 微信生态策略
+基于搜一搜 Peoplerank 算法（账号可信度25% + 内容相关性40% + 用户行为35%）给出：
+- 视频号：发布时间、关键词布局、完播率优化
+- 搜一搜：核心关键词 + 长尾词列表
+- 公众号：格式建议
 
-## 哪些方向还有机会
-（蓝海机会，有需求但好内容不多的方向）
+### 30 天行动路径
+按周给出具体可执行的计划（D1-D7, D8-D14, D15-D21, D22-D30）。
 
-## 给你的建议
-（作为新手KOC，从哪里切入最好？2-3条具体可执行的建议）
+### 数据来源
+列出本次分析使用的数据引擎和数据量。
 
-**严格要求**：
-- 所有观点必须基于上述搜索数据，不得凭空编造
-- 绝对不能编造不存在的博主名字、数据或案例
-- 如果搜索数据中没有出现某个博主，就不要提及
-- 如果数据不足以支撑某个结论，明确说"基于有限数据推测"
-- 语气亲和，像朋友聊天"""
+**要求**：
+- 所有观点基于搜索数据，不编造
+- 语气亲和专业，像资深顾问
+- 如果数据不足明确说明"""
 
-    user_msg = f"""领域: {domain}
-搜索到的同行内容（{peer_count}条）:\n{_fmt_search("同行内容", data["peers"][:60])}
-博主/达人信息（{blogger_count}条）:\n{_fmt_search("博主/达人", data["bloggers"][:40])}
-最新动态（{news_count}条）:\n{_fmt_news(data["news"][:30])}
-当前热搜趋势:\n{_fmt_trending(data["trending"])}
-请输出分析。"""
+    user_msg = f"领域: {domain}\n\n搜索数据（{total}条）:\n{search_text}"
 
     async for chunk in _filter_think_tags(chat_deep_stream(
         [{"role": "system", "content": system_msg}, {"role": "user", "content": user_msg}],
-        max_tokens=8000, temperature=0.6,
+        max_tokens=6000, temperature=0.6,
     )):
         yield content_event(chunk)
-
-    if peer_count >= 5:
-        yield content_event("\n\n---\n\n")
-        yield thinking_event("内容DNA分析", "正在提取爆款内容的基因图谱...", progress=85)
-        samples = [{"title": r.title, "snippet": r.snippet, "url": r.url} for r in data["peers"][:25]]
-        async for chunk in stream_content_dna_analysis(samples, domain):
-            yield content_event(chunk)
-
-    # WeChat ecosystem strategy generation
-    yield thinking_event("微信生态策略", "正在生成视频号/公众号/搜一搜/私域策略...", progress=90)
-    try:
-        wechat_data = await _generate_wechat_strategy(domain, data)
-        yield wechat_strategy_event(wechat_data)
-    except Exception as exc:
-        log.warning("WeChat strategy generation failed: %s", exc)
-
-    # KOC growth plan
-    yield thinking_event("KOC成长规划", "正在制定30天增长计划...", progress=92)
-    try:
-        koc_data = await _generate_koc_growth_plan(domain, data)
-        yield koc_growth_event(koc_data)
-    except Exception as exc:
-        log.warning("KOC growth plan generation failed: %s", exc)
-
-    # Title A/B Testing
-    yield thinking_event("标题A/B测试", "AI正在生成10+标题变体并预测CTR...", progress=95)
-    try:
-        from engines.title_ab_test import generate_title_variants, generate_hooks
-        title_data = await generate_title_variants(domain, platform="小红书", count=10)
-        yield sse_event("title_ab_test", title_data)
-    except Exception as exc:
-        log.warning("Title A/B test failed: %s", exc)
-
-    # Hook generation
-    yield thinking_event("Hook生成", "正在为短视频/图文生成强力开场...", progress=97)
-    try:
-        hook_data = await generate_hooks(domain, platform="小红书")
-        yield sse_event("hooks", hook_data)
-    except Exception as exc:
-        log.warning("Hook generation failed: %s", exc)
 
     if citations.citations:
         yield sources_event(citations.to_list())
 
     elapsed_ms = int((_time.time() - _start_time) * 1000)
-    yield token_usage_event(
-        search_calls=total,
-        agent_rounds=1,
-        elapsed_ms=elapsed_ms,
-    )
+    yield token_usage_event(search_calls=total, agent_rounds=0, elapsed_ms=elapsed_ms)
+    yield done_event()
 
 
 async def _stream_idea(domain: str, context: str, history: list[dict], memory: str) -> AsyncIterator[str]:

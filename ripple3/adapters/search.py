@@ -688,3 +688,60 @@ async def search_parallel_distill(blogger: str, domain: str = "") -> dict:
     result = {"content": content, "profile": profile}
     _cache_set(cache_key, result)
     return result
+
+
+# ── Fast search (slim pipeline) ─────────────────────────────────────────────
+
+_FAST_TIMEOUT = 10
+
+
+async def search_fast(domain: str) -> dict:
+    """Slim search: only 3-5 engines, 10s timeout, single query set.
+
+    Designed for the fast pipeline (30-60s total response time).
+    Returns {"results": [...], "engine_stats": {...}}
+    """
+    cache_key = f"fast:{domain}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    queries = [
+        domain,
+        f"{domain} 小红书 爆款",
+        f"{domain} 内容创作 攻略",
+        f"{domain} 趋势 热门",
+    ]
+
+    async def _timed(coro, name: str) -> tuple[str, list[SearchResult]]:
+        try:
+            result = await asyncio.wait_for(coro, timeout=_FAST_TIMEOUT)
+            return (name, result if isinstance(result, list) else [])
+        except Exception as e:
+            log.debug("Fast search %s failed: %s", name, e)
+            return (name, [])
+
+    tasks = [
+        _timed(_search_minimax(queries, max_per_query=15), "minimax"),
+        _timed(_search_serper(queries, num_per_query=10), "serper"),
+        _timed(_search_tavily(queries[:3], max_per_query=10), "tavily"),
+        _timed(_search_ddgs(queries, max_per_query=10), "ddgs"),
+        _timed(_search_dailyhot(queries[:2]), "dailyhot"),
+    ]
+
+    results_raw = await asyncio.gather(*tasks)
+
+    combined: list[SearchResult] = []
+    engine_stats: dict[str, int] = {}
+    for name, items in results_raw:
+        if items:
+            engine_stats[name] = len(items)
+            combined.extend(items)
+
+    deduped = _dedup_results(combined)
+    log.info("Fast search: %d queries → %d results from %d engines",
+             len(queries), len(deduped), len(engine_stats))
+
+    out = {"results": deduped, "engine_stats": engine_stats}
+    _cache_set(cache_key, out)
+    return out

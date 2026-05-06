@@ -230,7 +230,10 @@ async def chat_endpoint(req: ChatRequest):
                 async for chunk in _stream_distill(blogger, domain, plain_history):
                     yield chunk
             else:
-                async for chunk in _stream_chat(message, plain_history, memory_context):
+                # Default: always run radar analysis for any input
+                # This ensures knowledge graph + structured report for every query
+                radar_domain = domain or topic or message
+                async for chunk in _stream_radar(radar_domain, plain_history, memory_context):
                     yield chunk
 
             await _save_conversation(conv_id, message, domain, plain_history)
@@ -334,7 +337,13 @@ async def _stream_radar(domain: str, history: list[dict], memory: str) -> AsyncI
     _start_time = _time.time()
 
     # Step 1: Fast parallel search (3-5 engines, 10s timeout)
-    yield thinking_event("搜索中", f"正在从多个引擎搜索「{domain}」...", progress=10)
+    yield thinking_event("搜索中", f"正在从多个引擎搜索「{domain}」...", progress=10, agents=[
+        {"name": "MiniMax联网", "status": "running"},
+        {"name": "Serper(Google)", "status": "running"},
+        {"name": "Tavily", "status": "running"},
+        {"name": "DuckDuckGo", "status": "running"},
+        {"name": "DailyHot热搜", "status": "running"},
+    ])
 
     from adapters.search import search_fast
     search_data = await search_fast(domain)
@@ -343,13 +352,18 @@ async def _stream_radar(domain: str, history: list[dict], memory: str) -> AsyncI
     total = len(results)
 
     yield search_stats_event(total, total, engine_stats)
-    yield thinking_event("搜索完成", f"找到 {total} 条数据，来自 {len(engine_stats)} 个引擎", progress=35)
+    yield thinking_event("搜索完成", f"找到 {total} 条数据，来自 {len(engine_stats)} 个引擎", progress=35, agents=[
+        {"name": n, "status": "done", "count": c} for n, c in engine_stats.items()
+    ])
 
     if total < 5:
         yield data_warning_event(f"搜索数据较少（仅 {total} 条），分析结果可能不够全面。")
 
     # Step 2: Build knowledge graph (single pass, 50-80 nodes)
-    yield thinking_event("构建知识图谱", "正在分析事物之间的关联...", progress=45)
+    yield thinking_event("构建知识图谱", "正在分析事物之间的关联...", progress=45, agents=[
+        {"name": "实体提取", "status": "running"},
+        {"name": "关系推理", "status": "pending"},
+    ])
 
     import asyncio
     from engines.graph_builder import build_graph_fast
@@ -360,7 +374,11 @@ async def _stream_radar(domain: str, history: list[dict], memory: str) -> AsyncI
         log.warning("Graph build failed: %s", exc)
 
     # Step 3: Generate unified report (single LLM call, structured output)
-    yield thinking_event("生成报告", "AI 正在综合分析并生成完整方案...", progress=60)
+    yield thinking_event("生成报告", "AI 正在综合分析并生成完整方案...", progress=60, agents=[
+        {"name": "赛道分析", "status": "running"},
+        {"name": "策略生成", "status": "pending"},
+        {"name": "微信生态", "status": "pending"},
+    ])
 
     citations = CitationList()
     citations.add_from_search(results[:30])

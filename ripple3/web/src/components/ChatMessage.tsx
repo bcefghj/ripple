@@ -1,93 +1,317 @@
 import { motion } from 'framer-motion'
-import { useState } from 'react'
-import type { ChatMessage as ChatMsg, GraphNode } from '../lib/api'
+import { Sparkles, ChevronDown, ChevronUp, ExternalLink, AlertTriangle, Database } from 'lucide-react'
+import { useState, useCallback, lazy, Suspense } from 'react'
+import type { ChatMessage as ChatMsg, GraphNode, GraphData } from '../lib/api'
 import MarkdownRenderer from './MarkdownRenderer'
+import ThinkingPanel from './ThinkingPanel'
 import KnowledgeGraph3D from './KnowledgeGraph3D'
+import GraphDetailPanel from './GraphDetailPanel'
+import AgentRoundtable from './AgentRoundtable'
+import ScoreAnimation from './ScoreAnimation'
+import TokenUsagePanel from './TokenUsagePanel'
+import ViralScorePanel from './ViralScorePanel'
+import SearchRadar from './SearchRadar'
+import { expandGraphNode } from '../lib/api'
+
+const WeChatEcosystemPanel = lazy(() => import('./WeChatEcosystemPanel'))
+const KOCGrowthDashboard = lazy(() => import('./KOCGrowthDashboard'))
+const DataUniverseParticles = lazy(() => import('./DataUniverseParticles'))
+const DeepResearchFlow = lazy(() => import('./DeepResearchFlow'))
+const ResultDashboard = lazy(() => import('./ResultDashboard'))
 
 interface Props {
   message: ChatMsg
+  onSendMessage?: (text: string) => void
 }
 
-export default function ChatMessage({ message }: Props) {
+export default function ChatMessage({ message, onSendMessage }: Props) {
+  const [sourcesExpanded, setSourcesExpanded] = useState(false)
   const [selectedGraphNode, setSelectedGraphNode] = useState<GraphNode | null>(null)
+  const [graphData, setGraphData] = useState<GraphData | undefined>(message.graph)
+  const [isExpandingGraph, setIsExpandingGraph] = useState(false)
   const isUser = message.role === 'user'
+
+  const handleGraphNodeClick = useCallback((node: GraphNode) => {
+    setSelectedGraphNode(node)
+  }, [])
+
+  const handleGraphExpand = useCallback(async (node: GraphNode) => {
+    setIsExpandingGraph(true)
+    try {
+      const domain = ''
+      for await (const event of expandGraphNode(node.id, node.name, node.type, domain)) {
+        if (event.type === 'graph') {
+          const expandedData = event.data as GraphData
+          setGraphData(prev => {
+            if (!prev) return expandedData
+            const existingIds = new Set(prev.nodes.map(n => n.id))
+            const newNodes = expandedData.nodes.filter(n => !existingIds.has(n.id))
+            const newLinks = expandedData.links.filter(l => {
+              const src = typeof l.source === 'string' ? l.source : (l.source as any).id
+              const tgt = typeof l.target === 'string' ? l.target : (l.target as any).id
+              return !prev.links.some(existing => {
+                const eSrc = typeof existing.source === 'string' ? existing.source : (existing.source as any).id
+                const eTgt = typeof existing.target === 'string' ? existing.target : (existing.target as any).id
+                return eSrc === src && eTgt === tgt
+              })
+            })
+            return {
+              nodes: [...prev.nodes, ...newNodes],
+              links: [...prev.links, ...newLinks],
+            }
+          })
+        }
+      }
+    } catch (err) {
+      console.warn('Graph expand failed:', err)
+    } finally {
+      setIsExpandingGraph(false)
+    }
+  }, [])
 
   if (isUser) {
     return (
-      <div className="flex justify-end mb-4">
-        <div className="max-w-[80%] px-4 py-2.5 rounded-2xl rounded-tr-sm bg-violet-600/20 border border-violet-500/30 text-sm text-slate-200">
-          {message.content}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex justify-end mb-4"
+      >
+        <div className="max-w-[80%] sm:max-w-[70%]">
+          <div className="px-4 py-3 rounded-2xl rounded-br-sm bg-gradient-to-r from-blue-500 to-violet-500 text-white text-sm leading-relaxed shadow-md shadow-blue-900/30">
+            {message.content}
+          </div>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
-  const hasGraph = message.graph && message.graph.nodes?.length > 0
   const hasThinking = message.thinking && message.thinking.length > 0
-  const lastStep = hasThinking ? message.thinking![message.thinking!.length - 1] : null
+  const hasSources = message.sources && message.sources.length > 0
+  const hasGraph = (graphData || message.graph) && (graphData || message.graph)!.nodes && (graphData || message.graph)!.nodes.length > 0
+  const hasAgentMessages = message.agentMessages && message.agentMessages.length > 0
+  const hasScore = message.scoreData && message.scoreData.total_score > 0
+  const hasSearchStats = message.searchStats && message.searchStats.total_deduped > 0
+  const hasDataWarning = !!message.dataWarning
+  const hasTokenUsage = !!message.tokenUsage
+  const hasViralScore = message.viralScore && message.viralScore.total_score > 0
+  const currentGraph = graphData || message.graph
 
   return (
-    <div className="mb-6">
-      {/* Progress indicator */}
-      {message.isStreaming && lastStep && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700/30"
-        >
-          <div className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
-          <span className="text-xs text-slate-400">{lastStep.label || lastStep.text}</span>
-          {lastStep.detail && (
-            <span className="text-xs text-slate-600">— {lastStep.detail}</span>
-          )}
-        </motion.div>
-      )}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex gap-3 mb-4"
+    >
+      <div className="flex items-start">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center text-white shrink-0 shadow-sm">
+          <Sparkles className="w-4 h-4" />
+        </div>
+      </div>
 
-      {/* Knowledge Graph */}
-      {hasGraph && (
-        <div className="mb-4 rounded-2xl border border-slate-700/50 overflow-hidden">
-          <KnowledgeGraph3D
-            data={message.graph!}
-            onNodeClick={setSelectedGraphNode}
+      <div className="flex-1 min-w-0">
+        {hasThinking && (
+          <Suspense fallback={<div className="h-40 animate-pulse bg-slate-800/30 rounded-2xl mb-3" />}>
+            <DeepResearchFlow
+              steps={message.thinking!.map((s, i) => ({
+                id: `step-${i}`,
+                label: s.step || s.detail || `Step ${i + 1}`,
+                type: (s.step?.includes('搜索') ? 'search' : s.step?.includes('图谱') ? 'analyze' : s.step?.includes('报告') ? 'output' : 'analyze') as any,
+                status: i === message.thinking!.length - 1 && message.isStreaming ? 'active' : 'done',
+                detail: s.detail,
+              }))}
+              compact={!message.isStreaming}
+            />
+          </Suspense>
+        )}
+
+        {/* Search Radar - shows during active search */}
+        {hasThinking && (
+          <SearchRadar
+            stats={message.searchStats}
+            steps={message.thinking!}
+            isActive={!!message.isStreaming}
           />
-        </div>
-      )}
+        )}
 
-      {/* Report content */}
-      {message.content && (
-        <div className="rounded-2xl bg-slate-900/60 border border-slate-700/40 px-5 py-4">
-          <MarkdownRenderer content={message.content} isStreaming={message.isStreaming} />
-        </div>
-      )}
+        {hasDataWarning && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-start gap-2 mb-3 px-3 py-2 rounded-lg bg-amber-900/20 border border-amber-800 text-xs text-amber-400"
+          >
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>{message.dataWarning}</span>
+          </motion.div>
+        )}
 
-      {/* Streaming placeholder */}
-      {message.isStreaming && !message.content && !hasGraph && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900/60 border border-slate-700/40">
-          <div className="flex gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+        {hasSearchStats && (
+          <Suspense fallback={<div className="h-[280px] animate-pulse bg-slate-800/30 rounded-2xl mb-3" />}>
+            <DataUniverseParticles
+              engines={message.searchStats!.engines}
+              totalResults={message.searchStats!.total_deduped}
+              isActive={!!message.isStreaming}
+            />
+          </Suspense>
+        )}
+
+        {hasGraph && (
+          <KnowledgeGraph3D
+            data={currentGraph!}
+            onNodeClick={handleGraphNodeClick}
+            isExpanding={isExpandingGraph}
+          />
+        )}
+
+        {hasAgentMessages && (
+          <AgentRoundtable
+            messages={message.agentMessages!}
+            arbiterThinking={message.arbiterThinking}
+          />
+        )}
+
+        {hasScore && (
+          <div className="mb-3 rounded-2xl border border-slate-700/50 bg-slate-800 px-4 py-3 shadow-sm">
+            <ScoreAnimation
+              totalScore={message.scoreData!.total_score}
+              dimensions={message.scoreData!.dimensions}
+              hkrrDimensions={message.scoreData!.hkrr}
+              verdict={message.scoreData!.verdict}
+            />
+            {message.scoreData!.key_risks && message.scoreData!.key_risks.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-700/50">
+                <p className="text-xs font-semibold text-red-500 mb-1">风险提示</p>
+                <ul className="text-xs text-slate-500 space-y-0.5">
+                  {message.scoreData!.key_risks!.map((r, i) => (
+                    <li key={i} className="flex items-start gap-1">
+                      <span className="text-red-400 shrink-0">•</span> {r}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {message.scoreData!.action_items && message.scoreData!.action_items.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-700/50">
+                <p className="text-xs font-semibold text-emerald-500 mb-1">行动建议</p>
+                <ul className="text-xs text-slate-500 space-y-0.5">
+                  {message.scoreData!.action_items!.map((a, i) => (
+                    <li key={i} className="flex items-start gap-1">
+                      <span className="text-emerald-400 shrink-0">{i + 1}.</span> {a}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-          <span className="text-xs text-slate-500">Ripple 正在分析...</span>
-        </div>
-      )}
+        )}
 
-      {/* Sources */}
-      {message.sources && message.sources.length > 0 && (
-        <details className="mt-3">
-          <summary className="text-xs text-slate-600 cursor-pointer hover:text-slate-400 transition-colors">
-            参考来源 ({message.sources.length})
-          </summary>
-          <div className="mt-2 space-y-1 pl-3">
-            {message.sources.slice(0, 10).map((s, i) => (
-              <a key={i} href={s.url} target="_blank" rel="noopener"
-                className="block text-xs text-slate-500 hover:text-violet-400 truncate transition-colors">
-                {s.title}
-              </a>
+        {hasViralScore && (
+          <ViralScorePanel data={message.viralScore!} />
+        )}
+
+        {message.wechatStrategy && (
+          <Suspense fallback={<div className="h-40 animate-pulse bg-slate-800/50 rounded-2xl mb-3" />}>
+            <WeChatEcosystemPanel strategy={message.wechatStrategy} domain="" />
+          </Suspense>
+        )}
+
+        {message.kocGrowth && (
+          <Suspense fallback={<div className="h-40 animate-pulse bg-slate-800/50 rounded-2xl mb-3" />}>
+            <KOCGrowthDashboard data={message.kocGrowth} />
+          </Suspense>
+        )}
+
+        {(message.titleAbTest || message.hooks) && (
+          <Suspense fallback={<div className="h-40 animate-pulse bg-slate-800/50 rounded-2xl mb-3" />}>
+            <ResultDashboard
+              summary=""
+              titleVariants={message.titleAbTest?.titles}
+              hooks={message.hooks?.hooks}
+            />
+          </Suspense>
+        )}
+
+        {message.content ? (
+          <div className="rounded-2xl rounded-tl-sm bg-slate-800/80 border border-slate-700/50 px-4 py-3 shadow-sm backdrop-blur-sm">
+            <MarkdownRenderer content={message.content} isStreaming={message.isStreaming} />
+          </div>
+        ) : message.isStreaming && !hasAgentMessages && !hasScore ? (
+          <div className="rounded-2xl rounded-tl-sm bg-slate-800/80 border border-slate-700/50 px-4 py-3 shadow-sm backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <span>Ripple 正在思考</span>
+              <span className="flex gap-1">
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+                <span className="typing-dot" />
+              </span>
+            </div>
+          </div>
+        ) : null}
+
+        {hasTokenUsage && (
+          <TokenUsagePanel usage={message.tokenUsage!} />
+        )}
+
+        {hasSources && (
+          <div className="mt-2">
+            <button
+              onClick={() => setSourcesExpanded(!sourcesExpanded)}
+              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-500 transition-colors"
+            >
+              <ExternalLink className="w-3 h-3" />
+              <span>{message.sources!.length} 个参考来源</span>
+              {sourcesExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+            </button>
+            {sourcesExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="mt-2 space-y-1"
+              >
+                {message.sources!.map((src, i) => (
+                  <a
+                    key={i}
+                    href={src.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-2 text-xs p-2 rounded-lg bg-slate-800/50 hover:bg-blue-900/20 transition-colors group"
+                  >
+                    <span className="text-slate-400 shrink-0">{i + 1}.</span>
+                    <span className="text-blue-400 group-hover:underline line-clamp-1">{src.title}</span>
+                  </a>
+                ))}
+              </motion.div>
+            )}
+          </div>
+        )}
+          {message.nextSteps && message.nextSteps.length > 0 && !message.isStreaming && (
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-3 flex flex-wrap gap-2"
+          >
+            {message.nextSteps.map((step, i) => (
+              <button
+                key={i}
+                onClick={() => onSendMessage?.(step.prompt)}
+                className="text-xs px-3 py-1.5 rounded-full border border-blue-800 bg-blue-900/20 text-blue-400 hover:bg-blue-900/40 transition-colors"
+              >
+                {step.label}
+              </button>
             ))}
-          </div>
-        </details>
-      )}
+          </motion.div>
+        )}
     </div>
+
+      {/* Graph detail side panel */}
+      {selectedGraphNode && hasGraph && (
+        <GraphDetailPanel
+          node={selectedGraphNode}
+          graphData={currentGraph!}
+          onClose={() => setSelectedGraphNode(null)}
+          onExpand={handleGraphExpand}
+        />
+      )}
+    </motion.div>
   )
 }

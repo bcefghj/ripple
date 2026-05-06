@@ -59,6 +59,7 @@ export default function Sidebar({
 
       <button
         onClick={onToggle}
+        aria-label="切换侧边栏"
         className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-slate-900 border border-slate-700 shadow-sm hover:bg-slate-800 transition-colors lg:hidden"
       >
         {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -75,7 +76,7 @@ export default function Sidebar({
             </div>
             <div>
               <div className="font-bold text-sm bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">Ripple</div>
-              <div className="text-[10px] text-slate-400">KOC 决策智能平台</div>
+              <div className="text-xs text-slate-400">KOC 决策智能平台</div>
             </div>
           </div>
           <button
@@ -90,7 +91,7 @@ export default function Sidebar({
         <div className="flex-1 overflow-y-auto">
           {/* Quick actions */}
           <div className="p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">
               快捷入口
             </div>
             <div className="space-y-0.5">
@@ -110,7 +111,7 @@ export default function Sidebar({
           {/* History */}
           {conversations.length > 0 && (
             <div className="p-3 border-t border-slate-800/50">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1 flex items-center gap-1">
+              <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1 flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 历史对话
               </div>
@@ -131,12 +132,12 @@ export default function Sidebar({
                       <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-50" />
                       <div className="flex-1 min-w-0">
                         <div className="truncate text-xs">{conv.title}</div>
-                        <div className="text-[10px] text-slate-400">{timeAgo(conv.updated_at)}</div>
+                        <div className="text-xs text-slate-500">{timeAgo(conv.updated_at)}</div>
                       </div>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); onDeleteConversation(conv.id); }}
-                      className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all"
+                      className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-900/30 text-slate-400 hover:text-red-500 transition-all"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -145,12 +146,6 @@ export default function Sidebar({
               </div>
             </div>
           )}
-        </div>
-
-        <div className="p-3 border-t border-slate-800/50">
-          <p className="text-[10px] text-slate-400 leading-relaxed">
-            Ripple 会记住你的偏好和探索过的领域，在新对话中自动关联上下文。
-          </p>
         </div>
       </aside>
     </>

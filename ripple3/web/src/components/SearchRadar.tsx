@@ -1,104 +1,125 @@
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
+import { Search, BookOpen, PenTool, Check } from 'lucide-react'
 import type { ThinkingStep } from '../lib/api'
 
 interface Props {
-  stats?: { total_raw: number; total_deduped: number; engines: Record<string, number> }
+  stats?: any
   steps?: ThinkingStep[]
   isActive?: boolean
 }
 
-export default function SearchRadar({ stats, steps, isActive }: Props) {
-  if (!stats && (!steps || steps.length === 0)) return null
+const PHASES = [
+  { key: 'searching', label: '搜索中', icon: Search, color: 'text-blue-400' },
+  { key: 'reading', label: '阅读分析', icon: BookOpen, color: 'text-amber-400' },
+  { key: 'writing', label: '生成报告', icon: PenTool, color: 'text-emerald-400' },
+]
 
-  const engines = Object.entries(stats?.engines || {})
-  const currentStep = steps?.[steps.length - 1]
-  const progress = currentStep?.progress || 0
+function getCurrentPhase(steps?: ThinkingStep[]): number {
+  if (!steps || steps.length === 0) return 0
+  const lastStep = steps[steps.length - 1]
+  if (lastStep.step?.includes('报告') || lastStep.step?.includes('综合')) return 2
+  if (lastStep.step?.includes('图谱') || lastStep.step?.includes('分析') || lastStep.step?.includes('关联')) return 1
+  return 0
+}
+
+export default function SearchRadar({ stats, steps, isActive }: Props) {
+  if (!isActive && (!steps || steps.length === 0)) return null
+
+  const currentPhase = isActive ? getCurrentPhase(steps) : 3
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-slate-700/50 bg-slate-900/80 p-4 mb-4 overflow-hidden"
+      className="mb-4 px-4 py-3 rounded-xl bg-slate-800/60 border border-slate-700/40"
     >
-      {/* Progress bar */}
-      <div className="relative h-1 rounded-full bg-slate-800 mb-3 overflow-hidden">
+      <div className="flex items-center gap-6">
+        {PHASES.map((phase, i) => {
+          const Icon = phase.icon
+          const isDone = currentPhase > i
+          const isCurrent = currentPhase === i && isActive
+          
+          return (
+            <div key={phase.key} className="flex items-center gap-2">
+              <div className={`relative flex items-center justify-center w-7 h-7 rounded-lg ${
+                isDone ? 'bg-emerald-500/20' : isCurrent ? 'bg-slate-700' : 'bg-slate-800/50'
+              }`}>
+                {isDone ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Icon className={`w-3.5 h-3.5 ${isCurrent ? phase.color : 'text-slate-500'}`} />
+                )}
+                {isCurrent && (
+                  <motion.div
+                    className="absolute inset-0 rounded-lg border border-current opacity-50"
+                    style={{ color: phase.color.replace('text-', '').includes('blue') ? '#60a5fa' : phase.color.includes('amber') ? '#fbbf24' : '#34d399' }}
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                )}
+              </div>
+              <div className="flex flex-col">
+                <span className={`text-xs font-medium ${isDone ? 'text-emerald-400' : isCurrent ? 'text-slate-200' : 'text-slate-500'}`}>
+                  {phase.label}
+                </span>
+                {isCurrent && (
+                  <span className="flex gap-0.5 mt-0.5">
+                    {[0, 1, 2].map(dot => (
+                      <motion.span
+                        key={dot}
+                        className="w-1 h-1 rounded-full bg-current"
+                        style={{ color: phase.color.includes('blue') ? '#60a5fa' : phase.color.includes('amber') ? '#fbbf24' : '#34d399' }}
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1, repeat: Infinity, delay: dot * 0.2 }}
+                      />
+                    ))}
+                  </span>
+                )}
+              </div>
+              {i < PHASES.length - 1 && (
+                <div className={`w-8 h-px mx-1 ${isDone ? 'bg-emerald-500/50' : 'bg-slate-700'}`} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Show active agents */}
+      {isActive && steps && steps.length > 0 && steps[steps.length - 1].agents && (
         <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-violet-500 via-cyan-500 to-emerald-500"
-        />
-        {isActive && (
-          <motion.div
-            animate={{ x: ['0%', '200%'] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-            className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-          />
-        )}
-      </div>
-
-      {/* Current phase */}
-      <div className="flex items-center gap-2 mb-3">
-        {isActive ? (
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        ) : (
-          <div className="w-2 h-2 rounded-full bg-emerald-400" />
-        )}
-        <span className="text-xs font-medium text-slate-300">
-          {currentStep?.step || '搜索引擎矩阵'}
-        </span>
-        {stats && (
-          <span className="text-xs text-slate-500 ml-auto">
-            {stats.total_deduped} 条数据
-          </span>
-        )}
-      </div>
-
-      {/* Engine status list */}
-      <AnimatePresence>
-        {engines.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="flex flex-wrap gap-1.5"
-          >
-            {engines.map(([name, count], idx) => (
-              <motion.span
-                key={name}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: idx * 0.08, type: 'spring', stiffness: 300 }}
-                className="px-2 py-1 rounded-md text-[10px] bg-slate-800 border border-slate-700/50 text-slate-400 flex items-center gap-1"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                {name}
-                <span className="text-emerald-400 font-medium">{count}</span>
-              </motion.span>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Thinking steps timeline */}
-      {steps && steps.length > 1 && (
-        <div className="mt-3 pt-3 border-t border-slate-800/50 space-y-1">
-          {steps.slice(-4).map((step, i) => (
-            <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-2.5 pt-2.5 border-t border-slate-700/40 flex flex-wrap gap-1.5"
+        >
+          {steps[steps.length - 1].agents!.map((agent, i) => (
+            <span
               key={i}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="flex items-center gap-2 text-[10px]"
+              className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                agent.status === 'running'
+                  ? 'border-blue-600/40 bg-blue-500/10 text-blue-300'
+                  : agent.status === 'done'
+                  ? 'border-emerald-600/40 bg-emerald-500/10 text-emerald-300'
+                  : 'border-slate-700 bg-slate-800 text-slate-500'
+              }`}
             >
-              <span className={`w-1 h-1 rounded-full ${
-                i === steps.slice(-4).length - 1 && isActive
-                  ? 'bg-violet-400 animate-pulse'
-                  : 'bg-slate-600'
-              }`} />
-              <span className="text-slate-500">{step.step}</span>
-              <span className="text-slate-600 truncate">{step.detail}</span>
-            </motion.div>
+              {agent.status === 'running' && (
+                <motion.span
+                  className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 mr-1"
+                  animate={{ opacity: [1, 0.3, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                />
+              )}
+              {agent.name}
+              {agent.count !== undefined && ` (${agent.count})`}
+            </span>
           ))}
+        </motion.div>
+      )}
+
+      {/* Progress summary */}
+      {steps && steps.length > 0 && (
+        <div className="mt-2 text-[11px] text-slate-400">
+          {steps[steps.length - 1].detail}
         </div>
       )}
     </motion.div>

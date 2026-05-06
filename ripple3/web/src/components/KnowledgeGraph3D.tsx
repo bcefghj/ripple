@@ -312,17 +312,15 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
   const [dimensions, setDimensions]   = useState({ width: 600, height: 400 })
   const [growthCount, setGrowthCount] = useState(0)
 
-  const height = fullscreen ? window.innerHeight : expanded ? 650 : 450
-
   /* ---------- Resize observer ---------- */
   useEffect(() => {
     if (!containerRef.current) return
     const obs = new ResizeObserver(entries => {
-      for (const e of entries) setDimensions({ width: e.contentRect.width, height })
+      for (const e of entries) setDimensions({ width: e.contentRect.width, height: e.contentRect.height })
     })
     obs.observe(containerRef.current)
     return () => obs.disconnect()
-  }, [height])
+  }, [])
 
   /* ---------- Post-processing & Scene Setup ---------- */
   useEffect(() => {
@@ -350,7 +348,7 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
       composer.addPass(new RenderPass(scene, camera))
 
       const bloom = new UnrealBloomPass(
-        new THREE.Vector2(dimensions.width, height),
+        new THREE.Vector2(dimensions.width, dimensions.height),
         1.8,   // strength
         0.5,   // radius
         0.28,  // threshold
@@ -449,9 +447,9 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
 
   /* ---------- Resize composer ---------- */
   useEffect(() => {
-    composerRef.current?.setSize(dimensions.width, height)
-    bloomRef.current?.setSize?.(dimensions.width, height)
-  }, [dimensions.width, height])
+    composerRef.current?.setSize(dimensions.width, dimensions.height)
+    bloomRef.current?.setSize?.(dimensions.width, dimensions.height)
+  }, [dimensions.width, dimensions.height])
 
   /* ---------- Growth animation ---------- */
   useEffect(() => {
@@ -460,14 +458,21 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
 
     setGrowthCount(1)
     let step = 1
-    const batch = Math.max(1, Math.ceil(total / 22))
+    const batch = Math.max(1, Math.ceil(total / 28))
 
     const id = setInterval(() => {
       step += batch
       const next = Math.min(step, total)
       setGrowthCount(next)
       if (next >= total) clearInterval(id)
-    }, 75)
+    }, 60)
+
+    // Focus camera on center after initial nodes appear
+    setTimeout(() => {
+      if (graphRef.current) {
+        graphRef.current.cameraPosition({ x: 0, y: 0, z: 320 }, { x: 0, y: 0, z: 0 }, 1500)
+      }
+    }, 200)
 
     return () => clearInterval(id)
   }, [data.nodes.length])
@@ -672,7 +677,7 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
   /* ---------- Render ---------- */
   const containerClass = fullscreen
     ? 'fixed inset-0 z-50 bg-slate-950'
-    : 'mb-4 rounded-2xl border border-slate-700/50 bg-slate-950 overflow-hidden shadow-2xl'
+    : `mb-4 ${expanded ? 'h-[650px]' : 'h-[400px]'} rounded-xl border border-slate-700/50 bg-slate-950 overflow-hidden shadow-2xl`
 
   return (
     <motion.div
@@ -719,12 +724,12 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
       </div>
 
       {/* -------- Graph -------- */}
-      <div ref={containerRef} className="relative" style={{ height }}>
+      <div ref={containerRef} className="relative w-full h-full overflow-hidden">
         <ForceGraph3D
           ref={graphRef}
           graphData={graphData}
           width={dimensions.width}
-          height={height}
+          height={dimensions.height}
           backgroundColor="rgba(2,6,23,0)"
           nodeThreeObject={nodeThreeObject}
           nodeThreeObjectExtend={false}

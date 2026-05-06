@@ -32,7 +32,13 @@ export default function App() {
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+      const el = scrollRef.current
+      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200
+      if (isNearBottom) {
+        requestAnimationFrame(() => {
+          el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+        })
+      }
     }
   }, [messages])
 

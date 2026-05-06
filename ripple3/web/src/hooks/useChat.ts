@@ -287,6 +287,18 @@ export function useChat() {
             })
             break
 
+          case 'next_steps':
+            nextSteps = event.data as NextStep[]
+            setMessages(prev => {
+              const updated = [...prev]
+              const last = updated[updated.length - 1]
+              if (last.role === 'assistant') {
+                updated[updated.length - 1] = { ...last, nextSteps }
+              }
+              return updated
+            })
+            break
+
           case 'hooks':
             setMessages(prev => {
               const updated = [...prev]

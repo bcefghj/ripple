@@ -366,9 +366,20 @@ async def _stream_radar(domain: str, history: list[dict], memory: str) -> AsyncI
     ])
 
     import asyncio
-    from engines.graph_builder import build_graph_fast
+    from engines.graph_builder import build_knowledge_graph
     try:
-        graph_data = await asyncio.wait_for(build_graph_fast(domain, results), timeout=30)
+        # Convert list to dict format for rich graph extraction
+        search_data = {
+            "peers": results[:40],
+            "bloggers": results[40:60] if len(results) > 40 else [],
+            "trending": results[60:80] if len(results) > 60 else [],
+            "topics": results[80:100] if len(results) > 80 else [],
+        }
+        # Use full graph builder (150-300 nodes) instead of fast version (40-70 nodes)
+        graph_data = await asyncio.wait_for(
+            build_knowledge_graph(domain, search_data, max_nodes=250),
+            timeout=60  # Increased timeout for richer graph
+        )
         yield graph_event(graph_data["nodes"], graph_data["links"])
     except Exception as exc:
         log.warning("Graph build failed: %s", exc)

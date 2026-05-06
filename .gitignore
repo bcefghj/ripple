@@ -46,10 +46,12 @@ temp/
 
 # === Archive & non-production directories ===
 .archive/
+_archive/
 _handover/
 ai_handover_materials_*/
 handover_materials_*/
 ripple_complete_handover_materials/
+handover_package_*/
 
 # Legacy/duplicate code (kept locally, excluded from GitHub)
 apps/
@@ -76,6 +78,16 @@ run_demo.sh
 讨论记录_*.md
 赛题5_原文摘录.md
 SUBMISSION.md
+
+# Old/other project PDFs and tooling scripts
+pdf/larkmentor_*.pdf
+pdf/take_screenshots.js
+pdf/take_screenshots.mjs
+pdf/package.json
+pdf/package-lock.json
+
+# Website old versions (only ripple-site is needed)
+website/pitch-site/
 
 # allow screenshots for README
 !ripple3/docs/screenshots/

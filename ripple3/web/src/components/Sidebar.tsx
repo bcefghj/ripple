@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { Plus, Search, Lightbulb, TrendingUp, PenTool, Palette, X, Menu, Waves, Clock, Trash2, MessageSquare } from 'lucide-react'
+import { Plus, Search, Lightbulb, TrendingUp, PenTool, Palette, X, Menu, Waves, Clock, Trash2, MessageSquare, Stethoscope } from 'lucide-react'
 import type { Conversation } from '../lib/api'
 
 interface Props {
@@ -7,6 +7,7 @@ interface Props {
   onToggle: () => void
   onNewChat: () => void
   onQuickAction: (prompt: string) => void
+  onOpenStageDiagnose?: () => void
   conversations: Conversation[]
   currentConversationId: string
   onLoadConversation: (id: string) => void
@@ -40,7 +41,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function Sidebar({
-  isOpen, onToggle, onNewChat, onQuickAction,
+  isOpen, onToggle, onNewChat, onQuickAction, onOpenStageDiagnose,
   conversations, currentConversationId, onLoadConversation, onDeleteConversation,
 }: Props) {
   return (
@@ -89,6 +90,24 @@ export default function Sidebar({
         </div>
 
         <div className="flex-1 overflow-y-auto">
+          {/* AI 工具 (杀手级) */}
+          {onOpenStageDiagnose && (
+            <div className="p-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-violet-400 mb-2 px-1 flex items-center gap-1">
+                <Stethoscope className="w-3 h-3" />
+                AI 工具
+              </div>
+              <button
+                onClick={() => { onOpenStageDiagnose(); onToggle(); }}
+                className="flex items-center gap-2.5 w-full px-2.5 py-2 rounded-lg text-sm text-violet-300 bg-violet-900/20 border border-violet-700/30 hover:bg-violet-900/40 transition-colors"
+              >
+                <Stethoscope className="w-4 h-4" />
+                <span className="flex-1 text-left">KOC 阶段诊断</span>
+                <span className="text-[9px] px-1 py-0.5 rounded bg-violet-500/20 text-violet-300">NEW</span>
+              </button>
+            </div>
+          )}
+
           {/* Quick actions */}
           <div className="p-3">
             <div className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">

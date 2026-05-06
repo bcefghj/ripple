@@ -62,6 +62,11 @@ packages/
 latex-pdf-workflow/
 website_build_doc/
 
+# But DO track ripple3/docs/screenshots for README
+!ripple3/docs/
+!ripple3/docs/screenshots/
+!ripple3/docs/screenshots/**
+
 # Non-code files that shouldn't be in repo
 minimax.md
 start.sh
@@ -71,3 +76,7 @@ run_demo.sh
 讨论记录_*.md
 赛题5_原文摘录.md
 SUBMISSION.md
+
+# allow screenshots for README
+!ripple3/docs/screenshots/
+!ripple3/docs/screenshots/**

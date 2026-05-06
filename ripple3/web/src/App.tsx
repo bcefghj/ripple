@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, lazy, Suspense } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useChat } from './hooks/useChat'
 import Sidebar from './components/Sidebar'
 import HeroWelcome from './components/HeroWelcome'
@@ -6,12 +7,15 @@ import ChatMessage from './components/ChatMessage'
 import ChatInput from './components/ChatInput'
 import AIProgressBar from './components/AIProgressBar'
 
+const KOCStageDiagnose = lazy(() => import('./components/KOCStageDiagnose'))
+
 export default function App() {
   const {
     messages, isLoading, thinkingSteps, sendMessage, clearChat,
     conversationId, conversations, loadHistory, deleteHistory,
   } = useChat()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [stageDiagnoseOpen, setStageDiagnoseOpen] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const hasMessages = messages.length > 0
 
@@ -54,6 +58,7 @@ export default function App() {
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onNewChat={clearChat}
         onQuickAction={handleSend}
+        onOpenStageDiagnose={() => setStageDiagnoseOpen(true)}
         conversations={conversations}
         currentConversationId={conversationId}
         onLoadConversation={loadHistory}
@@ -101,6 +106,31 @@ export default function App() {
           isLoading={isLoading}
         />
       </main>
+
+      {/* KOC 阶段诊断模态框 */}
+      <AnimatePresence>
+        {stageDiagnoseOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setStageDiagnoseOpen(false)}
+          >
+            <div onClick={e => e.stopPropagation()} className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              <Suspense fallback={<div className="h-[400px] bg-slate-800/50 rounded-2xl animate-pulse" />}>
+                <KOCStageDiagnose
+                  onClose={() => setStageDiagnoseOpen(false)}
+                  onAction={(prompt) => {
+                    setStageDiagnoseOpen(false)
+                    handleSend(prompt)
+                  }}
+                />
+              </Suspense>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

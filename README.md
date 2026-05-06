@@ -26,19 +26,38 @@
 
 ---
 
-## 🎯 凭什么是 Ripple（5 个 AI 原生不可替代能力）
+## 🎯 凭什么是 Ripple（6 个 AI 原生不可替代能力）
 
 | AI 原生能力 | ChatGPT | Perplexity | Ripple |
 |------------|---------|-----------|--------|
 | 多源实时搜索 + 来源引用 | ⚠️ | ✅ | ✅ |
 | **7 位 AI 专家圆桌辩论 + 共识度** | ❌ | ❌ | **✅** |
 | **CES 爆款指数模拟器（小红书算法）** | ❌ | ❌ | **✅** |
+| **KOC 4 阶段诊断 + 专属下一步** | ❌ | ❌ | **✅** |
 | **视频号社交链路 / 搜一搜热度可视化** | ❌ | ❌ | **✅** |
 | **内容生态图谱（KOC 涨粉视角）** | ❌ | ❌ | **✅** |
 | **微信生态深度集成（4 大子生态）** | ❌ | ❌ | **✅** |
 | **多平台一键内容格式转换** | ❌ | ❌ | **✅** |
 
 > 与通用 AI 的核心差异：**赛道纵深**——Ripple 不是"会回答 KOC 问题的 AI"，而是"用算法和可视化让 KOC 能直接行动的产品"。
+
+### 📸 视觉证据（实际渲染截图）
+
+<table>
+  <tr>
+    <td width="33%"><b>5 秒法则首屏</b><br/><img src="ripple3/docs/screenshots/hero.png" alt="Hero" /></td>
+    <td width="33%"><b>内容生态图（中文原生）</b><br/><img src="ripple3/docs/screenshots/content_eco_graph.png" alt="Graph" /></td>
+    <td width="33%"><b>AI 评审团圆桌</b><br/><img src="ripple3/docs/screenshots/agent_roundtable.png" alt="Agent" /></td>
+  </tr>
+  <tr>
+    <td width="33%"><b>CES 模拟器</b><br/><img src="ripple3/docs/screenshots/ces_simulator.png" alt="CES" /></td>
+    <td width="33%"><b>搜一搜关键词热度</b><br/><img src="ripple3/docs/screenshots/wechat_search.png" alt="Search" /></td>
+    <td width="33%"><b>KOC 金字塔</b><br/><img src="ripple3/docs/screenshots/koc_pyramid.png" alt="Pyramid" /></td>
+  </tr>
+  <tr>
+    <td colspan="3"><b>KOC 阶段诊断 — 4 阶段 + 专属下一步</b><br/><img src="ripple3/docs/screenshots/koc_stage_diagnose.png" alt="Stage" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -151,6 +170,7 @@ ripple3/
         │   ├── KnowledgeGraph3D.tsx  # 内容生态图（中文优化版）
         │   ├── AgentRoundtable.tsx   # 🆕 7 位 AI 评审团圆桌
         │   ├── ViralScoreDashboard.tsx # 🆕 CES 爆款指数仪表盘
+        │   ├── KOCStageDiagnose.tsx  # 🆕 KOC 4 阶段诊断
         │   ├── WeChatEcosystemPanel.tsx # 微信生态四面板（已深度强化）
         │   └── CopyButton.tsx        # 🆕 三种格式一键复制
         ├── data/demoCases.ts         # 6 个 Demo 案例（含完整 mock 数据）

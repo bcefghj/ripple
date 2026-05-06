@@ -76,7 +76,7 @@ export default function Sidebar({
             </div>
             <div>
               <div className="font-bold text-sm bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">Ripple</div>
-              <div className="text-xs text-slate-400">KOC 决策智能平台</div>
+              <div className="text-xs text-slate-400">KOC 内容增长引擎</div>
             </div>
           </div>
           <button

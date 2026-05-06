@@ -6,12 +6,15 @@ import MarkdownRenderer from './MarkdownRenderer'
 import GraphDetailPanel from './GraphDetailPanel'
 import SearchRadar from './SearchRadar'
 import TokenUsagePanel from './TokenUsagePanel'
+import CopyButton from './CopyButton'
 import { expandGraphNode } from '../lib/api'
 
 const KnowledgeGraph3D = lazy(() => import('./KnowledgeGraph3D'))
 const WeChatEcosystemPanel = lazy(() => import('./WeChatEcosystemPanel'))
 const KOCGrowthDashboard = lazy(() => import('./KOCGrowthDashboard'))
 const ResultDashboard = lazy(() => import('./ResultDashboard'))
+const AgentRoundtable = lazy(() => import('./AgentRoundtable'))
+const ViralScoreDashboard = lazy(() => import('./ViralScoreDashboard'))
 
 interface Props {
   message: ChatMsg
@@ -130,6 +133,24 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
           </Suspense>
         )}
 
+        {/* AI 评审团圆桌（在图谱之后，最显眼位置） */}
+        {(message.agentMessages && message.agentMessages.length > 0) && (
+          <Suspense fallback={<div className="h-[300px] animate-pulse bg-slate-800/30 rounded-2xl mb-3" />}>
+            <AgentRoundtable
+              agentMessages={message.agentMessages}
+              scoreData={message.scoreData}
+              arbiterThinking={message.arbiterThinking}
+            />
+          </Suspense>
+        )}
+
+        {/* 爆款指数仪表盘 */}
+        {message.viralScore && (
+          <Suspense fallback={<div className="h-[260px] animate-pulse bg-slate-800/30 rounded-2xl mb-3" />}>
+            <ViralScoreDashboard data={message.viralScore} />
+          </Suspense>
+        )}
+
         {/* Sources shown before report content (trust-first) */}
         {hasSources && !message.isStreaming && (
           <motion.div
@@ -186,7 +207,12 @@ export default function ChatMessage({ message, onSendMessage }: Props) {
 
         {/* Markdown content — the actual report */}
         {message.content ? (
-          <div className="rounded-2xl rounded-tl-sm bg-slate-800/80 border border-slate-700/50 px-4 py-3 shadow-sm backdrop-blur-sm">
+          <div className="rounded-2xl rounded-tl-sm bg-slate-800/80 border border-slate-700/50 px-4 py-3 shadow-sm backdrop-blur-sm relative group">
+            {!message.isStreaming && (
+              <div className="absolute top-2.5 right-2.5 opacity-70 group-hover:opacity-100 transition-opacity z-10">
+                <CopyButton content={message.content} />
+              </div>
+            )}
             <MarkdownRenderer content={message.content} isStreaming={message.isStreaming} sources={message.sources} />
           </div>
         ) : message.isStreaming ? (

@@ -360,7 +360,7 @@ async def _stream_radar(domain: str, history: list[dict], memory: str) -> AsyncI
         yield data_warning_event(f"搜索数据较少（仅 {total} 条），分析结果可能不够全面。")
 
     # Step 2: Build knowledge graph (single pass, 50-80 nodes)
-    yield thinking_event("构建知识图谱", "正在分析事物之间的关联...", progress=45, agents=[
+    yield thinking_event("构建内容生态图", "正在分析事物之间的关联...", progress=45, agents=[
         {"name": "实体提取", "status": "running"},
         {"name": "关系推理", "status": "pending"},
     ])
@@ -368,17 +368,17 @@ async def _stream_radar(domain: str, history: list[dict], memory: str) -> AsyncI
     import asyncio
     from engines.graph_builder import build_knowledge_graph
     try:
-        # Convert list to dict format for rich graph extraction
+        # Convert list to dict format for graph extraction
         search_data = {
             "peers": results[:40],
             "bloggers": results[40:60] if len(results) > 40 else [],
             "trending": results[60:80] if len(results) > 60 else [],
             "topics": results[80:100] if len(results) > 80 else [],
         }
-        # Use full graph builder (150-300 nodes) instead of fast version (40-70 nodes)
+        # Single-pass mode: 60 high-quality nodes instead of 250 LLM-fabricated ones
         graph_data = await asyncio.wait_for(
-            build_knowledge_graph(domain, search_data, max_nodes=250),
-            timeout=60  # Increased timeout for richer graph
+            build_knowledge_graph(domain, search_data, max_nodes=60, single_pass=True),
+            timeout=30
         )
         yield graph_event(graph_data["nodes"], graph_data["links"])
     except Exception as exc:
@@ -399,7 +399,7 @@ async def _stream_radar(domain: str, history: list[dict], memory: str) -> AsyncI
         for i, r in enumerate(results[:50])
     )
 
-    system_msg = f"""你是 Ripple — 面向大学生KOC的AI内容增长顾问。你正在参与腾讯PCG校园AI大赛，赛题是"帮KOC轻松涨粉"。
+    system_msg = f"""你是 Ripple，一位面向大学生 KOC 的 AI 内容增长顾问，专注小红书 / 微信视频号 / 公众号 / 搜一搜四端生态。
 {f'用户记忆: {memory}' if memory else ''}
 
 基于搜索到的 {total} 条实时数据，输出一份**结构化分析报告**。

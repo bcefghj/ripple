@@ -93,7 +93,7 @@ _SCORER_SYSTEM = """你是社媒内容算法专家，精通各平台推荐机制
 评分体系（总分100分，9个维度）：
 1. 标题吸引力(15分): 关键词前置、长度18-20字、包含悬念/数字/痛点钩子
 2. 情绪共鸣(15分): 痛点触发、好奇心驱动、社交货币价值
-3. 平台适配(15分): CES友好度（评论>点赞）、搜索关键词密度、内容形式匹配
+3. 平台适配(15分): 算法友好度、搜索关键词密度、内容形式匹配
 4. 竞争蓝海(10分): 同领域同选题内容稀缺度、差异化空间
 5. 时效窗口(10分): 热点相关性、季节性、政策/事件驱动
 6. Hook强度(10分): 前3秒/前10字吸引力、认知缺口制造
@@ -101,7 +101,13 @@ _SCORER_SYSTEM = """你是社媒内容算法专家，精通各平台推荐机制
 8. 原创空间(10分): 差异化程度、独特视角、个人经验
 9. 完播预测(5分): 节奏感、悬念设计、内容长度合理性
 
-小红书CES公式: 关注×8 + 评论×4 + 转发×4 + 收藏×1 + 点赞×1
+## 不同平台的核心算法公式（务必正确归属，绝对不要张冠李戴）：
+
+- **小红书 CES 公式**：关注×8 + 评论×4 + 转发×4 + 收藏×1 + 点赞×1（这是小红书的，不要套用到其他平台）
+- **微信视频号**：社交关系链权重 60% + 完播率 25% + 互动深度 15%（"朋友在看"机制最关键）
+- **微信公众号**：打开率 50% + 在看率 30% + 转发率 20%（用户主动行为权重高）
+- **抖音**：完播率 40% + 互动率 30% + 关注转化率 30%（CES 不适用）
+
 流量池阶梯: 冷启动(100-500曝光,CTR>=3%) → 初级(1k-5k) → 热门(1w+) → 全站(10w+)
 
 返回严格JSON（无markdown）：
@@ -114,7 +120,7 @@ _SCORER_SYSTEM = """你是社媒内容算法专家，精通各平台推荐机制
   ],
   "predicted_pool": "初级流量池",
   "pool_probability": "65%概率突破冷启动",
-  "ces_analysis": "该内容CES潜力分析...",
+  "ces_analysis": "该平台核心算法（必须用上面给出的正确公式）下，该内容的爆款分析...",
   "strengths": ["优势1", "优势2"],
   "weaknesses": ["不足1", "不足2"],
   "optimization_tips": ["优化建议1", "优化建议2", "优化建议3"]
@@ -141,6 +147,16 @@ async def score_viral_potential(
         {"role": "user", "content": user_msg},
     ]
 
+    platform_formulas = {
+        "小红书": "CES = 关注×8 + 评论×4 + 转发×4 + 收藏×1 + 点赞×1",
+        "视频号": "推荐分 = 社交关系链×60% + 完播率×25% + 互动深度×15%",
+        "微信视频号": "推荐分 = 社交关系链×60% + 完播率×25% + 互动深度×15%",
+        "公众号": "推荐分 = 打开率×50% + 在看率×30% + 转发率×20%",
+        "微信公众号": "推荐分 = 打开率×50% + 在看率×30% + 转发率×20%",
+        "抖音": "推荐分 = 完播率×40% + 互动率×30% + 关注转化×30%",
+    }
+    formula = platform_formulas.get(platform, platform_formulas["小红书"])
+
     try:
         data = await chat_json(messages, temperature=0.3, max_tokens=2048)
         return ViralScore(
@@ -152,7 +168,7 @@ async def score_viral_potential(
             strengths=data.get("strengths", []),
             weaknesses=data.get("weaknesses", []),
             optimization_tips=data.get("optimization_tips", []),
-            engagement_formula=f"CES = 关注×8 + 评论×4 + 转发×4 + 收藏×1 + 点赞×1",
+            engagement_formula=formula,
         )
     except Exception as exc:
         log.warning("Viral scoring failed: %s", exc)

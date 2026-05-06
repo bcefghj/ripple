@@ -57,7 +57,7 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
     return {
       nodes: data.nodes.map(n => ({
         ...n,
-        __size: Math.max(6, Math.sqrt(n.val || 10) * 2.5),
+        __size: Math.max(5, Math.min(14, Math.sqrt(n.val || 10) * 2)),
       })),
       links: data.links.map(l => ({
         ...l,
@@ -65,6 +65,20 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
       })),
     }
   }, [data])
+
+  // 通过 useEffect 自定义 d3 力布局，加大节点间距避免标签重叠
+  useEffect(() => {
+    if (!graphRef.current) return
+    const fg = graphRef.current
+    if (fg.d3Force) {
+      try {
+        const charge = fg.d3Force('charge')
+        if (charge) charge.strength(-260)
+        const link = fg.d3Force('link')
+        if (link) link.distance(60)
+      } catch {}
+    }
+  }, [graphData])
 
   const handleNodeClick = useCallback((node: any) => {
     setSelectedNode(node)
@@ -128,10 +142,10 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
 
     ctx.globalAlpha = 1
 
-    // Label
+    // Label — 中文优先,避免 Inter 在中文上的回退渲染问题
     const label = node.name || ''
-    const fontSize = Math.max(10 / globalScale, 3)
-    ctx.font = `600 ${fontSize}px "Inter", system-ui, sans-serif`
+    const fontSize = Math.max(11 / globalScale, 4)
+    ctx.font = `600 ${fontSize}px "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'top'
 
@@ -150,11 +164,11 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
     ctx.fillStyle = '#e2e8f0'
     ctx.fillText(label, x, y + size + 2 / globalScale + padding)
 
-    // Type badge (small)
+    // Type badge (small) — 同样使用中文优先字体
     if (globalScale > 1.2) {
       const typeLabel = TYPE_LABELS[node.type] || node.type
       const typeFontSize = Math.max(8 / globalScale, 2.5)
-      ctx.font = `400 ${typeFontSize}px "Inter", system-ui, sans-serif`
+      ctx.font = `400 ${typeFontSize}px "PingFang SC", "Microsoft YaHei", sans-serif`
       ctx.fillStyle = color
       ctx.globalAlpha = 0.7
       ctx.fillText(typeLabel, x, y + size + fontSize + 6 / globalScale)
@@ -175,12 +189,12 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
     ctx.lineWidth = Math.max(0.5, (link.strength || 0.5) * 1.5 / globalScale)
     ctx.stroke()
 
-    // Draw label if zoomed in enough
+    // Draw label if zoomed in enough — 中文优先
     if (globalScale > 1.0 && link.label) {
       const midX = (start.x + end.x) / 2
       const midY = (start.y + end.y) / 2
-      const fontSize = Math.max(7 / globalScale, 2.5)
-      ctx.font = `400 ${fontSize}px "Inter", system-ui, sans-serif`
+      const fontSize = Math.max(8 / globalScale, 3)
+      ctx.font = `500 ${fontSize}px "PingFang SC", "Microsoft YaHei", sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
 
@@ -206,7 +220,7 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-700/40 bg-slate-800/50">
         <div className="flex items-center gap-2 text-sm">
           <Network className="w-4 h-4 text-violet-400" />
-          <span className="font-medium text-slate-200">知识图谱</span>
+          <span className="font-medium text-slate-200">内容生态图</span>
           <span className="text-xs text-slate-500">
             {data.nodes.length} 实体 · {data.links.length} 关系
           </span>
@@ -260,10 +274,14 @@ export default function KnowledgeGraph3D({ data, onClose, onNodeClick, isExpandi
           linkCanvasObject={linkCanvasObject}
           onNodeClick={handleNodeClick}
           onNodeHover={(node: any) => setHoveredNode(node || null)}
-          cooldownTicks={100}
-          d3AlphaDecay={0.02}
-          d3VelocityDecay={0.3}
-          warmupTicks={50}
+          cooldownTicks={150}
+          d3AlphaDecay={0.018}
+          d3VelocityDecay={0.35}
+          warmupTicks={80}
+          linkDirectionalParticles={1}
+          linkDirectionalParticleSpeed={0.004}
+          linkDirectionalParticleWidth={1.5}
+          linkDirectionalParticleColor={() => 'rgba(167, 139, 250, 0.5)'}
           enableNodeDrag
           enableZoomInteraction
           enablePanInteraction

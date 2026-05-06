@@ -251,13 +251,28 @@ async def build_knowledge_graph(
     domain: str,
     search_data: dict,
     *,
-    max_nodes: int = 300,
+    max_nodes: int = 60,
+    single_pass: bool = True,
 ) -> dict:
-    """Extract knowledge graph from search results using two-pass LLM pipeline.
+    """Extract knowledge graph from search results.
 
-    Pass 1 — entity extraction (nodes).
-    Pass 2 — relationship enrichment (links) given extracted nodes.
+    Default mode (single_pass=True, 60 nodes): Fast single-pass extraction with
+    high-quality nodes — recommended for production use. ~5-10s, no fabrication.
+
+    Heavy mode (single_pass=False, 150-300 nodes): Two-pass pipeline that asks
+    the LLM to extract many entities then enrich relationships. Slower (~30-60s)
+    and tends to fabricate nodes when search data is sparse. Kept for research.
     """
+    if single_pass:
+        # Flatten dict into list for fast extraction
+        all_results = []
+        for items in search_data.values():
+            if isinstance(items, list):
+                all_results.extend(items)
+        log.info("Graph single-pass: domain=%s, max_nodes=%d", domain, max_nodes)
+        graph = await build_graph_fast(domain, all_results, max_nodes=max_nodes)
+        return _validate_graph(graph, domain)
+
     search_summary = _format_search_for_graph(search_data)
     mention_counts = _count_mentions(search_data)
 
@@ -285,37 +300,71 @@ async def build_knowledge_graph(
     return graph
 
 
-async def build_graph_fast(domain: str, search_results: list) -> dict:
-    """Single-pass fast graph extraction (50-80 nodes, ~5-10s).
+async def build_graph_fast(
+    domain: str,
+    search_results: list,
+    *,
+    max_nodes: int = 60,
+) -> dict:
+    """Single-pass fast graph extraction. Quality > quantity.
 
-    Designed for the slim pipeline. Extracts both nodes and links in one LLM call.
+    Builds the content ecosystem map in one LLM call, prioritizing real entities
+    that appear in the search data over LLM-fabricated padding nodes.
     """
     sample_text = "\n".join(
-        f"- {r.title}: {r.snippet[:80]}" for r in search_results[:40]
+        f"- {getattr(r, 'title', r.get('title', '') if isinstance(r, dict) else str(r))}: "
+        f"{(getattr(r, 'snippet', r.get('snippet', '') if isinstance(r, dict) else ''))[:80]}"
+        for r in search_results[:40] if r
     )
 
-    prompt = f"""从以下搜索数据中提取知识图谱。输出严格JSON:
+    target = min(max_nodes, 60)
+    target_low = max(target - 20, 30)
+
+    prompt = f"""从搜索数据中提取一个高质量的「内容生态图」。
+
+# 输出格式（严格 JSON）
 {{
   "nodes": [
-    {{"id": "英文ID", "name": "中文名", "type": "topic|person|platform|brand|trend|strategy|keyword", "val": 10}}
+    {{"id": "英文/拼音ID（不含空格）", "name": "中文显示名", "type": "topic|person|platform|brand|trend|strategy|keyword|audience|format|content", "val": 数值, "desc": "20字以内简介"}}
   ],
   "links": [
-    {{"source": "节点ID", "target": "节点ID", "label": "关系描述"}}
+    {{"source": "节点ID", "target": "节点ID", "label": "中文关系", "strength": 0.1-1.0}}
   ]
 }}
 
-要求:
-- 提取 40-70 个节点，覆盖: 话题、人物、平台、品牌、趋势、策略、关键词
-- 每个节点 val 在 5-40 之间，越重要越大
-- 建立 60-120 条关系连线，展示事物之间的关联
-- 关系类型包含: 属于、竞争、适合、推荐、热门于、相关
+# 数量目标
+- 节点 {target_low}-{target} 个（**质量 > 数量**：必须从搜索数据中提取真实出现的实体，禁止编造）
+- 关系 {target_low * 2}-{target * 2} 条（每个节点平均 2 条边，保持图谱连通）
+
+# 节点类型分配（按下面比例）
+- 1 个 center 主题节点（type=topic, val=40）
+- 3-5 个平台节点（小红书 / 视频号 / 公众号 / 搜一搜 / 抖音）— 值 25-35
+- 4-6 个受众节点（具体人群，如"大学生 KOC"/"宝妈"）— 值 15-25
+- 6-10 个关键词节点（长尾词、核心词）— 值 10-20
+- 4-6 个内容形式节点（图文 / 短视频 / 直播）— 值 10-18
+- 3-5 个策略节点（差异化定位 / 私域引流）— 值 10-18
+- 4-8 个真实出现的人物 / 品牌 / 趋势节点 — 值 10-25
+
+# 关系标签（用中文，不用英文）
+"主阵地" / "目标受众" / "差异化" / "搜索入口" / "热门" / "推荐" / "适合"
+"竞品" / "合作" / "细分" / "属于" / "驱动" / "关联"
+
+# 严格规则
+- ID 用英文或拼音，避免冲突
+- val 越大代表越重要（中心 40，主流平台 25-35，关键词 10-20）
+- desc 不超过 20 个汉字，描述要具体（不要写"很重要"等空话）
+- 节点中文名使用 PingFang SC / Microsoft YaHei 字体可显示的字符
+- 不要编造搜索数据中完全没有提到的人物或品牌
 
 领域: {domain}
-搜索数据:
-{sample_text}"""
+
+搜索数据样本:
+{sample_text}
+
+只输出 JSON，不要任何 markdown 包裹或额外文字。"""
 
     messages = [
-        {"role": "system", "content": "你是知识图谱提取引擎。只输出JSON，不要任何其他文本。"},
+        {"role": "system", "content": "你是内容生态图的图谱构建专家。基于搜索数据构建结构清晰、连通度高、节点真实可信的关系图。只输出 JSON。"},
         {"role": "user", "content": prompt},
     ]
 
@@ -324,10 +373,14 @@ async def build_graph_fast(domain: str, search_results: list) -> dict:
         nodes = raw.get("nodes", [])
         links = raw.get("links", [])
 
+        # Cap at max_nodes (sort by val desc, take top N)
+        nodes = sorted(nodes, key=lambda n: n.get("val", 0), reverse=True)[:max_nodes]
+
         for node in nodes:
             node_type = node.get("type", "topic")
             node["color"] = _TYPE_COLORS.get(node_type, "#818cf8")
             node.setdefault("val", 10)
+            node.setdefault("desc", "")
 
         valid_ids = {n["id"] for n in nodes}
         links = [
@@ -339,9 +392,7 @@ async def build_graph_fast(domain: str, search_results: list) -> dict:
         return {"nodes": nodes, "links": links}
     except Exception as e:
         log.warning("Fast graph failed: %s", e)
-        return {"nodes": [
-            {"id": "center", "name": domain, "type": "topic", "val": 30, "color": "#6366f1"}
-        ], "links": []}
+        return _fallback_graph(domain, {"peers": search_results})
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlowGuard · Agent OS for Feishu</title>
+<meta name="description" content="FlowGuard is the first agent in Feishu ecosystem that ships Memory · Security · MCP together. 2026 Feishu AI Campus Challenge.">
+<meta name="theme-color" content="#08070a">
+<meta property="og:title" content="FlowGuard · Agent OS for Feishu">
+<meta property="og:description" content="Memory · Security · MCP — shipped together.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============== Nav ============== -->
+<nav class="topbar">
+  <div class="inner">
+    <a href="#top" class="logo"><span class="dot"></span>FlowGuard <span style="color:var(--neon2);font-size:.7rem;margin-left:6px">v3</span></a>
+    <div class="links">
+      <a href="#problem">problem</a>
+      <a href="#solution">solution</a>
+      <a href="#demo-sim">demo</a>
+      <a href="#engine">engine</a>
+      <a href="#demo-mcp">mcp</a>
+      <a href="#security">security</a>
+      <a href="#team">team</a>
+      <a href="../version-a-editorial/" class="switch">A · Editorial →</a>
+      <button class="theme-btn" id="themeToggle" aria-label="Toggle theme">☀</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============== Hero ============== -->
+<section id="top" class="hero container">
+  <div class="tag">2026 Feishu AI Campus · Submitted · Track 1 / 2 / 3</div>
+  <h1>
+    Memory · Security · MCP<br/>
+    <em>shipped together.</em>
+  </h1>
+  <p class="subtitle">
+    FlowGuard 是飞书生态里第一个把 <strong>三层企业记忆 · 八层安全栈 · MCP Server</strong> 同时做完的工作守护 Agent。
+    借鉴 Anthropic Claude Code 的 nO 主循环、wU2 三层压缩、7-gate 沙箱，把它"翻译"到飞书办公场景。
+  </p>
+  <div class="cta-row">
+    <a href="#demo-sim" class="btn btn-primary">▶ Run 90s Demo</a>
+    <a href="#demo-mcp" class="btn btn-ghost">curl /mcp/call</a>
+    <a href="#engine" class="btn btn-ghost">Inside the Engine</a>
+    <a href="https://github.com/bcefghj/flowguard" target="_blank" class="btn btn-ghost">$ git clone ↗</a>
+  </div>
+  <div class="meta-row">
+    <span>shipped by <strong>李洁盈</strong> (product/design) &amp; <strong>戴尚号</strong> (engineering)</span>
+    <span class="sep">·</span>
+    <span>v3 · 2026-04 · MIT</span>
+  </div>
+  <div class="stats" id="heroStats"></div>
+</section>
+
+<!-- ============== Problem ============== -->
+<section id="problem" class="container">
+  <div class="section-tag reveal">problem</div>
+  <h2 class="section-title reveal">Deep work is being <em>shredded</em>.</h2>
+  <p class="section-desc reveal">办公工具擅长分配任务、催促进度，却从来没有保护过人的工作状态。打断不是技术问题，是被长期忽视的体验问题。</p>
+  <div class="problem-grid" id="problemGrid"></div>
+  <div class="quote-block reveal">
+    大多数深度工作失败，不是因为不会做，而是因为工作流被消息和沟通切碎。
+    <span class="attr">— 李洁盈 · 团队产品观</span>
+  </div>
+</section>
+
+<!-- ============== Solution ============== -->
+<section id="solution" class="container">
+  <div class="section-tag reveal">solution</div>
+  <h2 class="section-title reveal">FlowGuard ships <em>4 things</em>.</h2>
+  <p class="section-desc reveal">不是简单的免打扰。是一个理解工作上下文、主动做决策、被打断后仍能帮你回到状态、并通过 MCP 对外赋能其他 Agent 的完整守护系统。</p>
+  <div class="solution-grid" id="solutionGrid"></div>
+</section>
+
+<!-- ============== Smart Shield 4 levels ============== -->
+<section id="priority" class="container">
+  <div class="section-tag reveal">smart-shield</div>
+  <h2 class="section-title reveal">6-dim classification · <em>explainable, rollbackable</em>.</h2>
+  <p class="section-desc reveal">大多数 AI 黑箱让人不敢用。FlowGuard 给每个决策生成 6 维评分卡，用户能看、能问、能改正。规则兜底 + LLM 仅在边界仲裁，准确率 99%、LLM 调用率 &lt; 12%。</p>
+  <div class="class-grid" id="priorityGrid"></div>
+</section>
+
+<!-- ============== Demo 1 · Chat Simulator ============== -->
+<section id="demo-sim" class="container">
+  <div class="section-tag reveal">demo · live</div>
+  <h2 class="section-title reveal"><em>90 seconds</em> in Feishu, with FlowGuard on.</h2>
+  <p class="section-desc reveal">下方仿真飞书桌面端。模拟"开始专注 90 分钟"后群消息陆续涌入，FlowGuard 实时打分、分级、代回复，并在结束时生成上下文恢复卡片。</p>
+  <div class="demo-frame reveal">
+    <div id="chatSimRoot"></div>
+  </div>
+  <div class="demo-caption">▶ play · ⏭ step · ↻ replay</div>
+</section>
+
+<!-- ============== Demo 2 · Classifier Playground ============== -->
+<section id="demo-play" class="container">
+  <div class="section-tag reveal">demo · try it</div>
+  <h2 class="section-title reveal">Drop a message · <em>watch the engine score it</em>.</h2>
+  <p class="section-desc reveal">输入任意一条消息，选择发送方与频道，FlowGuard 会实时给出 6 维评分、加权总分和最终的 P 级。试试改一个字看分数怎么变。</p>
+  <div class="demo-frame reveal">
+    <div id="classifierRoot"></div>
+  </div>
+</section>
+
+<!-- ============== Demo 3 · Screenshots Gallery ============== -->
+<section id="gallery" class="container">
+  <div class="section-tag reveal">demo · gallery</div>
+  <h2 class="section-title reveal">FlowGuard in Feishu · <em>pixel-perfect</em>.</h2>
+  <p class="section-desc reveal">下面 6 张是 FlowGuard 在真实飞书 IM 里的卡片渲染（用同等样式直接 HTML 渲染，非贴图，可暗色自适应）。</p>
+  <div id="shotGallery" class="reveal" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px"></div>
+</section>
+
+<!-- ============== Killer · Workspace ============== -->
+<section id="killer" class="container">
+  <div class="section-tag reveal">killer-feature</div>
+  <h2 class="section-title reveal">Auto-provision Feishu workspace · <em>30s, zero config</em>.</h2>
+  <p class="section-desc reveal">这是我们对赛道一「IM 办公协同智能助手」最深的演绎：FlowGuard 在评委首次私聊后，自动为他创建一套个人飞书工作台。无需安装、无需注册、无需扫码。</p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:24px">
+    <div class="sol-card reveal"><div class="meta"><span class="num">STEP_01</span></div><h3>评委私聊一句话</h3><p style="color:var(--fg2);font-size:.85rem">触发首次握手，FlowGuard 识别新用户。</p></div>
+    <div class="sol-card reveal"><div class="meta"><span class="num">STEP_02</span></div><h3>自动建多维表格</h3><p style="color:var(--fg2);font-size:.85rem">「打断分析看板」预置 6 条示例数据。</p></div>
+    <div class="sol-card reveal"><div class="meta"><span class="num">STEP_03</span></div><h3>自动建共享文档</h3><p style="color:var(--fg2);font-size:.85rem">「会后恢复卡片」+「上手指南」直发链接。</p></div>
+    <div class="sol-card reveal"><div class="meta"><span class="num">STEP_04</span></div><h3>每次结束专注</h3><p style="color:var(--fg2);font-size:.85rem">恢复卡自动 append 到飞书 docx，形成长期工作日志。</p></div>
+  </div>
+  <div class="quote-block reveal">
+    我们不展示飞书 API 的"调用能力"，我们让评委亲身体验飞书生态的"网络效应"。
+    <span class="attr">— 戴尚号 · 团队工程观</span>
+  </div>
+</section>
+
+<!-- ============== Engine · Architecture ============== -->
+<section id="engine" class="container">
+  <div class="section-tag reveal">inside the engine</div>
+  <h2 class="section-title reveal">Inspired by <em>Anthropic Claude Code</em>.</h2>
+  <p class="section-desc reveal">v3 重构了 Agent Loop、记忆与安全三大核心，分别对应 Claude Code 的 nO 主循环、wU2 三层压缩、7-gate 沙箱。我们把这套办公场景"翻译"得忠实而克制。</p>
+  <div id="engineWrap" class="engine-wrap"></div>
+</section>
+
+<!-- ============== Demo 4 · MCP Playground ============== -->
+<section id="demo-mcp" class="container">
+  <div class="section-tag reveal">demo · mcp · live</div>
+  <h2 class="section-title reveal">Not just a bot · <em>real, callable MCP API</em>.</h2>
+  <p class="section-desc reveal">通过 Model Context Protocol，FlowGuard 把"飞书工作状态感知"暴露给任何 Agent。下方 demo 直接 fetch <code>http://118.178.242.26/mcp/call</code>，6 个工具任你点。</p>
+  <div class="demo-frame reveal">
+    <div id="mcpRoot"></div>
+  </div>
+  <div class="demo-caption">stdio · sse · http · 三种 transport 全部就绪</div>
+</section>
+
+<!-- ============== Security ============== -->
+<section id="security" class="container">
+  <div class="section-tag reveal">security · trust</div>
+  <h2 class="section-title reveal">8 gates · <em>OWASP LLM Top 10 covered</em>.</h2>
+  <p class="section-desc reveal">每条消息过 8 道闸门，任何风险被 audit-log 一条 HIGH/WARN，并降级或拦截。所有决策可在 Dashboard 一键回滚。Promptfoo red-team 14/14 PASS。</p>
+  <div class="gate-grid" id="gateGrid"></div>
+  <h3 style="font-size:1.2rem;font-weight:700;margin-top:48px;letter-spacing:-.01em" class="reveal">Privacy · <em style="font-style:normal;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent">say it clearly</em>.</h3>
+  <div class="privacy-grid" id="privacyGrid"></div>
+</section>
+
+<!-- ============== Status (Built / Lab / Planned) ============== -->
+<section id="status" class="container">
+  <div class="section-tag reveal">honest status</div>
+  <h2 class="section-title reveal">What we shipped · <em>what's next</em>.</h2>
+  <p class="section-desc reveal">诚实分组：「Built」是代码可跑、有测试覆盖；「Lab」是已编码、等飞书后台权限审批；「Planned」是设计已完成、规划在评审窗口期推进。我们不冒充未完成的部分。</p>
+  <div class="status-grid" id="statusGrid"></div>
+</section>
+
+<!-- ============== Tracks ============== -->
+<section id="tracks" class="container">
+  <div class="section-tag reveal">tracks</div>
+  <h2 class="section-title reveal">One codebase · <em>three submitted tracks</em>.</h2>
+  <p class="section-desc reveal">FlowGuard 同时具备三个赛道课题的核心要素，已按报名表填写第一/二/三志愿。希望优先安排到第一志愿。</p>
+  <div class="tracks-grid" id="tracksGrid"></div>
+
+  <h3 style="font-size:1.2rem;font-weight:700;margin-top:56px;letter-spacing:-.01em" class="reveal">Feishu · <em style="font-style:normal;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent">9 APIs deeply integrated</em>.</h3>
+  <p class="section-desc reveal" style="margin-bottom:0">绿点 · live · 已生产；橙点 · pending · 等飞书后台权限审批后启用。</p>
+  <div class="api-cloud" id="apiCloud"></div>
+</section>
+
+<!-- ============== Team ============== -->
+<section id="team" class="container">
+  <div class="section-tag reveal">team</div>
+  <h2 class="section-title reveal">Two builders · <em>complementary</em>.</h2>
+  <p class="section-desc reveal">设计师懂工程师为什么要做 8 层安全；工程师懂设计师为什么要把恢复卡片做成卡片不做成纯文本。这是我们 8 天交付的底层共识。</p>
+  <div class="team-grid" id="teamGrid"></div>
+  <div class="team-narrative reveal" id="teamNarrative"></div>
+</section>
+
+<!-- ============== Resources ============== -->
+<section id="resources" class="container">
+  <div class="section-tag reveal">resources</div>
+  <h2 class="section-title reveal">Materials · links · entries.</h2>
+  <p class="section-desc reveal">PDF · GitHub · Live Dashboard · MCP API · 官方报名页 — 所有评委可能想点的入口都在这里。</p>
+  <div class="res-grid" id="resGrid"></div>
+</section>
+
+<!-- ============== FAQ ============== -->
+<section id="faq" class="narrow">
+  <div class="section-tag reveal">faq</div>
+  <h2 class="section-title reveal">Common questions.</h2>
+  <div class="faq-list" id="faqList" style="margin-top:24px"></div>
+</section>
+
+<!-- ============== Footer ============== -->
+<footer class="site-footer">
+  <div class="container">
+    <p>FlowGuard · the first Memory · Security · MCP agent in Feishu ecosystem</p>
+    <p style="margin-top:8px">2026 Feishu AI Campus Challenge · MIT License · © 戴尚号 / 李洁盈</p>
+    <div class="links">
+      <a href="https://github.com/bcefghj/flowguard" target="_blank">github</a>
+      <a href="http://118.178.242.26/dashboard" target="_blank">dashboard</a>
+      <a href="http://118.178.242.26/mcp/tools" target="_blank">/mcp/tools</a>
+      <a href="https://bytedance.aiforce.cloud/app/app_4jv6kvy942afr" target="_blank">official</a>
+      <a href="../version-a-editorial/">A · Editorial</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Scripts -->
+<script src="../shared/data.js"></script>
+<script src="../shared/icons.js"></script>
+<script src="../shared/screenshots.js"></script>
+<script src="../shared/chat-simulator.js"></script>
+<script src="../shared/classifier-playground.js"></script>
+<script src="../shared/mcp-playground.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
